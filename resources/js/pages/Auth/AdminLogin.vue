@@ -195,11 +195,11 @@ async function handleLogin() {
       password: form.password
     })
 
-    const { user, token } = response.data
-    setToken(token)
-    setCurrentUser(user)
+    const { data } = response.data
+    setToken(data.token)
+    setCurrentUser(data.user)
 
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
+    axios.defaults.headers.common['Authorization'] = `Bearer ${data.token}`
 
     router.push('/dashboard')
   } catch (err) {

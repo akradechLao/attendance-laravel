@@ -137,13 +137,18 @@ async function fetchData() {
     const params = selectedCompany.value ? { company_id: selectedCompany.value } : {}
     const [statsRes, attendanceRes, companiesRes] = await Promise.all([
       axios.get('/api/dashboard/stats', { params }),
-      axios.get('/api/dashboard/attendance-today', { params }),
+      axios.get('/api/dashboard/today', { params }),
       axios.get('/api/companies')
     ])
 
-    Object.assign(stats, statsRes.data)
-    attendances.value = attendanceRes.data.data || attendanceRes.data
-    companies.value = companiesRes.data.data || companiesRes.data
+    Object.assign(stats, {
+      total: statsRes.data?.total_employees || 0,
+      present: statsRes.data?.today?.present || 0,
+      late: statsRes.data?.today?.late || 0,
+      absent: statsRes.data?.today?.absent || 0
+    })
+    attendances.value = attendanceRes.data?.data?.records || attendanceRes.data?.records || []
+    companies.value = companiesRes.data?.data || companiesRes.data || []
   } catch (error) {
     console.error('Error fetching dashboard data:', error)
   } finally {
