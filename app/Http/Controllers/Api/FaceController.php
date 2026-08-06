@@ -1,0 +1,291 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\AttendanceLog;
+use App\Models\Employee;
+use App\Models\EmployeeFaceData;
+use App\Models\OfficeLocation;
+use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
+
+class FaceController extends Controller
+{
+    private string $pythonApiUrl;
+
+    public function __construct()
+    {
+        $this->pythonApiUrl = config('services.face_api.url', 'http://localhost:8000');
+    }
+
+    public function verify(Request $request): JsonResponse
+    {
+        try {
+            $request->validate([
+                'employee_id' => 'required|exists:employees,id',
+                'image' => 'required|string',
+                'type' => 'required|string|in:check_in,check_out',
+                'latitude' => 'nullable|numeric',
+                'longitude' => 'nullable|numeric',
+            ]);
+
+            $employee = Employee::findOrFail($request->employee_id);
+
+            $faceEncodings = EmployeeFaceData::where('employee_id', $employee->id)
+                ->pluck('face_encoding')
+                ->toArray();
+
+            if (empty($faceEncodings)) {
+                return response()->json([
+                    'success' => false,
+                    'data' => null,
+                    'message' => 'No face data registered for this employee.',
+                ], 400);
+            }
+
+            $response = Http::timeout(30)->post("{$this->pythonApiUrl}/api/face/verify", [
+                'image' => $request->image,
+                'face_encodings' => $faceEncodings,
+            ]);
+
+            if (!$response->successful()) {
+                Log::error('Face API error: ' . $response->body());
+                return response()->json([
+                    'success' => false,
+                    'data' => null,
+                    'message' => 'Face verification service unavailable.',
+                ], 503);
+            }
+
+            $result = $response->json();
+
+            if (!$result['matched'] ?? false) {
+                Log::info("Face verification failed for employee {$employee->id}", $result);
+
+                return response()->json([
+                    'success' => false,
+                    'data' => $result,
+                    'message' => 'Face not recognized.',
+                ], 401);
+            }
+
+            $today = Carbon::today();
+
+            if ($request->type === 'check_in') {
+                $existingLog = AttendanceLog::where('employee_id', $employee->id)
+                    ->whereDate('check_in', $today)
+                    ->first();
+
+                if ($existingLog) {
+                    return response()->json([
+                        'success' => false,
+                        'data' => null,
+                        'message' => 'Already checked in today.',
+                    ], 400);
+                }
+
+                $officeLocation = OfficeLocation::where('company_id', $employee->company_id)
+                    ->first();
+
+                $status = 'on_time';
+                $notes = null;
+
+                if ($officeLocation && $request->latitude && $request->longitude) {
+                    $distance = $this->calculateDistance(
+                        $request->latitude,
+                        $request->longitude,
+                        $officeLocation->latitude,
+                        $officeLocation->longitude
+                    );
+
+                    if ($distance > $officeLocation->radius) {
+                        return response()->json([
+                            'success' => false,
+                            'data' => null,
+                            'message' => 'Outside office location radius.',
+                        ], 400);
+                    }
+
+                    $workStartTime = Carbon::parse($officeLocation->work_start_time);
+                    if (Carbon::now()->gt($workStartTime)) {
+                        $status = 'late';
+                        $notes = 'Late check-in';
+                    }
+                }
+
+                $log = AttendanceLog::create([
+                    'employee_id' => $employee->id,
+                    'company_id' => $employee->company_id,
+                    'check_in' => Carbon::now(),
+                    'latitude' => $request->latitude,
+                    'longitude' => $request->longitude,
+                    'status' => $status,
+                    'notes' => $notes,
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'attendance_log' => $log,
+                        'face_match' => $result,
+                    ],
+                    'message' => 'Check-in successful. Status: ' . ucfirst($status),
+                ], 201);
+            }
+
+            if ($request->type === 'check_out') {
+                $log = AttendanceLog::where('employee_id', $employee->id)
+                    ->whereDate('check_in', $today)
+                    ->whereNull('check_out')
+                    ->first();
+
+                if (!$log) {
+                    return response()->json([
+                        'success' => false,
+                        'data' => null,
+                        'message' => 'No active check-in found for today.',
+                    ], 400);
+                }
+
+                $log->update([
+                    'check_out' => Carbon::now(),
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'attendance_log' => $log->fresh(),
+                        'face_match' => $result,
+                    ],
+                    'message' => 'Check-out successful.',
+                ]);
+            }
+
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'Invalid type. Must be check_in or check_out.',
+            ], 400);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'Employee not found.',
+            ], 404);
+        } catch (\Exception $e) {
+            Log::error('Face verify error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'Face verification failed: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function register(Request $request): JsonResponse
+    {
+        try {
+            $request->validate([
+                'employee_id' => 'required|exists:employees,id',
+                'images' => 'required|array|min:5',
+                'images.*' => 'required|string',
+            ]);
+
+            $employee = Employee::findOrFail($request->employee_id);
+
+            $response = Http::timeout(60)->post("{$this->pythonApiUrl}/api/face/encode", [
+                'images' => $request->images,
+            ]);
+
+            if (!$response->successful()) {
+                Log::error('Face API encode error: ' . $response->body());
+                return response()->json([
+                    'success' => false,
+                    'data' => null,
+                    'message' => 'Face encoding service unavailable.',
+                ], 503);
+            }
+
+            $result = $response->json();
+            $encodings = $result['encodings'] ?? [];
+
+            if (empty($encodings)) {
+                return response()->json([
+                    'success' => false,
+                    'data' => null,
+                    'message' => 'No faces detected in the provided images.',
+                ], 422);
+            }
+
+            $angles = ['front', 'left', 'right', 'up', 'down'];
+            $savedFaceData = [];
+
+            EmployeeFaceData::where('employee_id', $employee->id)->delete();
+
+            foreach ($encodings as $index => $encoding) {
+                $angle = $angles[$index] ?? "angle_{$index}";
+
+                $faceData = EmployeeFaceData::create([
+                    'employee_id' => $employee->id,
+                    'angle' => $angle,
+                    'face_encoding' => is_string($encoding) ? $encoding : json_encode($encoding),
+                ]);
+
+                $savedFaceData[] = $faceData;
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $savedFaceData,
+                'message' => 'Face data registered successfully for ' . count($savedFaceData) . ' angles.',
+            ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'Employee not found.',
+            ], 404);
+        } catch (\Exception $e) {
+            Log::error('Face register error: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'Face registration failed: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    private function calculateDistance($lat1, $lon1, $lat2, $lon2): float
+    {
+        $earthRadius = 6371000;
+
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLon = deg2rad($lon2 - $lon1);
+
+        $a = sin($dLat / 2) * sin($dLat / 2) +
+             cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
+             sin($dLon / 2) * sin($dLon / 2);
+
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+
+        return $earthRadius * $c;
+    }
+}

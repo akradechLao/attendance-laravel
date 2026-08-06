@@ -1,0 +1,294 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\AttendanceLog;
+use App\Models\Employee;
+use App\Models\OfficeLocation;
+use App\Models\RemoteAssignment;
+use App\Services\AttendanceService;
+use App\Services\LocationService;
+use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class AttendanceController extends Controller
+{
+    protected AttendanceService $attendanceService;
+    protected LocationService $locationService;
+
+    public function __construct(AttendanceService $attendanceService, LocationService $locationService)
+    {
+        $this->attendanceService = $attendanceService;
+        $this->locationService = $locationService;
+    }
+
+    public function checkIn(Request $request): JsonResponse
+    {
+        try {
+            $request->validate([
+                'employee_id' => 'required|exists:employees,id',
+                'latitude' => 'required|numeric',
+                'longitude' => 'required|numeric',
+                'scan_type' => 'nullable|in:office_scan,remote_scan',
+                'custom_location_name' => 'nullable|string|max:255',
+            ]);
+
+            $employee = Employee::findOrFail($request->employee_id);
+            $today = Carbon::today();
+            $scanType = $request->get('scan_type', 'office_scan');
+
+            // Check if already checked in today
+            $existingLog = AttendanceLog::where('emp_id', $employee->id)
+                ->whereDate('date', $today)
+                ->first();
+
+            if ($existingLog && $existingLog->check_in) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Already checked in today.',
+                ], 400);
+            }
+
+            $locationName = null;
+            $isRemoteScan = false;
+
+            if ($scanType === 'remote_scan') {
+                // Verify employee has active remote assignment
+                $hasRemote = $employee->hasActiveRemoteAssignment();
+                if (!$hasRemote) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'No active remote assignment. Please check in at office.',
+                    ], 400);
+                }
+                $isRemoteScan = true;
+                $locationName = $this->locationService->reverseGeocode(
+                    $request->latitude,
+                    $request->longitude
+                );
+            } else {
+                // Office scan - verify within office radius
+                $officeLocation = OfficeLocation::where('company_id', $employee->company_id)
+                    ->where('is_active', true)
+                    ->first();
+
+                if ($officeLocation) {
+                    $distance = $this->locationService->calculateDistance(
+                        $request->latitude,
+                        $request->longitude,
+                        $officeLocation->latitude,
+                        $officeLocation->longitude
+                    );
+
+                    if ($distance > $officeLocation->radius_meters) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'Outside office radius. Distance: ' . round($distance) . 'm',
+                        ], 400);
+                    }
+                }
+            }
+
+            // Calculate late/on_time
+            $officeStartTime = Carbon::today()->setTime(8, 30, 0);
+            $checkInTime = Carbon::now();
+            $isLate = $checkInTime->gt($officeStartTime);
+            $status = $isLate ? 'late' : 'on_time';
+
+            // Create log
+            $log = AttendanceLog::create([
+                'emp_id' => $employee->id,
+                'date' => $today,
+                'check_in' => $checkInTime->format('H:i:s'),
+                'check_in_status' => $status,
+                'scan_type' => $scanType,
+                'remote_latitude' => $isRemoteScan ? $request->latitude : null,
+                'remote_longitude' => $isRemoteScan ? $request->longitude : null,
+                'remote_location_name' => $locationName,
+                'remote_custom_name' => $request->get('custom_location_name'),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => $log,
+                'message' => 'Check-in successful. Status: ' . ($isLate ? 'Late' : 'On Time'),
+            ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Check-in failed: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function checkOut(Request $request): JsonResponse
+    {
+        try {
+            $request->validate([
+                'employee_id' => 'required|exists:employees,id',
+                'latitude' => 'nullable|numeric',
+                'longitude' => 'nullable|numeric',
+                'scan_type' => 'nullable|in:office_scan,remote_scan',
+                'custom_location_name' => 'nullable|string|max:255',
+            ]);
+
+            $employee = Employee::findOrFail($request->employee_id);
+            $today = Carbon::today();
+
+            $log = AttendanceLog::where('emp_id', $employee->id)
+                ->whereDate('date', $today)
+                ->whereNull('check_out')
+                ->first();
+
+            if (!$log) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No active check-in found for today.',
+                ], 400);
+            }
+
+            $updateData = ['check_out' => Carbon::now()->format('H:i:s')];
+
+            if ($request->has('latitude') && $request->has('longitude')) {
+                $scanType = $request->get('scan_type', 'office_scan');
+                
+                if ($scanType === 'remote_scan') {
+                    $locationName = $this->locationService->reverseGeocode(
+                        $request->latitude,
+                        $request->longitude
+                    );
+                    $updateData['scan_type'] = 'remote_scan';
+                    $updateData['remote_latitude'] = $request->latitude;
+                    $updateData['remote_longitude'] = $request->longitude;
+                    $updateData['remote_location_name'] = $locationName;
+                    $updateData['remote_custom_name'] = $request->get('custom_location_name');
+                }
+            }
+
+            $log->update($updateData);
+
+            return response()->json([
+                'success' => true,
+                'data' => $log->fresh(),
+                'message' => 'Check-out successful.',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Check-out failed: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function today(Request $request): JsonResponse
+    {
+        try {
+            $employee = $request->user();
+            $today = Carbon::today();
+
+            $log = AttendanceLog::where('emp_id', $employee->id)
+                ->whereDate('date', $today)
+                ->first();
+
+            return response()->json([
+                'success' => true,
+                'data' => $log,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve attendance: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function history(Request $request, $id): JsonResponse
+    {
+        try {
+            $query = AttendanceLog::where('emp_id', $id)->with('employee');
+
+            if ($request->has('start_date') && $request->has('end_date')) {
+                $query->whereBetween('date', [
+                    $request->start_date,
+                    $request->end_date,
+                ]);
+            }
+
+            $logs = $query->orderBy('date', 'desc')
+                ->paginate($request->get('per_page', 15));
+
+            return response()->json([
+                'success' => true,
+                'data' => $logs,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve history: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function monthly(Request $request): JsonResponse
+    {
+        try {
+            $request->validate([
+                'company_id' => 'required|exists:companies,id',
+                'month' => 'required|integer|min:1|max:12',
+                'year' => 'required|integer|min:2020',
+            ]);
+
+            $startDate = Carbon::create($request->year, $request->month, 1)->startOfMonth();
+            $endDate = $startDate->copy()->endOfMonth();
+
+            $totalEmployees = Employee::where('company_id', $request->company_id)
+                ->count();
+
+            $attendance = AttendanceLog::whereHas('employee', function ($q) use ($request) {
+                $q->where('company_id', $request->company_id);
+            })
+                ->whereBetween('date', [$startDate, $endDate])
+                ->get();
+
+            $presentDays = $attendance->pluck('emp_id')->unique()->count();
+            $lateCount = $attendance->where('check_in_status', 'late')->count();
+            $onTimeCount = $attendance->where('check_in_status', 'on_time')->count();
+            $remoteCount = $attendance->where('scan_type', 'remote_scan')->count();
+
+            $daysInMonth = $startDate->daysInMonth;
+            $absentCount = ($totalEmployees * $daysInMonth) - $attendance->count();
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'total_employees' => $totalEmployees,
+                    'present_days' => $presentDays,
+                    'late_count' => $lateCount,
+                    'on_time_count' => $onTimeCount,
+                    'remote_count' => $remoteCount,
+                    'absent_count' => max(0, $absentCount),
+                    'total_records' => $attendance->count(),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve monthly stats: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+}

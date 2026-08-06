@@ -1,0 +1,101 @@
+<?php
+
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Auth\LoginController;
+use App\Http\Controllers\Auth\EmployeeAuthController;
+use App\Http\Controllers\Api\EmployeeController;
+use App\Http\Controllers\Api\AttendanceController;
+use App\Http\Controllers\Api\LeaveController;
+use App\Http\Controllers\Api\OtRequestController;
+use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\DashboardController;
+use App\Http\Controllers\Api\OfficeLocationController;
+use App\Http\Controllers\Api\FaceController;
+use App\Http\Controllers\Api\CompanyController;
+use App\Http\Controllers\Api\RemoteController;
+
+/*
+|--------------------------------------------------------------------------
+| API Routes
+|--------------------------------------------------------------------------
+*/
+
+// Public routes - Employee authentication (kiosk)
+Route::post('/employee/auth/search', [EmployeeAuthController::class, 'search']);
+Route::post('/employee/auth/verify', [EmployeeAuthController::class, 'verify']);
+
+// Public routes - Face recognition
+Route::post('/face/verify', [FaceController::class, 'verify']);
+
+// Public routes - Company list
+Route::get('/companies', [CompanyController::class, 'index']);
+
+// Public routes - Attendance (kiosk check-in/check-out)
+Route::post('/attendance/check-in', [AttendanceController::class, 'checkIn']);
+Route::post('/attendance/check-out', [AttendanceController::class, 'checkOut']);
+
+// Public auth routes
+Route::post('/auth/login', [LoginController::class, 'login']);
+
+// Protected routes - Authentication
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/auth/logout', [LoginController::class, 'logout']);
+    Route::get('/auth/me', [LoginController::class, 'me']);
+
+    // Employee management
+    Route::get('/employees', [EmployeeController::class, 'index']);
+    Route::get('/employees/{id}', [EmployeeController::class, 'show']);
+    Route::post('/employees', [EmployeeController::class, 'store']);
+    Route::put('/employees/{id}', [EmployeeController::class, 'update']);
+    Route::delete('/employees/{id}', [EmployeeController::class, 'destroy']);
+    Route::get('/employees/{id}/face-data', [EmployeeController::class, 'faceData']);
+    Route::post('/employees/face', [EmployeeController::class, 'registerFace']);
+    Route::delete('/employees/face/{id}', [EmployeeController::class, 'deleteFaceData']);
+
+    // Attendance
+    Route::get('/attendance/today', [AttendanceController::class, 'today']);
+    Route::get('/attendance/history/{employeeId}', [AttendanceController::class, 'history']);
+    Route::get('/attendance/monthly', [AttendanceController::class, 'monthly']);
+
+    // Remote assignments
+    Route::get('/remote-assignments', [RemoteController::class, 'index']);
+    Route::post('/remote-assignments', [RemoteController::class, 'store']);
+    Route::put('/remote-assignments/{id}/approve', [RemoteController::class, 'approve']);
+    Route::put('/remote-assignments/{id}/reject', [RemoteController::class, 'reject']);
+    Route::post('/remote/check-active', [RemoteController::class, 'checkActive']);
+    Route::get('/remote/location-history/{employeeId}', [RemoteController::class, 'getLocationHistory']);
+    Route::get('/remote/realtime-locations', [RemoteController::class, 'getRealtimeLocations']);
+    Route::put('/remote/location-name/{id}', [RemoteController::class, 'updateLocationName']);
+
+    // Leave management
+    Route::get('/leave', [LeaveController::class, 'index']);
+    Route::post('/leave', [LeaveController::class, 'store']);
+    Route::put('/leave/{id}/approve', [LeaveController::class, 'approve']);
+    Route::put('/leave/{id}/reject', [LeaveController::class, 'reject']);
+    Route::get('/leave/types', [LeaveController::class, 'types']);
+
+    // Overtime management
+    Route::get('/ot', [OtRequestController::class, 'index']);
+    Route::post('/ot', [OtRequestController::class, 'store']);
+    Route::put('/ot/{id}/manager-approve', [OtRequestController::class, 'managerApprove']);
+    Route::put('/ot/{id}/final-approve', [OtRequestController::class, 'finalApprove']);
+    Route::put('/ot/{id}/reject', [OtRequestController::class, 'reject']);
+
+    // Reports
+    Route::get('/reports/attendance', [ReportController::class, 'attendance']);
+    Route::get('/reports/monthly', [ReportController::class, 'monthly']);
+    Route::get('/reports/employee/{id}', [ReportController::class, 'employee']);
+
+    // Dashboard
+    Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
+    Route::get('/dashboard/today', [DashboardController::class, 'today']);
+
+    // Office locations
+    Route::get('/office-locations', [OfficeLocationController::class, 'index']);
+    Route::post('/office-locations', [OfficeLocationController::class, 'store']);
+    Route::put('/office-locations/{id}', [OfficeLocationController::class, 'update']);
+    Route::delete('/office-locations/{id}', [OfficeLocationController::class, 'destroy']);
+
+    // Face registration
+    Route::post('/face/register', [FaceController::class, 'register']);
+});

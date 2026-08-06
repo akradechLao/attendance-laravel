@@ -1,0 +1,15 @@
+#!/bin/bash
+
+echo "SSL Certificate Setup (ServBot)"
+echo ""
+echo "Instructions:"
+echo "1. Login to ServBot dashboard"
+echo "2. Add domain: attendance.etc1992.com"
+echo "3. Download certificate files"
+echo "4. Upload to server:"
+echo "   sudo mkdir -p /etc/ssl/attendance.etc1992.com"
+echo "   sudo cp fullchain.pem /etc/ssl/attendance.etc1992.com/"
+echo "   sudo cp privkey.pem /etc/ssl/attendance.etc1992.com/"
+echo "   sudo chmod 600 /etc/ssl/attendance.etc1992.com/*"
+echo ""
+echo "Then run: sudo systemctl reload nginx"
