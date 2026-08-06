@@ -1,0 +1,32 @@
+<?php
+
+namespace App\Http\Controllers\Api;
+
+use App\Http\Controllers\Controller;
+use App\Models\CompanySetting;
+use Illuminate\Http\Request;
+
+class CompanySettingsController extends Controller
+{
+    public function index(Request $request)
+    {
+        $companyId = $request->user()->company_id ?? 1;
+
+        $settings = CompanySetting::where('company_id', $companyId)
+            ->pluck('value', 'key')
+            ->toArray();
+
+        return response()->json(['data' => $settings]);
+    }
+
+    public function update(Request $request)
+    {
+        $companyId = $request->user()->company_id ?? 1;
+
+        foreach ($request->all() as $key => $value) {
+            CompanySetting::setValue($companyId, $key, $value);
+        }
+
+        return response()->json(['message' => 'บันทึกสำเร็จ']);
+    }
+}

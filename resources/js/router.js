@@ -13,6 +13,12 @@ const routes = [
     meta: { requiresAuth: false }
   },
   {
+    path: '/employee/history',
+    name: 'EmployeeHistory',
+    component: () => import('./pages/Employee/EmployeeHistory.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
     path: '/login',
     name: 'AdminLogin',
     component: () => import('./pages/Auth/AdminLogin.vue'),
@@ -70,6 +76,84 @@ const routes = [
     path: '/location-history',
     name: 'LocationHistory',
     component: () => import('./pages/HR/LocationHistory.vue'),
+    meta: { requiresAuth: true, layout: 'app' }
+  },
+  {
+    path: '/wfh',
+    name: 'WfhManagement',
+    component: () => import('./pages/HR/WfhManagement.vue'),
+    meta: { requiresAuth: true, layout: 'app' }
+  },
+  {
+    path: '/holidays',
+    name: 'HolidayManagement',
+    component: () => import('./pages/HR/HolidayManagement.vue'),
+    meta: { requiresAuth: true, layout: 'app' }
+  },
+  {
+    path: '/shifts',
+    name: 'ShiftManagement',
+    component: () => import('./pages/HR/ShiftManagement.vue'),
+    meta: { requiresAuth: true, layout: 'app' }
+  },
+  {
+    path: '/photos',
+    name: 'PhotoHistory',
+    component: () => import('./pages/HR/PhotoHistory.vue'),
+    meta: { requiresAuth: true, layout: 'app' }
+  },
+  {
+    path: '/supervisor/leave-approval',
+    name: 'SupervisorLeaveApproval',
+    component: () => import('./pages/Supervisor/LeaveApproval.vue'),
+    meta: { requiresAuth: true, layout: 'app' }
+  },
+  {
+    path: '/supervisor/ot-approval',
+    name: 'SupervisorOtApproval',
+    component: () => import('./pages/Supervisor/OtApproval.vue'),
+    meta: { requiresAuth: true, layout: 'app' }
+  },
+  {
+    path: '/supervisor/team-calendar',
+    name: 'SupervisorTeamCalendar',
+    component: () => import('./pages/Supervisor/TeamCalendar.vue'),
+    meta: { requiresAuth: true, layout: 'app' }
+  },
+  {
+    path: '/manager/leave-approval',
+    name: 'ManagerLeaveApproval',
+    component: () => import('./pages/Manager/LeaveApproval.vue'),
+    meta: { requiresAuth: true, layout: 'app' }
+  },
+  {
+    path: '/manager/ot-approval',
+    name: 'ManagerOtApproval',
+    component: () => import('./pages/Manager/OtApproval.vue'),
+    meta: { requiresAuth: true, layout: 'app' }
+  },
+  {
+    path: '/manager/team-report',
+    name: 'ManagerTeamReport',
+    component: () => import('./pages/Manager/TeamReport.vue'),
+    meta: { requiresAuth: true, layout: 'app' }
+  },
+  {
+    path: '/admin/company-settings',
+    name: 'CompanySettings',
+    component: () => import('./pages/Admin/CompanySettings.vue'),
+    meta: { requiresAuth: true, layout: 'app' }
+  },
+  {
+    path: '/admin/system-settings',
+    name: 'SystemSettings',
+    component: () => import('./pages/Admin/SystemSettings.vue'),
+    meta: { requiresAuth: true, layout: 'app' }
+  },
+  {
+    path: '/admin/location-settings',
+    name: 'LocationSettings',
+    component: () => import('./pages/Admin/LocationSettings.vue'),
     meta: { requiresAuth: true, layout: 'app' }
   }
 ]

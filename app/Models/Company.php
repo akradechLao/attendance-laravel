@@ -9,11 +9,20 @@ class Company extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['name'];
+    protected $fillable = [
+        'name',
+        'telegram_bot_token',
+        'telegram_chat_id',
+    ];
 
     public function employees(): HasMany
     {
         return $this->hasMany(Employee::class);
+    }
+
+    public function adminUsers(): HasMany
+    {
+        return $this->hasMany(AdminUser::class);
     }
 
     public function officeLocations(): HasMany
@@ -29,5 +38,35 @@ class Company extends Model
     public function leaveTypes(): HasMany
     {
         return $this->hasMany(LeaveType::class);
+    }
+
+    public function leaveRequests(): HasMany
+    {
+        return $this->hasMany(LeaveRequest::class);
+    }
+
+    public function otRequests(): HasMany
+    {
+        return $this->hasMany(OtRequest::class);
+    }
+
+    public function shiftSchedules(): HasMany
+    {
+        return $this->hasMany(ShiftSchedule::class);
+    }
+
+    public function settings(): HasMany
+    {
+        return $this->hasMany(CompanySetting::class);
+    }
+
+    public function getSetting(string $key, mixed $default = null): mixed
+    {
+        return CompanySetting::getValue($this->id, $key, $default);
+    }
+
+    public function setSetting(string $key, mixed $value): void
+    {
+        CompanySetting::setValue($this->id, $key, $value);
     }
 }

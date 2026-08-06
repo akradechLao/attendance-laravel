@@ -6,7 +6,6 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
-use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
@@ -31,6 +30,8 @@ class Employee extends Authenticatable
         'supervisor_line',
         'supervisor_phone',
         'password',
+        'wfh_quota',
+        'preferred_off_day',
     ];
 
     protected $hidden = [
@@ -42,6 +43,7 @@ class Employee extends Authenticatable
         'has_ot' => 'boolean',
         'level' => 'integer',
         'password' => 'hashed',
+        'wfh_quota' => 'integer',
     ];
 
     public function company(): BelongsTo
@@ -84,13 +86,14 @@ class Employee extends Authenticatable
         return $this->hasMany(RemoteAssignment::class, 'emp_id');
     }
 
-    public function hasActiveRemoteAssignment(): bool
+    public function shiftSchedules(): HasMany
     {
-        return $this->remoteAssignments()
-            ->where('status', 'approved')
-            ->where('start_date', '<=', now()->toDateString())
-            ->where('end_date', '>=', now()->toDateString())
-            ->exists();
+        return $this->hasMany(ShiftSchedule::class, 'emp_id');
+    }
+
+    public function wfhRecords(): HasMany
+    {
+        return $this->hasMany(WfhRecord::class, 'emp_id');
     }
 
     public function isExcludedFromAttendance(): bool
@@ -107,5 +110,14 @@ class Employee extends Authenticatable
     {
         $level = $this->getLevel();
         return $level <= PositionConstants::HIERARCHY['division_manager'];
+    }
+
+    public function hasActiveRemoteAssignment(): bool
+    {
+        return $this->remoteAssignments()
+            ->where('status', 'approved')
+            ->where('start_date', '<=', now()->toDateString())
+            ->where('end_date', '>=', now()->toDateString())
+            ->exists();
     }
 }

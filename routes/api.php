@@ -13,6 +13,14 @@ use App\Http\Controllers\Api\OfficeLocationController;
 use App\Http\Controllers\Api\FaceController;
 use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\RemoteController;
+use App\Http\Controllers\Api\WfhController;
+use App\Http\Controllers\Api\HolidayController;
+use App\Http\Controllers\Api\ShiftController;
+use App\Http\Controllers\Api\SupervisorController;
+use App\Http\Controllers\Api\ManagerController;
+use App\Http\Controllers\Api\CompanySettingsController;
+use App\Http\Controllers\Api\SystemSettingsController;
+use App\Http\Controllers\Api\EmployeeHistoryController;
 
 /*
 |--------------------------------------------------------------------------
@@ -98,4 +106,41 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Face registration
     Route::post('/face/register', [FaceController::class, 'register']);
+
+    // WFH Management
+    Route::get('/wfh-records', [WfhController::class, 'index']);
+    Route::post('/wfh-records', [WfhController::class, 'store']);
+    Route::put('/wfh-records/{id}/approve', [WfhController::class, 'approve']);
+    Route::put('/wfh-records/{id}/reject', [WfhController::class, 'reject']);
+
+    // Holiday Management
+    Route::get('/holidays', [HolidayController::class, 'index']);
+    Route::post('/holidays', [HolidayController::class, 'store']);
+    Route::delete('/holidays/{id}', [HolidayController::class, 'destroy']);
+
+    // Shift Management
+    Route::get('/shift-schedules', [ShiftController::class, 'index']);
+    Route::post('/shift-schedules', [ShiftController::class, 'store']);
+    Route::delete('/shift-schedules/{id}', [ShiftController::class, 'destroy']);
+
+    // Supervisor Routes
+    Route::get('/supervisor/leave-approval', [SupervisorController::class, 'leaveApproval']);
+    Route::get('/supervisor/ot-approval', [SupervisorController::class, 'otApproval']);
+    Route::get('/supervisor/team-calendar', [SupervisorController::class, 'teamCalendar']);
+
+    // Manager Routes
+    Route::get('/manager/leave-approval', [ManagerController::class, 'leaveApproval']);
+    Route::get('/manager/ot-approval', [ManagerController::class, 'otApproval']);
+    Route::get('/manager/team-report', [ManagerController::class, 'teamReport']);
+
+    // Company Settings
+    Route::get('/company-settings', [CompanySettingsController::class, 'index']);
+    Route::put('/company-settings', [CompanySettingsController::class, 'update']);
+
+    // System Settings
+    Route::get('/system-settings', [SystemSettingsController::class, 'index']);
+    Route::put('/system-settings', [SystemSettingsController::class, 'update']);
+
+    // Employee History
+    Route::get('/employees/{id}/history', [EmployeeHistoryController::class, 'index']);
 });

@@ -21,3 +21,7 @@ python/__pycache__
 *.pyc
 .DS_Store
 Thumbs.db
+database/database.sqlite
+bootstrap/cache/*
+composer.lock
+package-lock.json

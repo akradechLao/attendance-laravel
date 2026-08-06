@@ -27,17 +27,24 @@
 
         <!-- Navigation -->
         <nav class="flex-1 p-4 space-y-1 overflow-y-auto custom-scrollbar">
-          <router-link
-            v-for="item in navItems"
-            :key="item.path"
-            :to="item.path"
-            class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-700 hover:text-white transition-colors duration-200"
-            :class="{ 'bg-blue-500 text-white': isActive(item.path) }"
-            @click="sidebarOpen = false"
-          >
-            <component :is="item.icon" class="w-5 h-5" />
-            <span>{{ item.label }}</span>
-          </router-link>
+          <template v-for="item in navItems" :key="item.path">
+            <!-- Section Header -->
+            <div v-if="item.section" class="pt-4 pb-2">
+              <p class="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ item.section }}</p>
+            </div>
+
+            <!-- Nav Link -->
+            <router-link
+              v-else
+              :to="item.path"
+              class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-700 hover:text-white transition-colors duration-200"
+              :class="{ 'bg-blue-500 text-white': isActive(item.path) }"
+              @click="sidebarOpen = false"
+            >
+              <span class="text-lg">{{ item.icon }}</span>
+              <span>{{ item.label }}</span>
+            </router-link>
+          </template>
         </nav>
 
         <!-- Footer -->
@@ -47,10 +54,7 @@
             class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-700 hover:text-white transition-colors duration-200"
             @click="sidebarOpen = false"
           >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-            </svg>
+            <span class="text-lg">👁</span>
             <span>โหมด Kiosk</span>
           </router-link>
         </div>
@@ -119,48 +123,33 @@ const initials = computed(() => {
 })
 
 const navItems = [
-  {
-    path: '/dashboard',
-    label: 'แดชบอร์ด',
-    icon: {
-      template: `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" /></svg>`
-    }
-  },
-  {
-    path: '/employees',
-    label: 'พนักงาน',
-    icon: {
-      template: `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" /></svg>`
-    }
-  },
-  {
-    path: '/reports',
-    label: 'รายงาน',
-    icon: {
-      template: `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>`
-    }
-  },
-  {
-    path: '/leave',
-    label: 'ลางาน',
-    icon: {
-      template: `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>`
-    }
-  },
-  {
-    path: '/ot',
-    label: 'OT',
-    icon: {
-      template: `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>`
-    }
-  },
-  {
-    path: '/settings',
-    label: 'ตั้งค่า',
-    icon: {
-      template: `<svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>`
-    }
-  }
+  { section: 'Main' },
+  { path: '/dashboard', label: 'แดชบอร์ด', icon: '📊' },
+  { path: '/employees', label: 'พนักงาน', icon: '👥' },
+  { path: '/reports', label: 'รายงาน', icon: '📋' },
+  { section: 'HR Management' },
+  { path: '/leave', label: 'ลางาน', icon: '📅' },
+  { path: '/ot', label: 'OT', icon: '⏰' },
+  { path: '/wfh', label: 'WFH', icon: '🏠' },
+  { path: '/holidays', label: 'วันหยุด', icon: '🎌' },
+  { path: '/shifts', label: 'กะทำงาน', icon: '🔄' },
+  { section: 'Remote' },
+  { path: '/remote-assignments', label: 'มอบหมาย Remote', icon: '📍' },
+  { path: '/location-history', label: 'แผนที่', icon: '🗺' },
+  { section: 'Supervisor' },
+  { path: '/supervisor/leave-approval', label: 'อนุมัติลางาน', icon: '✅' },
+  { path: '/supervisor/ot-approval', label: 'อนุมัติ OT', icon: '✅' },
+  { path: '/supervisor/team-calendar', label: 'ปฏิทินทีม', icon: '📆' },
+  { section: 'Manager' },
+  { path: '/manager/leave-approval', label: 'อนุมัติลางาน (ผู้จัดการ)', icon: '✅' },
+  { path: '/manager/ot-approval', label: 'อนุมัติ OT (ผู้จัดการ)', icon: '✅' },
+  { path: '/manager/team-report', label: 'รายงานทีม', icon: '📊' },
+  { section: 'Admin' },
+  { path: '/photos', label: 'ประวัติภาพ', icon: '📷' },
+  { path: '/settings', label: 'ตั้งค่าพนักงาน', icon: '⚙' },
+  { path: '/admin/company-settings', label: 'ตั้งค่าบริษัท', icon: '🏢' },
+  { path: '/admin/system-settings', label: 'ตั้งค่าระบบ', icon: '🔧' },
+  { path: '/admin/location-settings', label: 'ตั้งค่าสถานที่', icon: '📍' },
 ]
 
 function isActive(path) {

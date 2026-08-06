@@ -12,7 +12,19 @@ class LeaveType extends Model
     protected $fillable = [
         'company_id',
         'name',
+        'advance_days',
         'quota_monthly',
+        'quota_daily',
+        'quota_contract',
+        'is_active',
+    ];
+
+    protected $casts = [
+        'advance_days' => 'integer',
+        'quota_monthly' => 'integer',
+        'quota_daily' => 'integer',
+        'quota_contract' => 'integer',
+        'is_active' => 'boolean',
     ];
 
     public function company(): BelongsTo
