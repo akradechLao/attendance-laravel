@@ -12,15 +12,25 @@ body {
     }
 
     .input-field {
-        @apply w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-navy placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all duration-200;
+        @apply w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-navy placeholder-gray-400 transition-all duration-200;
+        outline: none;
+    }
+    .input-field:focus {
+        @apply ring-2 ring-blue-500 border-blue-500;
     }
 
     .btn-primary {
-        @apply bg-blue-500 hover:bg-blue-600 text-white font-semibold py-2.5 px-6 rounded-xl transition-all duration-200 shadow-sm hover:shadow-md;
+        @apply bg-blue-500 text-white font-semibold py-2.5 px-6 rounded-xl transition-all duration-200 shadow-sm;
+    }
+    .btn-primary:hover {
+        @apply bg-blue-600 shadow-md;
     }
 
     .btn-secondary {
-        @apply bg-white hover:bg-gray-50 text-navy font-semibold py-2.5 px-6 rounded-xl border border-gray-200 transition-all duration-200;
+        @apply bg-white text-navy font-semibold py-2.5 px-6 rounded-xl border border-gray-200 transition-all duration-200;
+    }
+    .btn-secondary:hover {
+        @apply bg-gray-50;
     }
 
     .animate-fadeIn {
