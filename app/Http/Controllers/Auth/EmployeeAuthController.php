@@ -14,13 +14,17 @@ class EmployeeAuthController extends Controller
         try {
             $request->validate([
                 'company_id' => 'required|exists:companies,id',
-                'query' => 'required|string|min:1',
+                'query' => 'nullable|string',
             ]);
 
+            $query = $request->get('query', '');
+
             $employees = Employee::where('company_id', $request->company_id)
-                ->where(function ($query) use ($request) {
-                    $query->where('name', 'like', "%{$request->query}%")
-                          ->orWhere('code', 'like', "%{$request->query}%");
+                ->where(function ($q) use ($query) {
+                    if ($query) {
+                        $q->where('name', 'like', "%{$query}%")
+                          ->orWhere('code', 'like', "%{$query}%");
+                    }
                 })
                 ->with('company')
                 ->get();

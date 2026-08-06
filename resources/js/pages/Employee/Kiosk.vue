@@ -3,8 +3,8 @@
     <div class="w-full max-w-2xl">
       <!-- Header -->
       <div class="text-center mb-8">
-        <h1 class="text-3xl md:text-4xl font-bold text-white mb-2">ระบบเช็คเวลาเข้างาน</h1>
-        <p class="text-slate-300">ETC1992 Attendance System</p>
+        <h1 class="text-3xl md:text-4xl font-bold text-navy mb-2">ระบบเช็คเวลาเข้างาน</h1>
+        <p class="text-gray-500">ETC1992 Attendance System</p>
       </div>
 
       <!-- Step 1: Company Selection -->
