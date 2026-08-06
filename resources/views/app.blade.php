@@ -12,6 +12,5 @@
 </head>
 <body class="bg-cream">
     <div id="app"></div>
-    <script type="module" src="/resources/js/app.js"></script>
 </body>
 </html>
