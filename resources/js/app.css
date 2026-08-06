@@ -6,36 +6,70 @@ body {
     font-family: 'Sarabun', 'Noto Sans Thai', sans-serif;
 }
 
-@layer components {
-    .card {
-        @apply bg-white rounded-2xl shadow-sm border border-gray-100 p-6;
-    }
+.card {
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    border: 1px solid #f3f4f6;
+    padding: 1.5rem;
+}
 
-    .input-field {
-        @apply w-full px-4 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-navy placeholder-gray-400 transition-all duration-200;
-        outline: none;
-    }
-    .input-field:focus {
-        @apply ring-2 ring-blue-500 border-blue-500;
-    }
+.input-field {
+    width: 100%;
+    padding: 0.625rem 1rem;
+    border-radius: 0.75rem;
+    border: 1px solid #e5e7eb;
+    background: #f9fafb;
+    color: #0f172a;
+    outline: none;
+    transition: all 0.2s;
+}
+.input-field::placeholder {
+    color: #9ca3af;
+}
+.input-field:focus {
+    ring: 2px solid #3b82f6;
+    border-color: #3b82f6;
+    background: white;
+    box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+}
 
-    .btn-primary {
-        @apply bg-blue-500 text-white font-semibold py-2.5 px-6 rounded-xl transition-all duration-200 shadow-sm;
-    }
-    .btn-primary:hover {
-        @apply bg-blue-600 shadow-md;
-    }
+.btn-primary {
+    background: #3b82f6;
+    color: white;
+    font-weight: 600;
+    padding: 0.625rem 1.5rem;
+    border-radius: 0.75rem;
+    border: none;
+    transition: all 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    cursor: pointer;
+}
+.btn-primary:hover {
+    background: #2563eb;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+.btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
 
-    .btn-secondary {
-        @apply bg-white text-navy font-semibold py-2.5 px-6 rounded-xl border border-gray-200 transition-all duration-200;
-    }
-    .btn-secondary:hover {
-        @apply bg-gray-50;
-    }
+.btn-secondary {
+    background: white;
+    color: #0f172a;
+    font-weight: 600;
+    padding: 0.625rem 1.5rem;
+    border-radius: 0.75rem;
+    border: 1px solid #e5e7eb;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+.btn-secondary:hover {
+    background: #f9fafb;
+}
 
-    .animate-fadeIn {
-        animation: fadeIn 0.3s ease-in-out;
-    }
+.animate-fadeIn {
+    animation: fadeIn 0.3s ease-in-out;
 }
 
 @keyframes fadeIn {
