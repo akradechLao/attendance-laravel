@@ -33,9 +33,9 @@ REPO_URL="https://github.com/akradechLao/attandance-laravel.git"
 DOMAIN="attendance.northernthai.co.th"
 
 # Database (แก้ไขให้ตรงกับที่ตั้งค่าใน aaPanel)
-DB_NAME="attendance_northernthai"
-DB_USER="attendance_user"
-DB_PASS="YOUR_PASSWORD_HERE"  # ← แก้ไขตรงนี้
+DB_NAME="sql_attendance_northernthai_co_th"
+DB_USER="sql_attendance_northernthai_co_th"
+DB_PASS="c66bc5b516ce"  # ← แก้ไขตรงนี้
 
 # ============================================
 # Step 1: Clone โค้ด
