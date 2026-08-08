@@ -22,7 +22,7 @@
               :key="company.id"
               @click="selectCompany(company)"
               class="company-btn p-4 sm:p-6 rounded-xl transition-all duration-200 text-center group touch-target"
-              :class="companyColors[company.name]"
+              :style="companyStyles[company.name] || 'background: linear-gradient(135deg, #64748b, #334155); color: white; border: 2px solid rgba(100,116,139,0.5);'"
             >
               <div class="w-14 h-14 sm:w-20 sm:h-20 mx-auto mb-2 sm:mb-3 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 group-active:scale-105 overflow-hidden">
                 <img
@@ -265,12 +265,14 @@ const customLocationName = ref('')
 const currentLatitude = ref(null)
 const currentLongitude = ref(null)
 
-const companyColors = {
-  'ETC1992': 'bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 border-2 border-emerald-400/50',
-  'STC': 'bg-gradient-to-br from-purple-500 to-purple-700 text-white shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 border-2 border-purple-400/50',
-  'ETECH': 'bg-gradient-to-br from-orange-500 to-orange-700 text-white shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 border-2 border-orange-400/50',
-  'NTC': 'bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 border-2 border-blue-400/50',
+const companyStyles = {
+  'ETC1992': 'background: linear-gradient(135deg, #10b981, #047857); color: white; border: 2px solid rgba(52,211,153,0.5); box-shadow: 0 10px 25px rgba(16,185,129,0.25);',
+  'STC': 'background: linear-gradient(135deg, #a855f7, #7e22ce); color: white; border: 2px solid rgba(168,85,247,0.5); box-shadow: 0 10px 25px rgba(168,85,247,0.25);',
+  'ETECH': 'background: linear-gradient(135deg, #f97316, #c2410c); color: white; border: 2px solid rgba(251,146,60,0.5); box-shadow: 0 10px 25px rgba(249,115,22,0.25);',
+  'NTC': 'background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; border: 2px solid rgba(96,165,250,0.5); box-shadow: 0 10px 25px rgba(59,130,246,0.25);',
 }
+
+const companyOrder = ['ETC1992', 'STC', 'ETECH', 'NTC']
 
 const companyOrder = ['ETC1992', 'STC', 'ETECH', 'NTC']
 
