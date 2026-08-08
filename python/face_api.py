@@ -105,29 +105,38 @@ async def encode_faces(request: EncodeRequest):
         raise HTTPException(status_code=500, detail="Models not loaded")
 
     encodings = []
+    errors = []
+    success_indices = []
 
     for index, image_data in enumerate(request.images):
         try:
             image = decode_base64_image(image_data)
         except ValueError:
-            raise HTTPException(status_code=400, detail=f"Invalid image data at index {index}")
+            errors.append({"index": index, "error": "invalid_image", "detail": "Cannot decode image data"})
+            continue
 
         faces = detect_faces(image)
         if len(faces) == 0:
-            raise HTTPException(status_code=400, detail=f"No face detected in image at index {index}")
+            errors.append({"index": index, "error": "no_face", "detail": "No face detected in image"})
+            continue
         if len(faces) > 1:
-            raise HTTPException(status_code=400, detail=f"Multiple faces detected in image at index {index}")
+            errors.append({"index": index, "error": "multiple_faces", "detail": "Multiple faces detected"})
+            continue
 
         try:
             encoding = get_face_encoding(image, faces[0])
             encoding_bytes = encoding.tobytes()
             encoding_b64 = base64.b64encode(encoding_bytes).decode("utf-8")
             encodings.append(encoding_b64)
+            success_indices.append(index)
         except Exception as e:
             logger.error(f"Encoding error at index {index}: {e}")
-            raise HTTPException(status_code=500, detail=f"Encoding error at index {index}: {str(e)}")
+            errors.append({"index": index, "error": "encoding_failed", "detail": str(e)})
 
-    return {"encodings": encodings}
+    if len(encodings) == 0 and len(errors) > 0:
+        raise HTTPException(status_code=422, detail={"message": "No faces could be encoded", "errors": errors})
+
+    return {"encodings": encodings, "indices": success_indices, "errors": errors}
 
 
 @app.post("/api/face/verify")

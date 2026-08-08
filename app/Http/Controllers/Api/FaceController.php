@@ -204,21 +204,53 @@ class FaceController extends Controller
 
             $employee = Employee::findOrFail($request->employee_id);
 
-            $response = Http::timeout(60)->post("{$this->pythonApiUrl}/api/face/encode", [
-                'images' => $request->images,
-            ]);
+            try {
+                $response = Http::timeout(60)->post("{$this->pythonApiUrl}/api/face/encode", [
+                    'images' => $request->images,
+                ]);
+            } catch (\Exception $e) {
+                Log::error('Face API connection error: ' . $e->getMessage());
+                return response()->json([
+                    'success' => false,
+                    'data' => null,
+                    'message' => 'Face encoding service unavailable. Please try again.',
+                ], 503);
+            }
+
+            if ($response->status() === 422) {
+                $body = $response->json();
+                $detail = $body['detail'] ?? [];
+                $errors = $detail['errors'] ?? [];
+                $angleNames = ['front' => 'หน้าตรง', 'left' => 'ซ้าย', 'right' => 'ขวา', 'up' => 'มองขึ้น', 'down' => 'มองลง'];
+                $angleKeys = ['front', 'left', 'right', 'up', 'down'];
+                $errorMessages = array_map(function ($err) use ($angleNames, $angleKeys) {
+                    $idx = $err['index'] ?? 0;
+                    $key = $angleKeys[$idx] ?? null;
+                    $label = $key ? ($angleNames[$key] ?? $key) : ("รูปที่ " . ($idx + 1));
+                    return $label . ': ' . ($err['detail'] ?? $err['error'] ?? 'ไม่พบใบหน้า');
+                }, $errors);
+
+                return response()->json([
+                    'success' => false,
+                    'data' => null,
+                    'message' => 'ไม่พบใบหน้าในบางรูป: ' . implode(', ', $errorMessages),
+                    'errors' => $errors,
+                ], 422);
+            }
 
             if (!$response->successful()) {
                 Log::error('Face API encode error: ' . $response->body());
                 return response()->json([
                     'success' => false,
                     'data' => null,
-                    'message' => 'Face encoding service unavailable.',
+                    'message' => 'Face encoding service error.',
                 ], 503);
             }
 
             $result = $response->json();
             $encodings = $result['encodings'] ?? [];
+            $successIndices = $result['indices'] ?? [];
+            $apiErrors = $result['errors'] ?? [];
 
             if (empty($encodings)) {
                 return response()->json([
@@ -233,8 +265,9 @@ class FaceController extends Controller
 
             EmployeeFaceData::where('employee_id', $employee->id)->delete();
 
-            foreach ($encodings as $index => $encoding) {
-                $angle = $angles[$index] ?? "angle_{$index}";
+            foreach ($encodings as $i => $encoding) {
+                $originalIndex = $successIndices[$i] ?? $i;
+                $angle = $angles[$originalIndex] ?? "angle_{$originalIndex}";
 
                 $faceData = EmployeeFaceData::create([
                     'employee_id' => $employee->id,
@@ -245,10 +278,22 @@ class FaceController extends Controller
                 $savedFaceData[] = $faceData;
             }
 
+            $warning = null;
+            if (!empty($apiErrors)) {
+                $angleLabelMap = ['front' => 'หน้าตรง', 'left' => 'ซ้าย', 'right' => 'ขวา', 'up' => 'มองขึ้น', 'down' => 'มองลง'];
+                $angleKeys2 = ['front', 'left', 'right', 'up', 'down'];
+                $failedAngles = array_map(function ($err) use ($angleLabelMap, $angleKeys2) {
+                    $idx = $err['index'] ?? 0;
+                    $key = $angleKeys2[$idx] ?? null;
+                    return $key ? ($angleLabelMap[$key] ?? $key) : ("รูปที่ " . ($idx + 1));
+                }, $apiErrors);
+                $warning = 'บันทึกสำเร็จ ' . count($savedFaceData) . ' รูป แต่บางรูปไม่พบใบหน้า: ' . implode(', ', $failedAngles);
+            }
+
             return response()->json([
                 'success' => true,
                 'data' => $savedFaceData,
-                'message' => 'Face data registered successfully for ' . count($savedFaceData) . ' angles.',
+                'message' => $warning ?: ('Face data registered successfully for ' . count($savedFaceData) . ' angles.'),
             ], 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
@@ -268,7 +313,7 @@ class FaceController extends Controller
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'Face registration failed: ' . $e->getMessage(),
+                'message' => 'Face registration failed.',
             ], 500);
         }
     }
