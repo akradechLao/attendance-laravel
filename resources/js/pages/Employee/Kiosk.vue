@@ -48,7 +48,7 @@
                 type="text"
                 class="input-field pl-12 text-lg py-3"
                 placeholder="พิมพ์ชื่อหรือรหัสพนักงาน..."
-                @input="searchEmployees"
+                @input="debouncedSearch"
                 autofocus
               />
               <svg class="w-6 h-6 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -290,6 +290,15 @@ function selectCompany(company) {
   selectedCompany.value = company
   step.value = 2
   searchEmployees()
+}
+
+let searchTimeout = null
+
+function debouncedSearch() {
+  clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => {
+    searchEmployees()
+  }, 300)
 }
 
 async function searchEmployees() {
