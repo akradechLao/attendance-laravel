@@ -29,12 +29,19 @@ class CompanySettingsController extends Controller
     public function update(Request $request): JsonResponse
     {
         $companyId = $request->user()->company_id ?? 1;
+        $company = Company::findOrFail($companyId);
 
-        foreach ($request->except('logo') as $key => $value) {
+        $companyFields = ['name', 'phone', 'email', 'address', 'website'];
+        $companyData = $request->only($companyFields);
+        if (!empty($companyData)) {
+            $company->update($companyData);
+        }
+
+        foreach ($request->except(array_merge($companyFields, ['logo'])) as $key => $value) {
             CompanySetting::setValue($companyId, $key, $value);
         }
 
-        return response()->json(['message' => 'บันทึกสำเร็จ']);
+        return response()->json(['message' => 'บันทึกสำเร็จ', 'company' => $company]);
     }
 
     public function updateLogo(Request $request): JsonResponse
