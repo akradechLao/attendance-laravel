@@ -1,10 +1,15 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-cream via-blue-50 to-sky-100 flex items-center justify-center p-3 sm:p-4 safe-area">
+  <div class="min-h-screen bg-gradient-to-br from-blue-100 via-indigo-50 to-purple-100 flex items-center justify-center p-3 sm:p-4 safe-area">
     <div class="w-full max-w-lg">
       <!-- Header -->
       <div class="text-center mb-6 sm:mb-8">
+        <div class="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/30 mb-3 sm:mb-4">
+          <svg class="w-8 h-8 sm:w-10 sm:h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </div>
         <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-navy mb-1 sm:mb-2">ระบบเช็คเวลาเข้างาน</h1>
-        <p class="text-sm sm:text-base text-gray-500">บริษัทในเครือ</p>
+        <p class="text-sm sm:text-base text-blue-600 font-medium">บริษัทในเครือ</p>
       </div>
 
       <!-- Step 1: Company Selection -->
@@ -13,15 +18,16 @@
           <h2 class="text-lg sm:text-xl font-semibold text-navy mb-4 sm:mb-6 text-center">เลือกบริษัท</h2>
           <div class="grid grid-cols-2 gap-3 sm:gap-4">
             <button
-              v-for="company in companies"
+              v-for="(company, index) in companies"
               :key="company.id"
               @click="selectCompany(company)"
-              class="p-4 sm:p-6 rounded-xl border-2 border-gray-200 hover:border-blue-500 active:border-blue-500 active:bg-blue-50 transition-all duration-200 text-center group touch-target"
+              class="company-btn p-4 sm:p-6 rounded-xl transition-all duration-200 text-center group touch-target"
+              :class="companyColors[index]"
             >
-              <div class="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-2 sm:mb-3 rounded-full bg-navy flex items-center justify-center group-hover:bg-blue-500 active:bg-blue-500 transition-colors">
+              <div class="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-2 sm:mb-3 rounded-full flex items-center justify-center transition-transform group-hover:scale-110 group-active:scale-105">
                 <span class="text-white text-lg sm:text-xl font-bold">{{ company.name.charAt(0) }}</span>
               </div>
-              <p class="font-semibold text-navy text-sm sm:text-base">{{ company.name }}</p>
+              <p class="font-bold text-sm sm:text-base">{{ company.name }}</p>
             </button>
           </div>
         </div>
@@ -67,10 +73,10 @@
               v-for="emp in filteredEmployees"
               :key="emp.id"
               @click="selectEmployee(emp)"
-              class="w-full p-3 sm:p-4 rounded-lg border border-gray-200 active:border-blue-500 active:bg-blue-50 transition-all duration-200 flex items-center gap-3 sm:gap-4 text-left touch-target"
+              class="w-full p-3 sm:p-4 rounded-xl border border-blue-100 bg-white hover:border-blue-400 hover:bg-blue-50 hover:shadow-md active:bg-blue-100 transition-all duration-200 flex items-center gap-3 sm:gap-4 text-left touch-target"
             >
-              <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                <span class="text-blue-600 font-semibold text-sm sm:text-base">{{ emp.name.charAt(0) }}</span>
+              <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shrink-0 shadow-sm">
+                <span class="text-white font-bold text-sm sm:text-base">{{ emp.name.charAt(0) }}</span>
               </div>
               <div class="flex-1 min-w-0">
                 <p class="font-semibold text-navy text-sm sm:text-base truncate">{{ emp.name }}</p>
@@ -112,19 +118,19 @@
           <div class="grid grid-cols-2 gap-3 sm:gap-4">
             <button
               @click="startOfficeScan"
-              class="p-4 sm:p-6 rounded-xl border-2 border-green-200 active:border-green-500 active:bg-green-50 transition-all duration-200 text-center touch-target"
+              class="p-4 sm:p-6 rounded-xl border-2 border-green-200 bg-gradient-to-b from-green-50 to-white hover:from-green-100 hover:border-green-400 active:from-green-200 transition-all duration-200 text-center touch-target shadow-sm hover:shadow-md"
             >
               <div class="text-3xl sm:text-4xl mb-2 sm:mb-3">🏢</div>
-              <p class="font-semibold text-navy text-sm sm:text-base">สแกนที่ออฟฟิศ</p>
-              <p class="text-xs sm:text-sm text-gray-500">Check-in ตามปกติ</p>
+              <p class="font-bold text-navy text-sm sm:text-base">สแกนที่ออฟฟิศ</p>
+              <p class="text-xs sm:text-sm text-green-600">Check-in ตามปกติ</p>
             </button>
             <button
               @click="startRemoteScan"
-              class="p-4 sm:p-6 rounded-xl border-2 border-blue-200 active:border-blue-500 active:bg-blue-50 transition-all duration-200 text-center touch-target"
+              class="p-4 sm:p-6 rounded-xl border-2 border-blue-200 bg-gradient-to-b from-blue-50 to-white hover:from-blue-100 hover:border-blue-400 active:from-blue-200 transition-all duration-200 text-center touch-target shadow-sm hover:shadow-md"
             >
               <div class="text-3xl sm:text-4xl mb-2 sm:mb-3">📍</div>
-              <p class="font-semibold text-navy text-sm sm:text-base">สแกนนอกสถานที่</p>
-              <p class="text-xs sm:text-sm text-gray-500">ระหว่างเดินทาง</p>
+              <p class="font-bold text-navy text-sm sm:text-base">สแกนนอกสถานที่</p>
+              <p class="text-xs sm:text-sm text-blue-600">ระหว่างเดินทาง</p>
             </button>
           </div>
         </div>
@@ -183,8 +189,8 @@
         <div class="card p-4 sm:p-6 text-center py-8 sm:py-12">
           <div
             :class="[
-              'w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-4 sm:mb-6 rounded-full flex items-center justify-center',
-              result.success ? 'bg-green-100' : 'bg-red-100'
+              'w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-4 sm:mb-6 rounded-full flex items-center justify-center shadow-lg',
+              result.success ? 'bg-gradient-to-br from-green-400 to-emerald-600 shadow-green-500/30' : 'bg-gradient-to-br from-red-400 to-rose-600 shadow-red-500/30'
             ]"
           >
             <svg
@@ -257,6 +263,13 @@ const companies = [
   { id: 2, name: 'ETC1992', code: 'ETC1992' },
   { id: 3, name: 'ETECH', code: 'ETECH' },
   { id: 4, name: 'STC', code: 'STC' }
+]
+
+const companyColors = [
+  'bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 border-2 border-blue-400/50',
+  'bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 border-2 border-emerald-400/50',
+  'bg-gradient-to-br from-orange-500 to-orange-700 text-white shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 border-2 border-orange-400/50',
+  'bg-gradient-to-br from-purple-500 to-purple-700 text-white shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 border-2 border-purple-400/50',
 ]
 
 const filteredEmployees = computed(() => {
