@@ -3,10 +3,9 @@
     <div class="w-full max-w-lg">
       <!-- Header -->
       <div class="text-center mb-6 sm:mb-8">
-        <div class="inline-flex items-center justify-center w-16 h-16 sm:w-20 sm:h-20 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/30 mb-3 sm:mb-4">
-          <svg class="w-8 h-8 sm:w-10 sm:h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
+        <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-blue-500/10 px-6 py-3 sm:px-8 sm:py-4 mb-3 sm:mb-4 inline-block">
+          <p class="text-xl sm:text-2xl font-bold text-navy tabular-nums">{{ currentTime }}</p>
+          <p class="text-xs sm:text-sm text-blue-600 font-medium">{{ currentDate }}</p>
         </div>
         <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-navy mb-1 sm:mb-2">ระบบเช็คเวลาเข้างาน</h1>
         <p class="text-sm sm:text-base text-blue-600 font-medium">ETC Group</p>
@@ -246,7 +245,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 import LoadingSpinner from '../../components/LoadingSpinner.vue'
 import FaceScanner from '../../components/FaceScanner.vue'
@@ -264,6 +263,28 @@ const scanType = ref('office_scan')
 const customLocationName = ref('')
 const currentLatitude = ref(null)
 const currentLongitude = ref(null)
+const currentTime = ref('--:--:--')
+const currentDate = ref('')
+const timeOffset = ref(0)
+
+async function fetchServerTime() {
+  try {
+    const res = await axios.get('https://timeapi.io/api/time/current/zone?timeZone=Asia/Bangkok')
+    const serverNow = new Date(res.data.dateTime)
+    const localNow = new Date()
+    timeOffset.value = serverNow.getTime() - localNow.getTime()
+  } catch {
+    timeOffset.value = 0
+  }
+}
+
+function updateClock() {
+  const now = new Date(Date.now() + timeOffset.value)
+  currentTime.value = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Asia/Bangkok' })
+  currentDate.value = now.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Bangkok' })
+}
+
+let clockInterval = null
 
 const companyStyles = {
   'ETC1992': 'background: linear-gradient(135deg, #10b981, #047857); color: white; border: 2px solid rgba(52,211,153,0.5); box-shadow: 0 10px 25px rgba(16,185,129,0.25);',
@@ -283,6 +304,9 @@ const filteredEmployees = computed(() => {
 })
 
 onMounted(async () => {
+  await fetchServerTime()
+  updateClock()
+  clockInterval = setInterval(updateClock, 1000)
   getCurrentPosition()
   await fetchCompanies()
 })
