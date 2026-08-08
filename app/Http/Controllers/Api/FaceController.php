@@ -76,8 +76,8 @@ class FaceController extends Controller
             $today = Carbon::today();
 
             if ($request->type === 'check_in') {
-                $existingLog = AttendanceLog::where('employee_id', $employee->id)
-                    ->whereDate('check_in', $today)
+                $existingLog = AttendanceLog::where('emp_id', $employee->id)
+                    ->whereDate('date', $today)
                     ->first();
 
                 if ($existingLog) {
@@ -92,7 +92,6 @@ class FaceController extends Controller
                     ->first();
 
                 $status = 'on_time';
-                $notes = null;
 
                 if ($officeLocation && $request->latitude && $request->longitude) {
                     $distance = $this->calculateDistance(
@@ -113,19 +112,28 @@ class FaceController extends Controller
                     $workStartTime = Carbon::parse($officeLocation->work_start_time);
                     if (Carbon::now()->gt($workStartTime)) {
                         $status = 'late';
-                        $notes = 'Late check-in';
                     }
                 }
 
+                $latLong = $request->latitude && $request->longitude
+                    ? $request->latitude . ',' . $request->longitude
+                    : null;
+
                 $log = AttendanceLog::create([
-                    'employee_id' => $employee->id,
-                    'company_id' => $employee->company_id,
+                    'emp_id' => $employee->id,
+                    'date' => $today,
                     'check_in' => Carbon::now(),
-                    'latitude' => $request->latitude,
-                    'longitude' => $request->longitude,
-                    'status' => $status,
-                    'notes' => $notes,
+                    'check_in_status' => $status,
+                    'lat_long' => $latLong,
+                    'scan_type' => 'office_scan',
                 ]);
+
+                if ($request->latitude && $request->longitude) {
+                    $log->update([
+                        'remote_latitude' => $request->latitude,
+                        'remote_longitude' => $request->longitude,
+                    ]);
+                }
 
                 return response()->json([
                     'success' => true,
@@ -133,13 +141,13 @@ class FaceController extends Controller
                         'attendance_log' => $log,
                         'face_match' => $result,
                     ],
-                    'message' => 'Check-in successful. Status: ' . ucfirst($status),
+                    'message' => 'เช็คอินสำเร็จ. ' . ($status === 'late' ? 'สถานะ: สาย' : 'สถานะ: ตรงเวลา'),
                 ], 201);
             }
 
             if ($request->type === 'check_out') {
-                $log = AttendanceLog::where('employee_id', $employee->id)
-                    ->whereDate('check_in', $today)
+                $log = AttendanceLog::where('emp_id', $employee->id)
+                    ->whereDate('date', $today)
                     ->whereNull('check_out')
                     ->first();
 
@@ -161,7 +169,7 @@ class FaceController extends Controller
                         'attendance_log' => $log->fresh(),
                         'face_match' => $result,
                     ],
-                    'message' => 'Check-out successful.',
+                    'message' => 'เช็คเอาท์สำเร็จ',
                 ]);
             }
 
