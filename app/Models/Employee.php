@@ -40,6 +40,7 @@ class Employee extends Authenticatable
     protected $casts = [
         'has_ot' => 'boolean',
         'level' => 'integer',
+        'group_type' => 'integer',
         'password' => 'hashed',
         'wfh_quota' => 'integer',
     ];
