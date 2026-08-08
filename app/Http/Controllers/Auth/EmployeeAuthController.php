@@ -48,19 +48,9 @@ class EmployeeAuthController extends Controller
         try {
             $request->validate([
                 'employee_id' => 'required|exists:employees,id',
-                'pin' => 'required|string',
-                'has_ot' => 'boolean',
             ]);
 
             $employee = Employee::findOrFail($request->employee_id);
-
-            if ($employee->pin !== $request->pin) {
-                return response()->json([
-                    'success' => false,
-                    'data' => null,
-                    'message' => 'Invalid PIN.',
-                ], 401);
-            }
 
             if ($request->has_ot && !$employee->has_ot) {
                 return response()->json([

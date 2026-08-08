@@ -25,7 +25,6 @@ class Employee extends Authenticatable
         'department',
         'division',
         'reports_to',
-        'pin',
         'supervisor_name',
         'supervisor_line',
         'supervisor_phone',
@@ -36,7 +35,6 @@ class Employee extends Authenticatable
 
     protected $hidden = [
         'password',
-        'pin',
     ];
 
     protected $casts = [

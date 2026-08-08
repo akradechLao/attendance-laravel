@@ -65,7 +65,6 @@ class EmployeeController extends Controller
                 'name' => 'required|string|max:255',
                 'position' => 'nullable|string|max:255',
                 'department' => 'nullable|string|max:255',
-                'pin' => 'required|string|min:4|max:6',
                 'has_ot' => 'boolean',
                 'is_active' => 'boolean',
             ]);
@@ -107,7 +106,6 @@ class EmployeeController extends Controller
                 'name' => 'sometimes|string|max:255',
                 'position' => 'nullable|string|max:255',
                 'department' => 'nullable|string|max:255',
-                'pin' => 'sometimes|string|min:4|max:6',
                 'has_ot' => 'boolean',
                 'is_active' => 'boolean',
             ]);
