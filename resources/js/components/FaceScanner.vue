@@ -64,6 +64,10 @@ const props = defineProps({
   employeeId: {
     type: [Number, String],
     required: true
+  },
+  scanType: {
+    type: String,
+    default: 'office_scan'
   }
 })
 
@@ -129,20 +133,22 @@ async function startScan() {
 
     const response = await axios.post('/api/face/verify', {
       employee_id: props.employeeId,
-      image: imageData
+      image: imageData,
+      type: 'check_in'
     })
 
-    if (response.data.verified) {
+    if (response.data.success) {
       verified.value = true
       emit('verified', response.data)
     } else {
       failed.value = true
-      emit('failed')
+      emit('failed', response.data?.message)
     }
   } catch (error) {
     console.error('Error verifying face:', error)
+    const msg = error.response?.data?.message || 'เกิดข้อผิดพลาดในการสแกน'
     failed.value = true
-    emit('error', error.response?.data?.message || 'เกิดข้อผิดพลาดในการสแกน')
+    emit('error', msg)
   } finally {
     scanning.value = false
   }
