@@ -68,6 +68,10 @@ const props = defineProps({
   scanType: {
     type: String,
     default: 'office_scan'
+  },
+  scanMode: {
+    type: String,
+    default: 'check_in'
   }
 })
 
@@ -134,7 +138,7 @@ async function startScan() {
     const response = await axios.post('/api/face/verify', {
       employee_id: props.employeeId,
       image: imageData,
-      type: 'check_in'
+      type: props.scanMode
     })
 
     if (response.data.success) {

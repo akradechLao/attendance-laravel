@@ -276,9 +276,28 @@
             <input v-model="customLocationName" type="text" inputmode="text" class="input-field text-base" placeholder="เช่น โรงแรมABC, สำนักงานลูกค้า" />
           </div>
 
+          <!-- Check-in / Check-out toggle -->
+          <div class="flex justify-center gap-2 mb-4">
+            <button
+              @click="scanMode = 'check_in'"
+              :class="scanMode === 'check_in' ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-200 hover:bg-gray-300'"
+              class="px-4 py-2 rounded-lg font-medium text-sm touch-target transition-colors"
+            >
+              เช็คอิน
+            </button>
+            <button
+              @click="scanMode = 'check_out'"
+              :class="scanMode === 'check_out' ? 'bg-red-500 hover:bg-red-600' : 'bg-gray-200 hover:bg-gray-300'"
+              class="px-4 py-2 rounded-lg font-medium text-sm touch-target transition-colors"
+            >
+              เช็คเอาท์
+            </button>
+          </div>
+
           <FaceScanner
             :employee-id="selectedEmployee?.id"
             :scan-type="scanType"
+            :scan-mode="scanMode"
             :latitude="currentLatitude"
             :longitude="currentLongitude"
             :custom-location-name="customLocationName"
@@ -385,6 +404,8 @@ const faceRegDetecting = ref(false)
 const faceRegDetectError = ref('')
 const faceRegAllDone = ref(false)
 const faceRegEncodings = ref([])
+
+const scanMode = ref('check_in')  // 'check_in' or 'check_out'
 
 async function fetchServerTime() {
   try {
@@ -618,11 +639,10 @@ async function registerFace() {
 function handleVerified(data) {
   const now = new Date()
   const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
-  const isCheckIn = !data.is_checked_out
 
   result.value = {
     success: true,
-    message: isCheckIn ? '✓ เช็คอินสำเร็จ' : '✓ เช็คเอาท์สำเร็จ',
+    message: scanMode.value === 'check_in' ? '✓ เช็คอินสำเร็จ' : '✓ เช็คเอาท์สำเร็จ',
     time: timeStr,
     location: scanType.value === 'remote_scan' ? customLocationName.value : null
   }
@@ -651,6 +671,7 @@ function reset() {
   scanningError.value = ''
   result.value = { success: false, message: '', time: '', location: '' }
   scanType.value = 'office_scan'
+  scanMode.value = 'check_in'
   customLocationName.value = ''
   faceRegPhotos.value = []
   faceRegCapturing.value = false
