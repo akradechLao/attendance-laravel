@@ -16,13 +16,14 @@ body {
 
 .input-field {
     width: 100%;
-    padding: 0.625rem 1rem;
+    padding: 0.625rem 1rem 0.625rem 2.75rem;
     border-radius: 0.75rem;
     border: 1px solid #e5e7eb;
     background: #f9fafb;
     color: #0f172a;
     outline: none;
     transition: all 0.2s;
+    font-size: 1rem;
 }
 .input-field::placeholder {
     color: #9ca3af;
@@ -91,4 +92,15 @@ body {
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: rgba(59, 130, 246, 0.4);
+}
+
+.safe-area {
+    padding-left: env(safe-area-inset-left, 0);
+    padding-right: env(safe-area-inset-right, 0);
+    padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.touch-target {
+    min-height: 44px;
+    min-width: 44px;
 }
