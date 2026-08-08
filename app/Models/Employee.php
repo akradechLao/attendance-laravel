@@ -96,6 +96,11 @@ class Employee extends Authenticatable
         return $this->belongsToMany(WorkShift::class, 'employee_shifts');
     }
 
+    public function approvers()
+    {
+        return $this->hasMany(EmployeeApprover::class);
+    }
+
     public function shiftSchedules(): HasMany
     {
         return $this->hasMany(ShiftSchedule::class, 'emp_id');

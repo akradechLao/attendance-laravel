@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\Employee;
 use App\Models\Company;
 use App\Models\WorkShift;
+use App\Models\EmployeeApprover;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -45,6 +46,18 @@ class ImportEmployeesCsv extends Command
 
         $header = array_map('trim', $header);
         $this->info("CSV Header: " . implode(' | ', array_slice($header, 0, 10)));
+        $this->newLine();
+
+        $knownColumns = ['no','emp_code','employee_code','employee_title_lv','employee_name',
+            'employee_last_name','fing_code','employee_gender','Lavel','กะการทำงาน','มี OT',
+            'employee_type_code','employee_type_group_code','employee_nickname','mobilephone',
+            'emailaddress','birth_dt','effective_dt','department_name','division_name','position_name'];
+
+        $approverColumns = array_filter($header, function($col) use ($knownColumns) {
+            return !in_array($col, $knownColumns) && !empty($col) && !preg_match('/^\d+$/', $col);
+        });
+        $approverColumns = array_values($approverColumns);
+        $this->info("Approver columns found: " . implode(', ', $approverColumns));
         $this->newLine();
 
         $total = 0;
@@ -119,6 +132,14 @@ class ImportEmployeesCsv extends Command
                 $workShiftIds = WorkShift::whereIn('group_number', $shiftGroups)->pluck('id')->toArray();
                 if (!empty($workShiftIds)) {
                     $employee->workShifts()->syncWithoutDetaching($workShiftIds);
+                }
+
+                foreach ($approverColumns as $approverCol) {
+                    $canApprove = strtoupper(trim($record[$approverCol] ?? '')) === 'TRUE';
+                    EmployeeApprover::updateOrCreate(
+                        ['employee_id' => $employee->id, 'approver_name' => $approverCol],
+                        ['can_approve' => $canApprove]
+                    );
                 }
 
                 $imported++;
