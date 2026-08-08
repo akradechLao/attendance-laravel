@@ -10,10 +10,10 @@ class CompanySeeder extends Seeder
     public function run(): void
     {
         $companies = [
-            ['id' => 1, 'name' => 'NTC', 'telegram_bot_token' => null, 'telegram_chat_id' => null, 'created_at' => now(), 'updated_at' => now()],
-            ['id' => 2, 'name' => 'ETC1992', 'telegram_bot_token' => null, 'telegram_chat_id' => null, 'created_at' => now(), 'updated_at' => now()],
-            ['id' => 3, 'name' => 'ETECH', 'telegram_bot_token' => null, 'telegram_chat_id' => null, 'created_at' => now(), 'updated_at' => now()],
-            ['id' => 4, 'name' => 'STC', 'telegram_bot_token' => null, 'telegram_chat_id' => null, 'created_at' => now(), 'updated_at' => now()],
+            ['id' => 1, 'name' => 'NTC', 'code_prefix' => 'NTC', 'telegram_bot_token' => null, 'telegram_chat_id' => null, 'created_at' => now(), 'updated_at' => now()],
+            ['id' => 2, 'name' => 'ETC1992', 'code_prefix' => 'ETC', 'telegram_bot_token' => null, 'telegram_chat_id' => null, 'created_at' => now(), 'updated_at' => now()],
+            ['id' => 3, 'name' => 'ETECH', 'code_prefix' => 'ETE', 'telegram_bot_token' => null, 'telegram_chat_id' => null, 'created_at' => now(), 'updated_at' => now()],
+            ['id' => 4, 'name' => 'STC', 'code_prefix' => 'STC', 'telegram_bot_token' => null, 'telegram_chat_id' => null, 'created_at' => now(), 'updated_at' => now()],
         ];
 
         foreach ($companies as $company) {
