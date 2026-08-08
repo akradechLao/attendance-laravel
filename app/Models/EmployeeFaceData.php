@@ -18,9 +18,7 @@ class EmployeeFaceData extends Model
         'face_encoding',
     ];
 
-    protected $casts = [
-        'face_encoding' => 'binary',
-    ];
+    protected $casts = [];
 
     public function employee(): BelongsTo
     {
