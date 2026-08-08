@@ -116,7 +116,8 @@ class ImportEmployeesCsv extends Command
                 $startDate = $this->parseBuddhistDate($record['effective_dt'] ?? '');
 
                 $shiftRaw = trim($record['กะการทำงาน'] ?? '1');
-                $shiftGroups = array_filter(array_map('intval', preg_split('/[\s,]+/', $shiftRaw)));
+                $shiftParts = preg_split('/[\s,]+/', $shiftRaw);
+                $shiftGroups = array_values(array_map('intval', $shiftParts));
                 $primaryShift = !empty($shiftGroups) ? min($shiftGroups) : 1;
 
                 $employee = Employee::updateOrCreate(
