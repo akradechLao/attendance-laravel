@@ -9,7 +9,7 @@
           </svg>
         </div>
         <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-navy mb-1 sm:mb-2">ระบบเช็คเวลาเข้างาน</h1>
-        <p class="text-sm sm:text-base text-blue-600 font-medium">บริษัทในเครือ</p>
+        <p class="text-sm sm:text-base text-blue-600 font-medium">ETC Group</p>
       </div>
 
       <!-- Step 1: Company Selection -->
