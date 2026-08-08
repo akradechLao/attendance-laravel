@@ -31,6 +31,7 @@ class Employee extends Authenticatable
         'password',
         'wfh_quota',
         'preferred_off_day',
+        'is_active',
     ];
 
     protected $hidden = [
@@ -83,6 +84,11 @@ class Employee extends Authenticatable
     public function remoteAssignments(): HasMany
     {
         return $this->hasMany(RemoteAssignment::class, 'emp_id');
+    }
+
+    public function workShifts()
+    {
+        return $this->belongsToMany(WorkShift::class, 'employee_shifts');
     }
 
     public function shiftSchedules(): HasMany
