@@ -58,6 +58,7 @@
                   <th class="text-left px-6 py-3 text-sm font-semibold text-gray-600">บริษัท</th>
                   <th class="text-left px-6 py-3 text-sm font-semibold text-gray-600">ตำแหน่ง</th>
                   <th class="text-left px-6 py-3 text-sm font-semibold text-gray-600">แผนก</th>
+                  <th class="text-center px-6 py-3 text-sm font-semibold text-gray-600">ใบหน้า</th>
                   <th class="text-center px-6 py-3 text-sm font-semibold text-gray-600">การดำเนินการ</th>
                 </tr>
               </thead>
@@ -75,6 +76,18 @@
                   <td class="px-6 py-4 text-gray-600">{{ employee.company?.name }}</td>
                   <td class="px-6 py-4 text-gray-600">{{ employee.position }}</td>
                   <td class="px-6 py-4 text-gray-600">{{ employee.department }}</td>
+                  <td class="px-6 py-4 text-center">
+                    <span
+                      v-if="employee.face_data_count > 0"
+                      class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700"
+                    >
+                      <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                      ลงทะเบียนแล้ว
+                    </span>
+                    <span v-else class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+                      ยังไม่ลงทะเบียน
+                    </span>
+                  </td>
                   <td class="px-6 py-4">
                     <div class="flex items-center justify-center gap-2">
                       <router-link

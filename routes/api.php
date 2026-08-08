@@ -106,6 +106,11 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Face registration
     Route::post('/face/register', [FaceController::class, 'register']);
+    Route::post('/employees/{id}/face', function ($id) {
+        $request = request();
+        $request->merge(['employee_id' => $id]);
+        return app(\App\Http\Controllers\Api\FaceController::class)->register($request);
+    });
 
     // WFH Management
     Route::get('/wfh-records', [WfhController::class, 'index']);

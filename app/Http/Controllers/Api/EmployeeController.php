@@ -14,6 +14,7 @@ class EmployeeController extends Controller
     {
         try {
             $employees = Employee::with('company')
+                ->withCount('faceData')
                 ->paginate($request->get('per_page', 15));
 
             return response()->json([

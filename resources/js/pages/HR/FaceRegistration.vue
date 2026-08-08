@@ -205,7 +205,7 @@ async function registerFace() {
   registering.value = true
   try {
     await axios.post(`/api/employees/${route.params.id}/face`, {
-      photos: capturedPhotos.value.map(p => p.data)
+      images: capturedPhotos.value.map(p => p.data)
     })
     showSuccess.value = true
   } catch (error) {
