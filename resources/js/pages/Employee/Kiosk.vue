@@ -18,13 +18,13 @@
           <h2 class="text-lg sm:text-xl font-semibold text-navy mb-4 sm:mb-6 text-center">เลือกบริษัท</h2>
           <div class="grid grid-cols-2 gap-3 sm:gap-4">
             <button
-              v-for="(company, index) in companies"
+              v-for="company in companies"
               :key="company.id"
               @click="selectCompany(company)"
               class="company-btn p-4 sm:p-6 rounded-xl transition-all duration-200 text-center group touch-target"
-              :class="companyColors[index % companyColors.length]"
+              :class="companyColors[company.name]"
             >
-              <div class="w-14 h-14 sm:w-20 sm:h-20 mx-auto mb-2 sm:mb-3 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 group-active:scale-105 overflow-hidden bg-white/20">
+              <div class="w-14 h-14 sm:w-20 sm:h-20 mx-auto mb-2 sm:mb-3 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 group-active:scale-105 overflow-hidden">
                 <img
                   v-if="company.logo_url"
                   :src="company.logo_url"
@@ -265,12 +265,14 @@ const customLocationName = ref('')
 const currentLatitude = ref(null)
 const currentLongitude = ref(null)
 
-const companyColors = [
-  'bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 border-2 border-blue-400/50',
-  'bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 border-2 border-emerald-400/50',
-  'bg-gradient-to-br from-orange-500 to-orange-700 text-white shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 border-2 border-orange-400/50',
-  'bg-gradient-to-br from-purple-500 to-purple-700 text-white shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 border-2 border-purple-400/50',
-]
+const companyColors = {
+  'ETC1992': 'bg-gradient-to-br from-emerald-500 to-emerald-700 text-white shadow-lg shadow-emerald-500/25 hover:shadow-emerald-500/40 border-2 border-emerald-400/50',
+  'STC': 'bg-gradient-to-br from-purple-500 to-purple-700 text-white shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40 border-2 border-purple-400/50',
+  'ETECH': 'bg-gradient-to-br from-orange-500 to-orange-700 text-white shadow-lg shadow-orange-500/25 hover:shadow-orange-500/40 border-2 border-orange-400/50',
+  'NTC': 'bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 border-2 border-blue-400/50',
+}
+
+const companyOrder = ['ETC1992', 'STC', 'ETECH', 'NTC']
 
 const filteredEmployees = computed(() => {
   if (!searchQuery.value) return []
@@ -288,14 +290,17 @@ onMounted(async () => {
 async function fetchCompanies() {
   try {
     const response = await axios.get('/api/companies')
-    companies.value = response.data.data || []
+    const all = response.data.data || []
+    companies.value = companyOrder
+      .map(name => all.find(c => c.name === name))
+      .filter(Boolean)
   } catch (error) {
     console.error('Error fetching companies:', error)
     companies.value = [
-      { id: 1, name: 'NTC' },
       { id: 2, name: 'ETC1992' },
+      { id: 4, name: 'STC' },
       { id: 3, name: 'ETECH' },
-      { id: 4, name: 'STC' }
+      { id: 1, name: 'NTC' }
     ]
   }
 }
