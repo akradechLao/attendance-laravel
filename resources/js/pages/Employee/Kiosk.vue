@@ -4,7 +4,7 @@
       <!-- Header -->
       <div class="text-center mb-8">
         <h1 class="text-3xl md:text-4xl font-bold text-navy mb-2">ระบบเช็คเวลาเข้างาน</h1>
-        <p class="text-gray-500">ETC1992 Attendance System</p>
+        <p class="text-gray-500">ระบบเช็คเวลาเข้างาน บริษัทในเครือ</p>
       </div>
 
       <!-- Step 1: Company Selection -->

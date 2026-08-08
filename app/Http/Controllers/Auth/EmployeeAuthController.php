@@ -23,7 +23,8 @@ class EmployeeAuthController extends Controller
                 ->where(function ($q) use ($query) {
                     if ($query) {
                         $q->where('name', 'like', "%{$query}%")
-                          ->orWhere('code', 'like', "%{$query}%");
+                          ->orWhere('employee_code', 'like', "%{$query}%")
+                          ->orWhere('nickname', 'like', "%{$query}%");
                     }
                 })
                 ->with('company')
