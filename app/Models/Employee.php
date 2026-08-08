@@ -17,6 +17,11 @@ class Employee extends Authenticatable
     protected $fillable = [
         'company_id',
         'name',
+        'nickname',
+        'phone',
+        'email',
+        'birth_date',
+        'start_date',
         'employee_code',
         'group_type',
         'position',

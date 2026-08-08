@@ -89,6 +89,8 @@ class ImportEmployeesCsv extends Command
                 $nickname = trim($record['employee_nickname'] ?? '');
                 $phone = trim($record['mobilephone'] ?? '');
                 $email = trim($record['emailaddress'] ?? '');
+                $birthDate = $this->parseBuddhistDate($record['birth_dt'] ?? '');
+                $startDate = $this->parseBuddhistDate($record['effective_dt'] ?? '');
 
                 $shiftRaw = trim($record['กะการทำงาน'] ?? '1');
                 $shiftGroups = array_filter(array_map('intval', preg_split('/[\s,]+/', $shiftRaw)));
@@ -98,6 +100,11 @@ class ImportEmployeesCsv extends Command
                     ['employee_code' => $employeeCode, 'company_id' => $companyId],
                     [
                         'name' => $name,
+                        'nickname' => $nickname,
+                        'phone' => $phone,
+                        'email' => $email,
+                        'birth_date' => $birthDate,
+                        'start_date' => $startDate,
                         'group_type' => $primaryShift,
                         'position' => $position,
                         'level' => $level,
@@ -138,5 +145,21 @@ class ImportEmployeesCsv extends Command
         $cleanTitle = preg_replace('/^\d+-/', '', $title);
         $name = trim($cleanTitle . ' ' . $firstName . ' ' . $lastName);
         return $name;
+    }
+
+    private function parseBuddhistDate(string $dateStr): ?string
+    {
+        $dateStr = trim($dateStr);
+        if (empty($dateStr)) return null;
+
+        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $dateStr, $matches)) {
+            $year = intval($matches[1]);
+            if ($year > 2400) {
+                $year -= 543;
+            }
+            return sprintf('%04d-%02d-%02d', $year, intval($matches[2]), intval($matches[3]));
+        }
+
+        return null;
     }
 }
