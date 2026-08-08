@@ -11,8 +11,8 @@ return new class extends Migration
         Schema::create('employee_face_data', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->foreignId('employee_id')->constrained('employees')->cascadeOnDelete();
-            $table->binary('face_encoding');
-            $table->enum('angle', ['front', 'left_45', 'right_45', 'up', 'down']);
+            $table->text('face_encoding');
+            $table->string('angle');
             $table->timestamps();
 
             $table->index('employee_id');
