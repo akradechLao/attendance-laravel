@@ -274,8 +274,6 @@ const companyStyles = {
 
 const companyOrder = ['ETC1992', 'STC', 'ETECH', 'NTC']
 
-const companyOrder = ['ETC1992', 'STC', 'ETECH', 'NTC']
-
 const filteredEmployees = computed(() => {
   if (!searchQuery.value) return []
   const q = searchQuery.value.toLowerCase()
