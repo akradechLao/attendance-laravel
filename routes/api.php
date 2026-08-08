@@ -35,6 +35,21 @@ Route::post('/employee/auth/verify', [EmployeeAuthController::class, 'verify']);
 // Public routes - Face recognition
 Route::post('/face/verify', [FaceController::class, 'verify']);
 
+// Public routes - Face detect (single photo validation for kiosk registration)
+Route::post('/face/detect', function () {
+    $request = request();
+    $request->validate(['image' => 'required|string']);
+    try {
+        $response = \Illuminate\Support\Facades\Http::timeout(15)->post(
+            config('services.face_api.url', 'http://127.0.0.1:8001') . '/api/face/detect',
+            ['image' => $request->image]
+        );
+        return response()->json($response->json(), $response->status());
+    } catch (\Exception $e) {
+        return response()->json(['detected' => false, 'message' => 'Face detection service unavailable'], 503);
+    }
+});
+
 // Public routes - Check if employee has face data (kiosk)
 Route::get('/employees/{id}/face-data', [EmployeeController::class, 'faceData']);
 

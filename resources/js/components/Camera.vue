@@ -14,8 +14,8 @@
       alt="Captured photo"
     />
 
-    <!-- Camera controls -->
-    <div v-if="!photoTaken" class="absolute bottom-4 left-0 right-0 flex justify-center gap-4">
+    <!-- Camera controls (only when not hidden by parent) -->
+    <div v-if="!photoTaken && !hideControls" class="absolute bottom-4 left-0 right-0 flex justify-center gap-4">
       <button
         @click="toggleCamera"
         class="p-3 bg-white/80 rounded-full hover:bg-white transition-colors"
@@ -27,8 +27,8 @@
       </button>
     </div>
 
-    <!-- Retake button -->
-    <div v-if="photoTaken" class="absolute bottom-4 left-0 right-0 flex justify-center">
+    <!-- Retake button (only when not hidden by parent) -->
+    <div v-if="photoTaken && !hideControls" class="absolute bottom-4 left-0 right-0 flex justify-center">
       <button
         @click="retake"
         class="px-4 py-2 bg-white/80 rounded-full hover:bg-white transition-colors text-gray-700 font-medium"
@@ -51,6 +51,13 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
+
+const props = defineProps({
+  hideControls: {
+    type: Boolean,
+    default: false
+  }
+})
 
 const emit = defineEmits(['captured'])
 

@@ -66,6 +66,10 @@ class EncodeRequest(BaseModel):
     images: List[str]
 
 
+class DetectRequest(BaseModel):
+    image: str
+
+
 class VerifyRequest(BaseModel):
     image: str
     face_encodings: List[str]
@@ -137,6 +141,32 @@ async def encode_faces(request: EncodeRequest):
         raise HTTPException(status_code=422, detail={"message": "No faces could be encoded", "errors": errors})
 
     return {"encodings": encodings, "indices": success_indices, "errors": errors}
+
+
+@app.post("/api/face/detect")
+async def detect_face(request: DetectRequest):
+    if not models_loaded:
+        raise HTTPException(status_code=500, detail="Models not loaded")
+
+    try:
+        image = decode_base64_image(request.image)
+    except ValueError:
+        return {"detected": False, "message": "ไม่สามารถอ่านรูปภาพได้"}
+
+    faces = detect_faces(image)
+    if len(faces) == 0:
+        return {"detected": False, "message": "ไม่พบใบหน้าในรูป กรุณาถ่ายใหม่"}
+    if len(faces) > 1:
+        return {"detected": False, "message": "พบใบหน้าหลายคน กรุณาถ่ายเฉพาะตัวท่าน"}
+
+    try:
+        encoding = get_face_encoding(image, faces[0])
+        encoding_bytes = encoding.tobytes()
+        encoding_b64 = base64.b64encode(encoding_bytes).decode("utf-8")
+        return {"detected": True, "encoding": encoding_b64, "message": "พบใบหน้าเรียบร้อย"}
+    except Exception as e:
+        logger.error(f"Face detection encoding error: {e}")
+        return {"detected": False, "message": "ไม่สามารถประมวลผลใบหน้าได้"}
 
 
 @app.post("/api/face/verify")

@@ -166,42 +166,73 @@
             <p class="text-amber-700 text-xs sm:text-sm font-medium">📸 ถ่ายรูป 5 ตำแหน่ง เพื่อลงทะเบียนใบหน้าครั้งแรก</p>
           </div>
 
+          <!-- Progress dots -->
           <div class="flex gap-1.5 mb-4">
             <div v-for="(pos, i) in 5" :key="i"
-              :class="['flex-1 h-1.5 rounded-full transition-colors', faceRegPhotos.length > i ? 'bg-green-500' : 'bg-gray-200']"
+              :class="[
+                'flex-1 h-2 rounded-full transition-all duration-300',
+                faceRegResults[i] === 'success' ? 'bg-green-500' :
+                faceRegResults[i] === 'error' ? 'bg-red-400' :
+                i === faceRegPhotos.length ? 'bg-blue-400 animate-pulse' :
+                faceRegPhotos.length > i ? 'bg-green-500' : 'bg-gray-200'
+              ]"
             ></div>
           </div>
-          <p class="text-center text-xs text-gray-500 mb-3">
-            {{ faceRegPhotos.length < 5 ? `ตำแหน่งที่ ${faceRegPhotos.length + 1}: ${faceRegPositions[faceRegPhotos.length]}` : 'ถ่ายครบทั้ง 5 ตำแหน่งแล้ว' }}
+
+          <!-- Current position text -->
+          <p class="text-center text-sm font-medium mb-3" :class="faceRegDetecting ? 'text-blue-600' : 'text-gray-600'">
+            <template v-if="faceRegAllDone">
+              ✅ เก็บข้อมูลเรียบร้อยทุกรูป
+            </template>
+            <template v-else-if="faceRegDetecting">
+              <span class="inline-flex items-center gap-1">
+                <svg class="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                กำลังตรวจสอบใบหน้า...
+              </span>
+            </template>
+            <template v-else-if="faceRegDetectError">
+              <span class="text-red-500">{{ faceRegDetectError }}</span>
+            </template>
+            <template v-else-if="faceRegPhotos.length < 5">
+              ตำแหน่งที่ {{ faceRegPhotos.length + 1 }}: {{ faceRegPositions[faceRegPhotos.length] }}
+            </template>
           </p>
 
-          <div v-if="faceRegPhotos.length < 5" class="relative max-w-sm mx-auto">
-            <Camera v-if="!faceRegCapturing" ref="faceRegCameraRef" @captured="handleFaceRegCaptured" />
+          <!-- Camera / Captured preview -->
+          <div v-if="faceRegPhotos.length < 5 && !faceRegAllDone" class="relative max-w-sm mx-auto">
+            <Camera v-if="!faceRegCapturing" ref="faceRegCameraRef" hide-controls @captured="handleFaceRegCaptured" />
 
             <div v-if="faceRegCapturing" class="aspect-video bg-gray-900 rounded-lg flex items-center justify-center">
               <LoadingSpinner />
             </div>
 
-            <div class="flex justify-center mt-4 gap-3">
+            <!-- Capture button - big and prominent -->
+            <div class="flex justify-center mt-4">
               <button
-                v-if="!faceRegCapturing"
+                v-if="!faceRegCapturing && !faceRegDetecting"
                 @click="captureFaceRegPhoto"
-                class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/30 active:scale-95 transition-transform"
+                class="w-20 h-20 rounded-full bg-gradient-to-br from-red-500 to-red-600 text-white flex items-center justify-center shadow-xl shadow-red-500/40 active:scale-95 transition-all duration-150 border-4 border-white"
               >
-                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
               </button>
             </div>
+
+            <!-- Retake button (only on error) -->
+            <div v-if="faceRegDetectError && !faceRegDetecting" class="flex justify-center mt-3">
+              <button @click="retakeFaceRegPhoto" class="px-5 py-2 bg-gray-100 hover:bg-gray-200 rounded-full text-gray-700 font-medium text-sm transition-colors">
+                ถ่ายใหม่
+              </button>
+            </div>
           </div>
 
-          <div v-if="faceRegPhotos.length > 0 && faceRegPhotos.length < 5" class="flex justify-center mt-3">
-            <button @click="retakeFaceRegPhoto" class="text-sm text-gray-500 hover:text-gray-700">ถ่ายใหม่</button>
-          </div>
-
-          <div v-if="faceRegPhotos.length === 5" class="text-center mt-4">
-            <p class="text-green-600 font-medium text-sm mb-3">✓ ถ่ายภาพครบทั้ง 5 ตำแหน่งแล้ว</p>
+          <!-- All 5 done - submit -->
+          <div v-if="faceRegAllDone" class="text-center mt-4">
+            <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+              <p class="text-green-600 font-medium text-sm">✅ เก็บข้อมูลเรียบร้อยทุกรูป</p>
+            </div>
             <button
               @click="registerFace"
               :disabled="faceRegRegistering"
@@ -349,6 +380,11 @@ const faceRegCapturing = ref(false)
 const faceRegPhotos = ref([])
 const faceRegRegistering = ref(false)
 const faceRegPositions = ['ตรงหน้า', 'ซ้าย 45°', 'ขวา 45°', 'มองขึ้น', 'มองลง']
+const faceRegResults = ref([])
+const faceRegDetecting = ref(false)
+const faceRegDetectError = ref('')
+const faceRegAllDone = ref(false)
+const faceRegEncodings = ref([])
 
 async function fetchServerTime() {
   try {
@@ -459,11 +495,21 @@ async function selectEmployee(employee) {
 
     if (faceCount < 5) {
       faceRegPhotos.value = []
+      faceRegResults.value = []
+      faceRegDetecting.value = false
+      faceRegDetectError.value = ''
+      faceRegAllDone.value = false
+      faceRegEncodings.value = []
       step.value = 2.7
       return
     }
   } catch {
     faceRegPhotos.value = []
+    faceRegResults.value = []
+    faceRegDetecting.value = false
+    faceRegDetectError.value = ''
+    faceRegAllDone.value = false
+    faceRegEncodings.value = []
     step.value = 2.7
     return
   }
@@ -496,17 +542,46 @@ function startRemoteScan() {
 
 function captureFaceRegPhoto() {
   if (faceRegCameraRef.value) {
+    faceRegDetectError.value = ''
     faceRegCapturing.value = true
     faceRegCameraRef.value.capture()
   }
 }
 
-function handleFaceRegCaptured(imageData) {
-  faceRegPhotos.value.push(imageData)
-  faceRegCapturing.value = false
+async function handleFaceRegCaptured(imageData) {
+  faceRegDetecting.value = true
+  try {
+    const res = await axios.post('/api/face/detect', { image: imageData }, { timeout: 15000 })
+    if (res.data.detected) {
+      faceRegPhotos.value.push(imageData)
+      faceRegEncodings.value.push(res.data.encoding)
+      faceRegResults.value.push('success')
+      faceRegDetectError.value = ''
+      faceRegCapturing.value = false
+      faceRegDetecting.value = false
+
+      if (faceRegPhotos.value.length >= 5) {
+        faceRegAllDone.value = true
+      }
+    } else {
+      faceRegResults.value.push('error')
+      faceRegDetectError.value = res.data.message || 'ไม่พบใบหน้า กรุณาถ่ายใหม่'
+      faceRegCapturing.value = false
+      faceRegDetecting.value = false
+    }
+  } catch (err) {
+    faceRegResults.value.push('error')
+    faceRegDetectError.value = 'ไม่สามารถตรวจสอบใบหน้าได้ กรุณาถ่ายใหม่'
+    faceRegCapturing.value = false
+    faceRegDetecting.value = false
+  }
 }
 
 function retakeFaceRegPhoto() {
+  faceRegDetectError.value = ''
+  if (faceRegResults.value.length > faceRegPhotos.value.length) {
+    faceRegResults.value.pop()
+  }
   if (faceRegCameraRef.value) {
     faceRegCameraRef.value.retake()
   }
@@ -579,5 +654,10 @@ function reset() {
   customLocationName.value = ''
   faceRegPhotos.value = []
   faceRegCapturing.value = false
+  faceRegResults.value = []
+  faceRegDetecting.value = false
+  faceRegDetectError.value = ''
+  faceRegAllDone.value = false
+  faceRegEncodings.value = []
 }
 </script>
