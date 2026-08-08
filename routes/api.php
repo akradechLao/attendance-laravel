@@ -35,12 +35,33 @@ Route::post('/employee/auth/verify', [EmployeeAuthController::class, 'verify']);
 // Public routes - Face recognition
 Route::post('/face/verify', [FaceController::class, 'verify']);
 
+// Public routes - Check if employee has face data (kiosk)
+Route::get('/employees/{id}/face-data', [EmployeeController::class, 'faceData']);
+
+// Public routes - Face registration (kiosk self-registration, only for employees without face data)
+Route::post('/employees/{id}/face', function ($id) {
+    $employee = \App\Models\Employee::find($id);
+    if (!$employee) {
+        return response()->json(['success' => false, 'message' => 'Employee not found.'], 404);
+    }
+    $faceCount = \App\Models\EmployeeFaceData::where('employee_id', $id)->count();
+    if ($faceCount >= 5) {
+        return response()->json(['success' => false, 'message' => 'Employee already has face data registered.'], 400);
+    }
+    $request = request();
+    $request->merge(['employee_id' => $id]);
+    return app(\App\Http\Controllers\Api\FaceController::class)->register($request);
+});
+
 // Public routes - Company list
 Route::get('/companies', [CompanyController::class, 'index']);
 
 // Public routes - Attendance (kiosk check-in/check-out)
 Route::post('/attendance/check-in', [AttendanceController::class, 'checkIn']);
 Route::post('/attendance/check-out', [AttendanceController::class, 'checkOut']);
+
+// Public routes - Remote check (kiosk)
+Route::post('/remote/check-active', [RemoteController::class, 'checkActive']);
 
 // Public auth routes
 Route::post('/auth/login', [LoginController::class, 'login']);
@@ -56,7 +77,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/employees', [EmployeeController::class, 'store']);
     Route::put('/employees/{id}', [EmployeeController::class, 'update']);
     Route::delete('/employees/{id}', [EmployeeController::class, 'destroy']);
-    Route::get('/employees/{id}/face-data', [EmployeeController::class, 'faceData']);
     Route::post('/employees/face', [EmployeeController::class, 'registerFace']);
     Route::delete('/employees/face/{id}', [EmployeeController::class, 'deleteFaceData']);
 
@@ -70,7 +90,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/remote-assignments', [RemoteController::class, 'store']);
     Route::put('/remote-assignments/{id}/approve', [RemoteController::class, 'approve']);
     Route::put('/remote-assignments/{id}/reject', [RemoteController::class, 'reject']);
-    Route::post('/remote/check-active', [RemoteController::class, 'checkActive']);
     Route::get('/remote/location-history/{employeeId}', [RemoteController::class, 'getLocationHistory']);
     Route::get('/remote/realtime-locations', [RemoteController::class, 'getRealtimeLocations']);
     Route::put('/remote/location-name/{id}', [RemoteController::class, 'updateLocationName']);
@@ -106,11 +125,6 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Face registration
     Route::post('/face/register', [FaceController::class, 'register']);
-    Route::post('/employees/{id}/face', function ($id) {
-        $request = request();
-        $request->merge(['employee_id' => $id]);
-        return app(\App\Http\Controllers\Api\FaceController::class)->register($request);
-    });
 
     // WFH Management
     Route::get('/wfh-records', [WfhController::class, 'index']);
