@@ -16,6 +16,11 @@ class CompanySeeder extends Seeder
             ['id' => 4, 'name' => 'STC', 'telegram_bot_token' => null, 'telegram_chat_id' => null, 'created_at' => now(), 'updated_at' => now()],
         ];
 
-        DB::table('companies')->insert($companies);
+        foreach ($companies as $company) {
+            DB::table('companies')->updateOrInsert(
+                ['id' => $company['id']],
+                $company
+            );
+        }
     }
 }

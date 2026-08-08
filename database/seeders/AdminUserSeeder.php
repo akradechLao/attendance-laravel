@@ -10,12 +10,15 @@ class AdminUserSeeder extends Seeder
 {
     public function run(): void
     {
-        DB::table('admin_users')->insert([
-            'company_id' => 2,
-            'username' => 'admin',
-            'password' => Hash::make('password'),
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        DB::table('admin_users')->updateOrInsert(
+            ['username' => 'admin'],
+            [
+                'company_id' => 2,
+                'username' => 'admin',
+                'password' => Hash::make('password'),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        );
     }
 }
