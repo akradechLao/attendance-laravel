@@ -22,10 +22,16 @@
               :key="company.id"
               @click="selectCompany(company)"
               class="company-btn p-4 sm:p-6 rounded-xl transition-all duration-200 text-center group touch-target"
-              :class="companyColors[index]"
+              :class="companyColors[index % companyColors.length]"
             >
-              <div class="w-12 h-12 sm:w-16 sm:h-16 mx-auto mb-2 sm:mb-3 rounded-full flex items-center justify-center transition-transform group-hover:scale-110 group-active:scale-105">
-                <span class="text-white text-lg sm:text-xl font-bold">{{ company.name.charAt(0) }}</span>
+              <div class="w-14 h-14 sm:w-20 sm:h-20 mx-auto mb-2 sm:mb-3 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 group-active:scale-105 overflow-hidden bg-white/20">
+                <img
+                  v-if="company.logo_url"
+                  :src="company.logo_url"
+                  :alt="company.name"
+                  class="w-full h-full object-contain p-1"
+                />
+                <span v-else class="text-white text-xl sm:text-2xl font-bold">{{ company.name.charAt(0) }}</span>
               </div>
               <p class="font-bold text-sm sm:text-base">{{ company.name }}</p>
             </button>
@@ -250,6 +256,7 @@ const selectedCompany = ref(null)
 const selectedEmployee = ref(null)
 const searchQuery = ref('')
 const employees = ref([])
+const companies = ref([])
 const loading = ref(false)
 const scanningError = ref('')
 const result = ref({ success: false, message: '', time: '', location: '' })
@@ -257,13 +264,6 @@ const scanType = ref('office_scan')
 const customLocationName = ref('')
 const currentLatitude = ref(null)
 const currentLongitude = ref(null)
-
-const companies = [
-  { id: 1, name: 'NTC', code: 'NTC' },
-  { id: 2, name: 'ETC1992', code: 'ETC1992' },
-  { id: 3, name: 'ETECH', code: 'ETECH' },
-  { id: 4, name: 'STC', code: 'STC' }
-]
 
 const companyColors = [
   'bg-gradient-to-br from-blue-500 to-blue-700 text-white shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 border-2 border-blue-400/50',
@@ -280,9 +280,25 @@ const filteredEmployees = computed(() => {
   )
 })
 
-onMounted(() => {
+onMounted(async () => {
   getCurrentPosition()
+  await fetchCompanies()
 })
+
+async function fetchCompanies() {
+  try {
+    const response = await axios.get('/api/companies')
+    companies.value = response.data.data || []
+  } catch (error) {
+    console.error('Error fetching companies:', error)
+    companies.value = [
+      { id: 1, name: 'NTC' },
+      { id: 2, name: 'ETC1992' },
+      { id: 3, name: 'ETECH' },
+      { id: 4, name: 'STC' }
+    ]
+  }
+}
 
 function getCurrentPosition() {
   if (navigator.geolocation) {

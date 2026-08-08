@@ -11,9 +11,22 @@ class Company extends Model
 
     protected $fillable = [
         'name',
+        'logo',
+        'phone',
+        'email',
+        'address',
+        'website',
         'telegram_bot_token',
         'telegram_chat_id',
     ];
+
+    protected $appends = ['logo_url'];
+
+    public function getLogoUrlAttribute(): ?string
+    {
+        if (!$this->logo) return null;
+        return '/storage/companies/' . $this->logo;
+    }
 
     public function employees(): HasMany
     {
