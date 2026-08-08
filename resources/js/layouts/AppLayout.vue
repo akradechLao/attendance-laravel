@@ -146,6 +146,7 @@ const navItems = [
   { path: '/manager/team-report', label: 'รายงานทีม', icon: '📊' },
   { section: 'Admin' },
   { path: '/photos', label: 'ประวัติภาพ', icon: '📷' },
+  { path: '/photo-import', label: '导入รูปใบหน้า', icon: '📸' },
   { path: '/settings', label: 'ตั้งค่าพนักงาน', icon: '⚙' },
   { path: '/admin/company-settings', label: 'ตั้งค่าบริษัท', icon: '🏢' },
   { path: '/admin/system-settings', label: 'ตั้งค่าระบบ', icon: '🔧' },

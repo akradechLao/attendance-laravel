@@ -103,6 +103,12 @@ const routes = [
     meta: { requiresAuth: true, layout: 'app' }
   },
   {
+    path: '/photo-import',
+    name: 'PhotoImport',
+    component: () => import('./pages/HR/PhotoImport.vue'),
+    meta: { requiresAuth: true, layout: 'app' }
+  },
+  {
     path: '/supervisor/leave-approval',
     name: 'SupervisorLeaveApproval',
     component: () => import('./pages/Supervisor/LeaveApproval.vue'),

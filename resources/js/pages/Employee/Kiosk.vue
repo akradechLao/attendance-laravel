@@ -141,6 +141,82 @@
         </div>
       </div>
 
+      <!-- Step 2.7: Face Registration (self-service) -->
+      <div v-if="step === 2.7" class="animate-fadeIn">
+        <div class="card p-4 sm:p-6">
+          <div class="flex items-center justify-between mb-4 sm:mb-6">
+            <button @click="step = 2" class="text-blue-500 active:text-blue-600 flex items-center gap-1 touch-target">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+              </svg>
+              <span class="text-sm sm:text-base">กลับ</span>
+            </button>
+            <h2 class="text-lg sm:text-xl font-semibold text-navy">ลงทะเบียนใบหน้า</h2>
+          </div>
+
+          <div class="text-center mb-4">
+            <div class="w-14 h-14 sm:w-16 sm:h-16 mx-auto mb-2 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center">
+              <span class="text-white text-xl sm:text-2xl font-bold">{{ selectedEmployee?.name?.charAt(0) }}</span>
+            </div>
+            <p class="font-semibold text-navy text-sm sm:text-base">{{ selectedEmployee?.name }}</p>
+            <p class="text-xs text-gray-500">{{ selectedEmployee?.employee_code }}</p>
+          </div>
+
+          <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4 text-center">
+            <p class="text-amber-700 text-xs sm:text-sm font-medium">📸 ถ่ายรูป 5 ตำแหน่ง เพื่อลงทะเบียนใบหน้าครั้งแรก</p>
+          </div>
+
+          <div class="flex gap-1.5 mb-4">
+            <div v-for="(pos, i) in 5" :key="i"
+              :class="['flex-1 h-1.5 rounded-full transition-colors', faceRegPhotos.length > i ? 'bg-green-500' : 'bg-gray-200']"
+            ></div>
+          </div>
+          <p class="text-center text-xs text-gray-500 mb-3">
+            {{ faceRegPhotos.length < 5 ? `ตำแหน่งที่ ${faceRegPhotos.length + 1}: ${faceRegPositions[faceRegPhotos.length]}` : 'ถ่ายครบทั้ง 5 ตำแหน่งแล้ว' }}
+          </p>
+
+          <div v-if="faceRegPhotos.length < 5" class="relative max-w-sm mx-auto">
+            <Camera v-if="!faceRegCapturing" ref="faceRegCameraRef" @captured="handleFaceRegCaptured" />
+
+            <div v-if="faceRegCapturing" class="aspect-video bg-gray-900 rounded-lg flex items-center justify-center">
+              <LoadingSpinner />
+            </div>
+
+            <div class="flex justify-center mt-4 gap-3">
+              <button
+                v-if="!faceRegCapturing"
+                @click="captureFaceRegPhoto"
+                class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-blue-600 text-white flex items-center justify-center shadow-lg shadow-blue-500/30 active:scale-95 transition-transform"
+              >
+                <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
+          <div v-if="faceRegPhotos.length > 0 && faceRegPhotos.length < 5" class="flex justify-center mt-3">
+            <button @click="retakeFaceRegPhoto" class="text-sm text-gray-500 hover:text-gray-700">ถ่ายใหม่</button>
+          </div>
+
+          <div v-if="faceRegPhotos.length === 5" class="text-center mt-4">
+            <p class="text-green-600 font-medium text-sm mb-3">✓ ถ่ายภาพครบทั้ง 5 ตำแหน่งแล้ว</p>
+            <button
+              @click="registerFace"
+              :disabled="faceRegRegistering"
+              class="btn-primary text-base px-6 py-3 touch-target"
+            >
+              {{ faceRegRegistering ? 'กำลังบันทึก...' : 'บันทึกลงทะเบียนใบหน้า' }}
+            </button>
+          </div>
+
+          <div v-if="scanningError" class="mt-3 p-3 bg-red-50 rounded-lg text-center">
+            <p class="text-red-600 text-sm">{{ scanningError }}</p>
+          </div>
+        </div>
+      </div>
+
       <!-- Step 3: Face Recognition -->
       <div v-if="step === 3" class="animate-fadeIn">
         <div class="card p-4 sm:p-6">
@@ -249,6 +325,7 @@ import { ref, computed, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
 import LoadingSpinner from '../../components/LoadingSpinner.vue'
 import FaceScanner from '../../components/FaceScanner.vue'
+import Camera from '../../components/Camera.vue'
 
 const step = ref(1)
 const selectedCompany = ref(null)
@@ -266,6 +343,12 @@ const currentLongitude = ref(null)
 const currentTime = ref('--:--:--')
 const currentDate = ref('')
 const timeOffset = ref(0)
+
+const faceRegCameraRef = ref(null)
+const faceRegCapturing = ref(false)
+const faceRegPhotos = ref([])
+const faceRegRegistering = ref(false)
+const faceRegPositions = ['ตรงหน้า', 'ซ้าย 45°', 'ขวา 45°', 'มองขึ้น', 'มองลง']
 
 async function fetchServerTime() {
   try {
@@ -368,8 +451,23 @@ async function searchEmployees() {
 
 async function selectEmployee(employee) {
   selectedEmployee.value = employee
+  scanningError.value = ''
 
-  // Check if employee has remote assignment
+  try {
+    const faceRes = await axios.get(`/api/employees/${employee.id}/face-data`)
+    const faceCount = (faceRes.data.data || []).length
+
+    if (faceCount < 5) {
+      faceRegPhotos.value = []
+      step.value = 2.7
+      return
+    }
+  } catch {
+    faceRegPhotos.value = []
+    step.value = 2.7
+    return
+  }
+
   try {
     const res = await axios.post('/api/remote/check-active', {
       employee_id: employee.id
@@ -394,6 +492,52 @@ function startOfficeScan() {
 function startRemoteScan() {
   scanType.value = 'remote_scan'
   step.value = 3
+}
+
+function captureFaceRegPhoto() {
+  if (faceRegCameraRef.value) {
+    faceRegCapturing.value = true
+    faceRegCameraRef.value.capture()
+  }
+}
+
+function handleFaceRegCaptured(imageData) {
+  faceRegPhotos.value.push(imageData)
+  faceRegCapturing.value = false
+}
+
+function retakeFaceRegPhoto() {
+  if (faceRegCameraRef.value) {
+    faceRegCameraRef.value.retake()
+  }
+}
+
+async function registerFace() {
+  if (faceRegPhotos.value.length < 5) return
+  faceRegRegistering.value = true
+  try {
+    await axios.post(`/api/employees/${selectedEmployee.value.id}/face`, {
+      images: faceRegPhotos.value
+    })
+    try {
+      const res = await axios.post('/api/remote/check-active', {
+        employee_id: selectedEmployee.value.id
+      })
+      if (res.data.data?.has_remote_assignment) {
+        step.value = 2.5
+      } else {
+        scanType.value = 'office_scan'
+        step.value = 3
+      }
+    } catch {
+      scanType.value = 'office_scan'
+      step.value = 3
+    }
+  } catch (error) {
+    scanningError.value = error.response?.data?.message || 'เกิดข้อผิดพลาดในการลงทะเบียนใบหน้า'
+  } finally {
+    faceRegRegistering.value = false
+  }
 }
 
 function handleVerified(data) {
@@ -433,5 +577,7 @@ function reset() {
   result.value = { success: false, message: '', time: '', location: '' }
   scanType.value = 'office_scan'
   customLocationName.value = ''
+  faceRegPhotos.value = []
+  faceRegCapturing.value = false
 }
 </script>
