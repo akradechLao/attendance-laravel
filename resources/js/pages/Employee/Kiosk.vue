@@ -57,7 +57,7 @@
             </div>
           </div>
 
-          <div v-if="loading" class="text-center py-8">
+          <div v-if="loading && !employees.length" class="text-center py-8">
             <LoadingSpinner />
             <p class="text-gray-500 mt-2">กำลังค้นหา...</p>
           </div>
@@ -298,7 +298,7 @@ function debouncedSearch() {
   clearTimeout(searchTimeout)
   searchTimeout = setTimeout(() => {
     searchEmployees()
-  }, 300)
+  }, 500)
 }
 
 async function searchEmployees() {
@@ -312,7 +312,6 @@ async function searchEmployees() {
     employees.value = response.data.data || []
   } catch (error) {
     console.error('Error searching employees:', error)
-    employees.value = []
   } finally {
     loading.value = false
   }
