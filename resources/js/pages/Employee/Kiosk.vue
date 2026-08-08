@@ -48,7 +48,7 @@
                 type="text"
                 class="input-field pl-12 text-lg py-3"
                 placeholder="พิมพ์ชื่อหรือรหัสพนักงาน..."
-                @input="debouncedSearch"
+                @focus="$event.target.select()"
                 autofocus
               />
               <svg class="w-6 h-6 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -57,9 +57,8 @@
             </div>
           </div>
 
-          <div v-if="loading && !employees.length" class="text-center py-8">
-            <LoadingSpinner />
-            <p class="text-gray-500 mt-2">กำลังค้นหา...</p>
+          <div v-if="!searchQuery" class="text-center py-8 text-gray-400">
+            พิมพ์ชื่อหรือรหัสพนักงานเพื่อค้นหา
           </div>
 
           <div v-else-if="filteredEmployees.length > 0" class="space-y-2 max-h-80 overflow-y-auto custom-scrollbar">
@@ -292,22 +291,13 @@ function selectCompany(company) {
   searchEmployees()
 }
 
-let searchTimeout = null
-
-function debouncedSearch() {
-  clearTimeout(searchTimeout)
-  searchTimeout = setTimeout(() => {
-    searchEmployees()
-  }, 500)
-}
-
 async function searchEmployees() {
   if (!selectedCompany.value) return
   loading.value = true
   try {
     const response = await axios.post('/api/employee/auth/search', {
       company_id: selectedCompany.value.id,
-      query: searchQuery.value
+      query: ''
     })
     employees.value = response.data.data || []
   } catch (error) {
