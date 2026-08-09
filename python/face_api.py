@@ -86,9 +86,18 @@ def decode_base64_image(base64_string: str) -> np.ndarray:
     return image
 
 
-def detect_faces(image: np.ndarray) -> list:
-    rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-    return dlib_face_detector(rgb_image, 1)
+def preprocess_image(image: np.ndarray) -> np.ndarray:
+    lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
+    l_channel = lab[:, :, 0]
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
+    lab[:, :, 0] = clahe.apply(l_channel)
+    return cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
+
+
+def detect_faces(image: np.ndarray, upsample: int = 2) -> list:
+    processed = preprocess_image(image)
+    rgb_image = cv2.cvtColor(processed, cv2.COLOR_BGR2RGB)
+    return dlib_face_detector(rgb_image, upsample)
 
 
 def get_face_encoding(image: np.ndarray, face_location) -> np.ndarray:
@@ -123,9 +132,10 @@ async def encode_faces(request: EncodeRequest):
         if len(faces) == 0:
             errors.append({"index": index, "error": "no_face", "detail": "No face detected in image"})
             continue
+
         if len(faces) > 1:
-            errors.append({"index": index, "error": "multiple_faces", "detail": "Multiple faces detected"})
-            continue
+            largest = max(faces, key=lambda f: (f.right() - f.left()) * (f.bottom() - f.top()))
+            faces = [largest]
 
         try:
             encoding = get_face_encoding(image, faces[0])
@@ -156,8 +166,10 @@ async def detect_face(request: DetectRequest):
     faces = detect_faces(image)
     if len(faces) == 0:
         return {"detected": False, "message": "ไม่พบใบหน้าในรูป กรุณาถ่ายใหม่"}
+
     if len(faces) > 1:
-        return {"detected": False, "message": "พบใบหน้าหลายคน กรุณาถ่ายเฉพาะตัวท่าน"}
+        largest = max(faces, key=lambda f: (f.right() - f.left()) * (f.bottom() - f.top()))
+        faces = [largest]
 
     try:
         encoding = get_face_encoding(image, faces[0])
@@ -182,8 +194,10 @@ async def verify_face(request: VerifyRequest):
     faces = detect_faces(image)
     if len(faces) == 0:
         return {"matched": False, "score": 0.0, "message": "No face detected"}
+
     if len(faces) > 1:
-        return {"matched": False, "score": 0.0, "message": "Multiple faces detected"}
+        largest = max(faces, key=lambda f: (f.right() - f.left()) * (f.bottom() - f.top()))
+        faces = [largest]
 
     try:
         encoding = get_face_encoding(image, faces[0])
@@ -202,7 +216,7 @@ async def verify_face(request: VerifyRequest):
         except Exception:
             continue
 
-    verified = best_distance < 0.6
+    verified = best_distance < 0.65
     return {
         "matched": verified,
         "score": round(1.0 - best_distance, 4),
