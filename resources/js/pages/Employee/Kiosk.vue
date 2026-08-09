@@ -516,7 +516,8 @@ async function selectEmployee(employee) {
 
   try {
     const faceRes = await axios.get(`/api/employees/${employee.id}/face-data`)
-    const faceCount = (faceRes.data.data || []).length
+    const faceData = faceRes.data.data || []
+    const faceCount = faceData.length
 
     if (faceCount < 5) {
       faceRegPhotos.value = []
@@ -527,6 +528,18 @@ async function selectEmployee(employee) {
       faceRegEncodings.value = []
       faceRegCurrentPosition.value = 0
       step.value = 2.7
+      return
+    }
+
+    const registeredToday = faceData.some(f => {
+      const created = new Date(f.created_at)
+      const today = new Date()
+      return created.toDateString() === today.toDateString()
+    })
+
+    if (registeredToday) {
+      scanningError.value = 'ลงทะเบียนใบหน้าวันนี้แล้ว กรุณากลับมาลงทะเบียนใหม่วันถัดไป'
+      step.value = 2
       return
     }
   } catch {

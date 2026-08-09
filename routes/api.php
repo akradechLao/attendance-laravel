@@ -59,6 +59,14 @@ Route::post('/employees/{id}/face', function ($id) {
     if (!$employee) {
         return response()->json(['success' => false, 'message' => 'Employee not found.'], 404);
     }
+
+    $todayCount = \App\Models\EmployeeFaceData::where('employee_id', $id)
+        ->whereDate('created_at', now()->toDateString())
+        ->count();
+    if ($todayCount > 0) {
+        return response()->json(['success' => false, 'message' => 'ลงทะเบียนใบหน้าวันนี้แล้ว กรุณากลับมาลงทะเบียนใหม่วันถัดไป'], 400);
+    }
+
     $faceCount = \App\Models\EmployeeFaceData::where('employee_id', $id)->count();
     if ($faceCount >= 5) {
         return response()->json(['success' => false, 'message' => 'Employee already has face data registered.'], 400);
