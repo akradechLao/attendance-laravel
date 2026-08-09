@@ -82,14 +82,21 @@ class ImportEmployeesCsv extends Command
         try {
             while (($row = fgetcsv($handle)) !== false) {
                 $total++;
+                if (count($row) < count($header)) {
+                    $row = array_pad($row, count($header), '');
+                }
                 $record = array_combine($header, $row);
 
                 $empCode = trim($record['emp_code'] ?? '');
                 $employeeCode = trim($record['employee_code'] ?? '');
 
-                if (empty($employeeCode) || empty($empCode)) {
+                if (empty($employeeCode)) {
                     $skipped++;
                     continue;
+                }
+
+                if (empty($empCode)) {
+                    $empCode = $employeeCode;
                 }
 
                 $companyName = strtoupper($empCode);
