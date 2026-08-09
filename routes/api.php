@@ -21,6 +21,7 @@ use App\Http\Controllers\Api\ManagerController;
 use App\Http\Controllers\Api\CompanySettingsController;
 use App\Http\Controllers\Api\SystemSettingsController;
 use App\Http\Controllers\Api\EmployeeHistoryController;
+use App\Http\Controllers\Api\EmployeeRequestController;
 
 /*
 |--------------------------------------------------------------------------
@@ -88,6 +89,7 @@ Route::post('/remote/check-active', [RemoteController::class, 'checkActive']);
 
 // Public auth routes
 Route::post('/auth/login', [LoginController::class, 'login']);
+Route::post('/employee/auth/login', [EmployeeAuthController::class, 'login']);
 
 // Protected routes - Authentication
 Route::middleware('auth:sanctum')->group(function () {
@@ -187,4 +189,10 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Employee History
     Route::get('/employees/{id}/history', [EmployeeHistoryController::class, 'index']);
+
+    // Employee Requests (พนักงานทั่วไป)
+    Route::get('/employee/requests/pending-count', [EmployeeRequestController::class, 'pendingCount']);
+    Route::post('/employee/leave-requests', [EmployeeRequestController::class, 'storeLeave']);
+    Route::post('/employee/ot-requests', [EmployeeRequestController::class, 'storeOt']);
+    Route::post('/employee/wfh-requests', [EmployeeRequestController::class, 'storeWfh']);
 });

@@ -34,6 +34,7 @@ class Employee extends Authenticatable
         'supervisor_line',
         'supervisor_phone',
         'password',
+        'role',
         'wfh_quota',
         'preferred_off_day',
         'is_active',

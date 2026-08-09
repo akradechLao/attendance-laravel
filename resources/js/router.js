@@ -25,6 +25,30 @@ const routes = [
     meta: { requiresAuth: false }
   },
   {
+    path: '/employee/menu',
+    name: 'EmployeeMenu',
+    component: () => import('./pages/Employee/EmployeeMenu.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/employee/leave',
+    name: 'EmployeeLeaveRequest',
+    component: () => import('./pages/Employee/LeaveRequest.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/employee/ot',
+    name: 'EmployeeOtRequest',
+    component: () => import('./pages/Employee/OtRequest.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/employee/wfh',
+    name: 'EmployeeWfhRequest',
+    component: () => import('./pages/Employee/WfhRequest.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/dashboard',
     name: 'Dashboard',
     component: () => import('./pages/HR/Dashboard.vue'),

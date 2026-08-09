@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class EmployeeAuthController extends Controller
 {
@@ -40,6 +41,46 @@ class EmployeeAuthController extends Controller
                 'success' => false,
                 'data' => null,
                 'message' => 'Search failed: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function login(Request $request): JsonResponse
+    {
+        try {
+            $request->validate([
+                'employee_code' => 'required|string',
+                'password' => 'required|string',
+                'company_id' => 'required|exists:companies,id',
+            ]);
+
+            $employee = Employee::where('employee_code', $request->employee_code)
+                ->where('company_id', $request->company_id)
+                ->first();
+
+            if (!$employee || !$employee->password || !Hash::check($request->password, $employee->password)) {
+                return response()->json([
+                    'success' => false,
+                    'data' => null,
+                    'message' => 'รหัสพนักงานหรือรหัสผ่านไม่ถูกต้อง',
+                ], 401);
+            }
+
+            $token = $employee->createToken('employee-token')->plainTextToken;
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'user' => $employee->load('company'),
+                    'token' => $token,
+                ],
+                'message' => 'เข้าสู่ระบบสำเร็จ',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'เข้าสู่ระบบล้มเหลว: ' . $e->getMessage(),
             ], 500);
         }
     }
