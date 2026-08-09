@@ -2,7 +2,7 @@
   <AppLayout>
     <div class="max-w-4xl mx-auto space-y-6">
       <div>
-        <h1 class="text-2xl font-bold text-navy">导入รูปใบหน้าพนักงาน</h1>
+        <h1 class="text-2xl font-bold text-navy">นำเข้ารูปใบหน้าพนักงาน</h1>
         <p class="text-gray-500">อัพโหลดรูปใบหน้าสำหรับพนักงานที่ยังไม่ได้ลงทะเบียน</p>
       </div>
 

@@ -627,7 +627,8 @@ async function selectEmployee(employee) {
       step.value = 2
       return
     }
-  } catch {
+  } catch (e) {
+    console.error('Face data error:', e)
     faceRegPhotos.value = []
     faceRegResults.value = []
     faceRegDetecting.value = false
