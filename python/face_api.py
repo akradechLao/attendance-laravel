@@ -94,10 +94,15 @@ def preprocess_image(image: np.ndarray) -> np.ndarray:
     return cv2.cvtColor(lab, cv2.COLOR_LAB2BGR)
 
 
-def detect_faces(image: np.ndarray, upsample: int = 2) -> list:
+def detect_faces(image: np.ndarray, upsample: int = 2, min_face_size: int = 60) -> list:
     processed = preprocess_image(image)
     rgb_image = cv2.cvtColor(processed, cv2.COLOR_BGR2RGB)
-    return dlib_face_detector(rgb_image, upsample)
+    faces = dlib_face_detector(rgb_image, upsample)
+    if min_face_size > 0:
+        h, w = image.shape[:2]
+        min_px = min_face_size * min(h, w) / 640
+        faces = [f for f in faces if (f.right() - f.left()) >= min_px and (f.bottom() - f.top()) >= min_px]
+    return faces
 
 
 def get_face_encoding(image: np.ndarray, face_location) -> np.ndarray:
