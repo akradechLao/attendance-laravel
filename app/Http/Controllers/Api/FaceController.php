@@ -204,13 +204,42 @@ class FaceController extends Controller
     public function register(Request $request): JsonResponse
     {
         try {
-            $request->validate([
-                'employee_id' => 'required|exists:employees,id',
-                'images' => 'required|array|min:5',
-                'images.*' => 'required|string',
-            ]);
+            $hasEncodings = $request->has('encodings') && is_array($request->encodings) && count($request->encodings) >= 5;
+            $hasImages = $request->has('images') && is_array($request->images) && count($request->images) >= 5;
+
+            if (!$hasEncodings && !$hasImages) {
+                return response()->json([
+                    'success' => false,
+                    'data' => null,
+                    'message' => 'กรุณาถ่ายรูปอย่างน้อย 5 รูป',
+                ], 422);
+            }
 
             $employee = Employee::findOrFail($request->employee_id);
+
+            if ($hasEncodings) {
+                $encodings = $request->encodings;
+                $angles = ['front', 'left', 'right', 'up', 'down'];
+
+                EmployeeFaceData::where('employee_id', $employee->id)->delete();
+
+                $savedFaceData = [];
+                foreach ($encodings as $i => $encoding) {
+                    $angle = $angles[$i] ?? "angle_{$i}";
+                    $faceData = EmployeeFaceData::create([
+                        'employee_id' => $employee->id,
+                        'angle' => $angle,
+                        'face_encoding' => is_string($encoding) ? $encoding : json_encode($encoding),
+                    ]);
+                    $savedFaceData[] = $faceData;
+                }
+
+                return response()->json([
+                    'success' => true,
+                    'data' => ['face_data' => $savedFaceData],
+                    'message' => 'ลงทะเบียนใบหน้าสำเร็จ ' . count($savedFaceData) . ' รูป',
+                ]);
+            }
 
             try {
                 $response = Http::timeout(60)->post("{$this->pythonApiUrl}/api/face/encode", [

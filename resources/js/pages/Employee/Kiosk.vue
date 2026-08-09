@@ -166,17 +166,19 @@
             <p class="text-amber-700 text-xs sm:text-sm font-medium">📸 ถ่ายรูป 5 ตำแหน่ง เพื่อลงทะเบียนใบหน้าครั้งแรก</p>
           </div>
 
-          <!-- Progress dots -->
+          <!-- Progress dots (clickable to re-take) -->
           <div class="flex gap-1.5 mb-4">
-            <div v-for="(pos, i) in 5" :key="i"
+            <button v-for="(pos, i) in 5" :key="i"
+              @click="clickFaceRegDot(i)"
               :class="[
-                'flex-1 h-2 rounded-full transition-all duration-300',
+                'flex-1 h-2 rounded-full transition-all duration-300 cursor-pointer hover:opacity-80',
                 faceRegResults[i] === 'success' ? 'bg-green-500' :
                 faceRegResults[i] === 'error' ? 'bg-red-400' :
-                i === faceRegPhotos.length ? 'bg-blue-400 animate-pulse' :
-                faceRegPhotos.length > i ? 'bg-green-500' : 'bg-gray-200'
+                i === faceRegCurrentPosition ? 'bg-blue-400 animate-pulse' :
+                'bg-gray-200'
               ]"
-            ></div>
+              :title="faceRegPositions[i]"
+            ></button>
           </div>
 
           <!-- Current position text -->
@@ -193,13 +195,14 @@
             <template v-else-if="faceRegDetectError">
               <span class="text-red-500">{{ faceRegDetectError }}</span>
             </template>
-            <template v-else-if="faceRegPhotos.length < 5">
-              ตำแหน่งที่ {{ faceRegPhotos.length + 1 }}: {{ faceRegPositions[faceRegPhotos.length] }}
+            <template v-else>
+              ตำแหน่งที่ {{ faceRegCurrentPosition + 1 }}: {{ faceRegPositions[faceRegCurrentPosition] }}
+              <span v-if="faceRegResults[faceRegCurrentPosition] === 'success'" class="text-green-500 ml-1">(ถ่ายใหม่)</span>
             </template>
           </p>
 
           <!-- Camera / Captured preview -->
-          <div v-if="faceRegPhotos.length < 5 && !faceRegAllDone" class="relative max-w-sm mx-auto">
+          <div v-if="!faceRegAllDone" class="relative max-w-sm mx-auto">
             <Camera v-if="!faceRegCapturing" ref="faceRegCameraRef" hide-controls @captured="handleFaceRegCaptured" />
 
             <div v-if="faceRegCapturing" class="aspect-video bg-gray-900 rounded-lg flex items-center justify-center">
@@ -404,6 +407,7 @@ const faceRegDetecting = ref(false)
 const faceRegDetectError = ref('')
 const faceRegAllDone = ref(false)
 const faceRegEncodings = ref([])
+const faceRegCurrentPosition = ref(0)
 
 const scanMode = ref('check_in')  // 'check_in' or 'check_out'
 
@@ -521,6 +525,7 @@ async function selectEmployee(employee) {
       faceRegDetectError.value = ''
       faceRegAllDone.value = false
       faceRegEncodings.value = []
+      faceRegCurrentPosition.value = 0
       step.value = 2.7
       return
     }
@@ -531,6 +536,7 @@ async function selectEmployee(employee) {
     faceRegDetectError.value = ''
     faceRegAllDone.value = false
     faceRegEncodings.value = []
+    faceRegCurrentPosition.value = 0
     step.value = 2.7
     return
   }
@@ -574,24 +580,28 @@ async function handleFaceRegCaptured(imageData) {
   try {
     const res = await axios.post('/api/face/detect', { image: imageData }, { timeout: 15000 })
     if (res.data.detected) {
-      faceRegPhotos.value.push(imageData)
-      faceRegEncodings.value.push(res.data.encoding)
-      faceRegResults.value.push('success')
+      const pos = faceRegCurrentPosition.value
+      faceRegPhotos.value[pos] = imageData
+      faceRegEncodings.value[pos] = res.data.encoding
+      faceRegResults.value[pos] = 'success'
       faceRegDetectError.value = ''
       faceRegCapturing.value = false
       faceRegDetecting.value = false
 
-      if (faceRegPhotos.value.length >= 5) {
+      if (faceRegResults.value.filter(r => r === 'success').length >= 5) {
         faceRegAllDone.value = true
+      } else {
+        const nextEmpty = faceRegResults.value.findIndex((r, i) => i >= faceRegPhotos.value.length || r !== 'success')
+        faceRegCurrentPosition.value = nextEmpty >= 0 ? nextEmpty : faceRegPhotos.value.length
       }
     } else {
-      faceRegResults.value.push('error')
+      faceRegResults.value[faceRegCurrentPosition.value] = 'error'
       faceRegDetectError.value = res.data.message || 'ไม่พบใบหน้า กรุณาถ่ายใหม่'
       faceRegCapturing.value = false
       faceRegDetecting.value = false
     }
   } catch (err) {
-    faceRegResults.value.push('error')
+    faceRegResults.value[faceRegCurrentPosition.value] = 'error'
     faceRegDetectError.value = 'ไม่สามารถตรวจสอบใบหน้าได้ กรุณาถ่ายใหม่'
     faceRegCapturing.value = false
     faceRegDetecting.value = false
@@ -600,20 +610,27 @@ async function handleFaceRegCaptured(imageData) {
 
 function retakeFaceRegPhoto() {
   faceRegDetectError.value = ''
-  if (faceRegResults.value.length > faceRegPhotos.value.length) {
-    faceRegResults.value.pop()
+  if (faceRegCameraRef.value) {
+    faceRegCameraRef.value.retake()
   }
+}
+
+function clickFaceRegDot(index) {
+  if (faceRegDetecting.value || faceRegCapturing.value) return
+  faceRegDetectError.value = ''
+  faceRegCurrentPosition.value = index
   if (faceRegCameraRef.value) {
     faceRegCameraRef.value.retake()
   }
 }
 
 async function registerFace() {
-  if (faceRegPhotos.value.length < 5) return
+  const successfulEncodings = faceRegEncodings.value.filter((_, i) => faceRegResults.value[i] === 'success')
+  if (successfulEncodings.length < 5) return
   faceRegRegistering.value = true
   try {
     await axios.post(`/api/employees/${selectedEmployee.value.id}/face`, {
-      images: faceRegPhotos.value
+      encodings: successfulEncodings
     })
     try {
       const res = await axios.post('/api/remote/check-active', {
@@ -680,5 +697,6 @@ function reset() {
   faceRegDetectError.value = ''
   faceRegAllDone.value = false
   faceRegEncodings.value = []
+  faceRegCurrentPosition.value = 0
 }
 </script>
