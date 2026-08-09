@@ -1,5 +1,50 @@
 <template>
   <div class="min-h-screen bg-gradient-to-br from-blue-100 via-indigo-50 to-purple-100 flex items-center justify-center p-3 sm:p-4 safe-area">
+    <!-- Admin Login Button -->
+    <button
+      v-if="!showAdminLogin"
+      @click="showAdminLogin = true"
+      class="fixed top-3 right-3 sm:top-4 sm:right-4 z-50 px-3 py-1.5 sm:px-4 sm:py-2 bg-white/80 backdrop-blur-sm rounded-lg shadow-sm border border-gray-200 text-gray-600 hover:bg-white hover:shadow-md transition-all text-xs sm:text-sm font-medium flex items-center gap-1.5"
+    >
+      <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+      </svg>
+      HR / Admin
+    </button>
+
+    <!-- Admin Login Modal -->
+    <div v-if="showAdminLogin" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 animate-fadeIn">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="text-lg font-bold text-navy">เข้าสู่ระบบ HR / Admin</h3>
+          <button @click="showAdminLogin = false; adminError = ''" class="p-1 hover:bg-gray-100 rounded-lg">
+            <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div v-if="adminError" class="mb-4 p-3 bg-red-50 rounded-lg border border-red-200">
+          <p class="text-red-600 text-sm">{{ adminError }}</p>
+        </div>
+
+        <form @submit.prevent="handleAdminLogin" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อผู้ใช้</label>
+            <input v-model="adminForm.username" type="text" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="กรอกชื่อผู้ใช้" required />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">รหัสผ่าน</label>
+            <input v-model="adminForm.password" type="password" class="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" placeholder="กรอกรหัสผ่าน" required />
+          </div>
+          <button type="submit" :disabled="adminLoading" class="w-full bg-navy hover:bg-slate-800 disabled:bg-navy/50 text-white py-2.5 rounded-lg font-semibold transition-colors flex items-center justify-center gap-2">
+            <span v-if="adminLoading" class="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+            <span>{{ adminLoading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ' }}</span>
+          </button>
+        </form>
+      </div>
+    </div>
+
     <div class="w-full max-w-lg">
       <!-- Header -->
       <div class="text-center mb-6 sm:mb-8">
@@ -376,9 +421,13 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import axios from 'axios'
+import { useRouter } from 'vue-router'
 import LoadingSpinner from '../../components/LoadingSpinner.vue'
 import FaceScanner from '../../components/FaceScanner.vue'
 import Camera from '../../components/Camera.vue'
+import { setCurrentUser, setToken } from '../../store'
+
+const router = useRouter()
 
 const step = ref(1)
 const selectedCompany = ref(null)
@@ -410,6 +459,12 @@ const faceRegEncodings = ref([])
 const faceRegCurrentPosition = ref(0)
 
 const scanMode = ref('check_in')  // 'check_in' or 'check_out'
+
+// Admin/HR Login
+const showAdminLogin = ref(false)
+const adminLoading = ref(false)
+const adminError = ref('')
+const adminForm = ref({ username: '', password: '' })
 
 async function fetchServerTime() {
   try {
@@ -492,6 +547,36 @@ function selectCompany(company) {
   selectedCompany.value = company
   step.value = 2
   searchEmployees()
+}
+
+async function handleAdminLogin() {
+  adminLoading.value = true
+  adminError.value = ''
+  try {
+    const res = await axios.post('/api/auth/login', {
+      username: adminForm.value.username,
+      password: adminForm.value.password
+    })
+    if (res.data.success) {
+      const { data } = res.data
+      setToken(data.token)
+      setCurrentUser(data.user)
+      axios.defaults.headers.common['Authorization'] = `Bearer ${data.token}`
+      showAdminLogin.value = false
+      const role = data.user?.role
+      if (role === 'super_admin') {
+        router.push('/admin/company-settings')
+      } else {
+        router.push('/dashboard')
+      }
+    } else {
+      adminError.value = res.data.message || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง'
+    }
+  } catch (err) {
+    adminError.value = err.response?.data?.message || 'ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง'
+  } finally {
+    adminLoading.value = false
+  }
 }
 
 async function searchEmployees() {
