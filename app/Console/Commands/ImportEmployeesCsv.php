@@ -61,7 +61,7 @@ class ImportEmployeesCsv extends Command
         $this->info("CSV Header: " . implode(' | ', array_slice($header, 0, 10)));
         $this->newLine();
 
-        $knownColumns = ['no','emp_code','employee_code','employee_title_lv','employee_name',
+        $knownColumns = ['no','emp_code','employee_code','company_code','employee_title_lv','employee_name',
             'employee_last_name','fing_code','employee_gender','Lavel','กะการทำงาน','มี OT',
             'employee_type_code','employee_type_group_code','employee_nickname','mobilephone',
             'emailaddress','birth_dt','effective_dt','department_name','division_name','position_name'];
@@ -77,6 +77,18 @@ class ImportEmployeesCsv extends Command
         $imported = 0;
         $skipped = 0;
 
+        $forcedCompanyId = null;
+        $forcedCompanyOption = $this->option('company');
+        if ($forcedCompanyOption) {
+            $forcedCompanyId = $this->companyMap[$forcedCompanyOption] ?? null;
+            if (!$forcedCompanyId) {
+                $this->error("Unknown company: {$forcedCompanyOption}");
+                fclose($handle);
+                return 1;
+            }
+            $this->info("Forced company: {$forcedCompanyOption} (ID: {$forcedCompanyId})");
+        }
+
         DB::beginTransaction();
 
         try {
@@ -87,23 +99,30 @@ class ImportEmployeesCsv extends Command
                 }
                 $record = array_combine($header, $row);
 
-                $empCode = trim($record['emp_code'] ?? '');
                 $employeeCode = trim($record['employee_code'] ?? '');
 
-                if (empty($employeeCode)) {
+                if (empty($employeeCode) || preg_match('/[ก-๙]/', $employeeCode)) {
                     $skipped++;
                     continue;
                 }
 
-                if (empty($empCode)) {
-                    $empCode = $employeeCode;
-                }
-
-                $companyName = strtoupper($empCode);
-                $companyId = $this->companyMap[$companyName] ?? null;
+                $companyId = $forcedCompanyId;
 
                 if (!$companyId) {
-                    $this->warn("Row {$total}: Unknown company '{$empCode}', skipping");
+                    $companyCode = trim($record['company_code'] ?? '');
+                    $empCode = trim($record['emp_code'] ?? '');
+
+                    if (!empty($companyCode)) {
+                        $companyId = $this->companyMap[strtoupper($companyCode)] ?? null;
+                    }
+
+                    if (!$companyId && !empty($empCode)) {
+                        $companyId = $this->companyMap[strtoupper($empCode)] ?? null;
+                    }
+                }
+
+                if (!$companyId) {
+                    $this->warn("Row {$total}: Cannot determine company for '{$employeeCode}', skipping");
                     $skipped++;
                     continue;
                 }
