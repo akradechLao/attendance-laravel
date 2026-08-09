@@ -118,6 +118,15 @@
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                         </svg>
                       </button>
+                      <button
+                        @click="resetPassword(employee)"
+                        class="p-2 text-orange-500 hover:bg-orange-50 rounded-lg transition-colors"
+                        title="รีเซ็ตรหัสผ่าน"
+                      >
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                        </svg>
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -348,6 +357,22 @@ function closeModal() {
   showEditModal.value = false
   editId.value = null
   Object.assign(form, { name: '', code: '', company_id: '', position: '', department: '' })
+}
+
+async function resetPassword(employee) {
+  const newPassword = prompt(`ตั้งรหัสผ่านใหม่สำหรับ ${employee.name}\n(ปล่อยว่าง = ใช้ "password")`, 'password')
+  if (newPassword === null) return
+
+  try {
+    const res = await axios.post(`/api/employees/${employee.id}/reset-password`, {
+      password: newPassword || 'password'
+    })
+    if (res.data.success) {
+      alert(`รีเซ็ตรหัสผ่านสำเร็จ!\nพนักงาน: ${employee.name}\nรหัสผ่านใหม่: ${newPassword || 'password'}`)
+    }
+  } catch (error) {
+    alert('เกิดข้อผิดพลาด: ' + (error.response?.data?.message || error.message))
+  }
 }
 
 watch(currentPage, () => fetchEmployees())

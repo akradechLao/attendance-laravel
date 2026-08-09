@@ -8,6 +8,7 @@ use App\Models\OtRequest;
 use App\Models\WfhRecord;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class EmployeeRequestController extends Controller
 {
@@ -146,6 +147,39 @@ class EmployeeRequestController extends Controller
                 'success' => true,
                 'data' => $wfh,
                 'message' => 'ส่งคำขอ WFH สำเร็จ',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function changePassword(Request $request): JsonResponse
+    {
+        try {
+            $request->validate([
+                'current_password' => 'required|string',
+                'new_password' => 'required|string|min:4|confirmed',
+            ]);
+
+            $employee = $request->user();
+
+            if (!Hash::check($request->current_password, $employee->password)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'รหัสผ่านเดิมไม่ถูกต้อง',
+                ], 400);
+            }
+
+            $employee->password = $request->new_password;
+            $employee->save();
+
+            return response()->json([
+                'success' => true,
+                'data' => null,
+                'message' => 'เปลี่ยนรหัสผ่านสำเร็จ',
             ]);
         } catch (\Exception $e) {
             return response()->json([

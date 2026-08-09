@@ -104,6 +104,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::delete('/employees/{id}', [EmployeeController::class, 'destroy']);
     Route::post('/employees/face', [EmployeeController::class, 'registerFace']);
     Route::delete('/employees/face/{id}', [EmployeeController::class, 'deleteFaceData']);
+    Route::post('/employees/{id}/reset-password', [EmployeeController::class, 'resetPassword']);
 
     // Attendance
     Route::get('/attendance/today', [AttendanceController::class, 'today']);
@@ -195,4 +196,5 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/employee/leave-requests', [EmployeeRequestController::class, 'storeLeave']);
     Route::post('/employee/ot-requests', [EmployeeRequestController::class, 'storeOt']);
     Route::post('/employee/wfh-requests', [EmployeeRequestController::class, 'storeWfh']);
+    Route::post('/employee/change-password', [EmployeeRequestController::class, 'changePassword']);
 });

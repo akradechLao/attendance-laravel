@@ -49,6 +49,12 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/employee/change-password',
+    name: 'EmployeeChangePassword',
+    component: () => import('./pages/Employee/ChangePassword.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/dashboard',
     name: 'Dashboard',
     component: () => import('./pages/HR/Dashboard.vue'),

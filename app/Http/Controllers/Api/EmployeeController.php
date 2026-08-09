@@ -257,4 +257,36 @@ class EmployeeController extends Controller
             ], 500);
         }
     }
+
+    public function resetPassword(Request $request, $id): JsonResponse
+    {
+        try {
+            $employee = Employee::findOrFail($id);
+
+            $request->validate([
+                'password' => 'required|string|min:1',
+            ]);
+
+            $employee->password = $request->password;
+            $employee->save();
+
+            return response()->json([
+                'success' => true,
+                'data' => null,
+                'message' => 'รหัสผ่านถูกตั้งใหม่แล้ว',
+            ]);
+        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'ไม่พบพนักงาน',
+            ], 404);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'ตั้งรหัสผ่านล้มเหลว: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
 }
