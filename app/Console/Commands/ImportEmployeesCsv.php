@@ -47,13 +47,16 @@ class ImportEmployeesCsv extends Command
         $header = array_map('trim', $header);
         $header[0] = preg_replace('/^\xEF\xBB\xBF/', '', $header[0]);
 
-        if (!in_array('emp_code', $header)) {
+        $hasHeader = in_array('emp_code', $header) || in_array('employee_code', $header);
+        if (!$hasHeader) {
             $header = fgetcsv($handle);
             $header = array_map('trim', $header);
+            $hasHeader = in_array('emp_code', $header) || in_array('employee_code', $header);
         }
-        if (!in_array('emp_code', $header)) {
+        if (!$hasHeader) {
             $header = fgetcsv($handle);
             $header = array_map('trim', $header);
+            $hasHeader = in_array('emp_code', $header) || in_array('employee_code', $header);
         }
         $this->info("CSV Header: " . implode(' | ', array_slice($header, 0, 10)));
         $this->newLine();
