@@ -165,6 +165,8 @@
 
 <script setup>
 import { ref, reactive, onMounted, nextTick, watch } from 'vue'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
 import api from '../../services/api'
 import AppLayout from '../../layouts/AppLayout.vue'
 
