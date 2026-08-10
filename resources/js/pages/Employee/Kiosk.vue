@@ -619,6 +619,18 @@ async function selectEmployee(employee) {
     const faceCount = faceData.length
 
     if (faceCount < 5) {
+      const registeredToday = faceData.some(f => {
+        const created = new Date(f.created_at)
+        const today = new Date()
+        return created.toDateString() === today.toDateString()
+      })
+
+      if (registeredToday) {
+        scanningError.value = 'ลงทะเบียนใบหน้าวันนี้แล้ว กรุณากลับมาลงทะเบียนใหม่วันถัดไป'
+        step.value = 2
+        return
+      }
+
       faceRegPhotos.value = []
       faceRegResults.value = []
       faceRegDetecting.value = false
@@ -629,29 +641,8 @@ async function selectEmployee(employee) {
       step.value = 2.7
       return
     }
-
-    const registeredToday = faceData.some(f => {
-      const created = new Date(f.created_at)
-      const today = new Date()
-      return created.toDateString() === today.toDateString()
-    })
-
-    if (registeredToday) {
-      scanningError.value = 'ลงทะเบียนใบหน้าวันนี้แล้ว กรุณากลับมาลงทะเบียนใหม่วันถัดไป'
-      step.value = 2
-      return
-    }
   } catch (e) {
     console.error('Face data error:', e)
-    faceRegPhotos.value = []
-    faceRegResults.value = []
-    faceRegDetecting.value = false
-    faceRegDetectError.value = ''
-    faceRegAllDone.value = false
-    faceRegEncodings.value = []
-    faceRegCurrentPosition.value = 0
-    step.value = 2.7
-    return
   }
 
   try {
