@@ -63,6 +63,9 @@ Route::post('/face/detect', function () {
 // Public routes - Check if employee has face data (kiosk)
 Route::get('/employees/{id}/face-data', [EmployeeController::class, 'faceData']);
 
+// Public routes - Delete face data for re-registration (kiosk)
+Route::delete('/employees/{id}/face-data', [EmployeeController::class, 'deleteFaceData']);
+
 // Public routes - Face registration (kiosk self-registration, only for employees without face data)
 Route::post('/employees/{id}/face', function ($id) {
     $employee = \App\Models\Employee::find($id);

@@ -118,23 +118,37 @@
           </div>
 
           <div v-else-if="filteredEmployees.length > 0" class="space-y-2 max-h-[50vh] sm:max-h-80 overflow-y-auto custom-scrollbar">
-            <button
+            <div
               v-for="emp in filteredEmployees"
               :key="emp.id"
-              @click="selectEmployee(emp)"
-              class="w-full p-3 sm:p-4 rounded-xl border border-blue-100 bg-white hover:border-blue-400 hover:bg-blue-50 hover:shadow-md active:bg-blue-100 transition-all duration-200 flex items-center gap-3 sm:gap-4 text-left touch-target"
+              class="flex items-center gap-2"
             >
-              <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shrink-0 shadow-sm">
-                <span class="text-white font-bold text-sm sm:text-base">{{ emp.name.charAt(0) }}</span>
-              </div>
-              <div class="flex-1 min-w-0">
-                <p class="font-semibold text-navy text-sm sm:text-base truncate">{{ emp.name }}</p>
-                <p class="text-xs sm:text-sm text-gray-500">{{ emp.employee_code }} | {{ emp.department }}</p>
-              </div>
-              <svg class="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-              </svg>
-            </button>
+              <button
+                @click="selectEmployee(emp)"
+                class="flex-1 p-3 sm:p-4 rounded-xl border border-blue-100 bg-white hover:border-blue-400 hover:bg-blue-50 hover:shadow-md active:bg-blue-100 transition-all duration-200 flex items-center gap-3 sm:gap-4 text-left touch-target"
+              >
+                <div class="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center shrink-0 shadow-sm">
+                  <span class="text-white font-bold text-sm sm:text-base">{{ emp.name.charAt(0) }}</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p class="font-semibold text-navy text-sm sm:text-base truncate">{{ emp.name }}</p>
+                  <p class="text-xs sm:text-sm text-gray-500">{{ emp.employee_code }} | {{ emp.department }}</p>
+                </div>
+                <svg class="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+              <button
+                v-if="emp.face_data_count > 0"
+                @click.stop="confirmReregister(emp)"
+                class="shrink-0 w-10 h-10 sm:w-12 sm:h-12 rounded-xl border border-orange-200 bg-orange-50 hover:bg-orange-100 active:bg-orange-200 transition-all duration-200 flex items-center justify-center touch-target"
+                title="ลงทะเบียนใบหน้าใหม่"
+              >
+                <svg class="w-5 h-5 sm:w-6 sm:h-6 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              </button>
+            </div>
           </div>
 
           <div v-else-if="searchQuery && !loading" class="text-center py-6 sm:py-8 text-gray-500 text-sm sm:text-base">
@@ -415,6 +429,37 @@
         </div>
       </div>
     </div>
+
+    <!-- Confirm Re-register Modal -->
+    <div v-if="showReregisterModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="background: rgba(0,0,0,0.5);">
+      <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl animate-fadeIn">
+        <div class="text-center">
+          <div class="w-16 h-16 mx-auto mb-4 rounded-full bg-orange-100 flex items-center justify-center">
+            <svg class="w-8 h-8 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+          </div>
+          <h3 class="text-lg font-bold text-navy mb-2">ลงทะเบียนใบหน้าใหม่?</h3>
+          <p class="text-sm text-gray-500 mb-1">{{ reregisterEmployee?.name }}</p>
+          <p class="text-xs text-gray-400 mb-6">ข้อมูลใบหน้าเดิมจะถูกลบ และต้องลงทะเบียนใหม่ 5 รูป</p>
+          <div class="flex gap-3">
+            <button
+              @click="showReregisterModal = false"
+              class="flex-1 py-3 rounded-xl border border-gray-300 text-gray-600 font-medium hover:bg-gray-50 active:bg-gray-100 transition touch-target"
+            >
+              ยกเลิก
+            </button>
+            <button
+              @click="doReregister"
+              :disabled="reregisterLoading"
+              class="flex-1 py-3 rounded-xl bg-orange-500 text-white font-medium hover:bg-orange-600 active:bg-orange-700 transition disabled:opacity-50 touch-target"
+            >
+              {{ reregisterLoading ? 'กำลังลบ...' : 'ยืนยัน' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -459,6 +504,10 @@ const faceRegDetectError = ref('')
 const faceRegAllDone = ref(false)
 const faceRegEncodings = ref([])
 const faceRegCurrentPosition = ref(0)
+
+const showReregisterModal = ref(false)
+const reregisterEmployee = ref(null)
+const reregisterLoading = ref(false)
 
 const scanMode = ref('check_in')  // 'check_in' or 'check_out'
 
@@ -606,6 +655,35 @@ async function searchEmployees() {
     console.error('Error searching employees:', error)
   } finally {
     loading.value = false
+  }
+}
+
+function confirmReregister(employee) {
+  reregisterEmployee.value = employee
+  showReregisterModal.value = true
+}
+
+async function doReregister() {
+  if (!reregisterEmployee.value) return
+  reregisterLoading.value = true
+  try {
+    await axios.delete(`/api/employees/${reregisterEmployee.value.id}/face-data`)
+    showReregisterModal.value = false
+    selectedEmployee.value = reregisterEmployee.value
+    scanningError.value = ''
+    faceRegPhotos.value = []
+    faceRegResults.value = []
+    faceRegDetecting.value = false
+    faceRegDetectError.value = ''
+    faceRegAllDone.value = false
+    faceRegEncodings.value = []
+    faceRegCurrentPosition.value = 0
+    step.value = 2.7
+  } catch (e) {
+    scanningError.value = e.response?.data?.message || 'ไม่สามารถลบข้อมูลใบหน้าได้'
+    showReregisterModal.value = false
+  } finally {
+    reregisterLoading.value = false
   }
 }
 

@@ -207,6 +207,26 @@ class EmployeeController extends Controller
         }
     }
 
+    public function deleteFaceData($id): JsonResponse
+    {
+        try {
+            $employee = Employee::findOrFail($id);
+            $deleted = \App\Models\EmployeeFaceData::where('employee_id', $id)->delete();
+
+            return response()->json([
+                'success' => true,
+                'data' => null,
+                'message' => "ลบข้อมูลใบหน้า {$deleted} รายการเรียบร้อย",
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'Failed to delete face data: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
     public function registerFace(Request $request): JsonResponse
     {
         try {
