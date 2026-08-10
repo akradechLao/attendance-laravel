@@ -39,10 +39,13 @@ class OfficeLocationController extends Controller
                 'latitude' => 'required|numeric|between:-90,90',
                 'longitude' => 'required|numeric|between:-180,180',
                 'radius_meters' => 'required|numeric|min:10',
-                'work_start_time' => 'nullable|date_format:H:i',
-                'work_end_time' => 'nullable|date_format:H:i',
+                'work_start_time' => 'nullable|string',
+                'work_end_time' => 'nullable|string',
                 'is_active' => 'boolean',
             ]);
+
+            if (empty($validated['work_start_time'])) unset($validated['work_start_time']);
+            if (empty($validated['work_end_time'])) unset($validated['work_end_time']);
 
             $location = OfficeLocation::create($validated);
 
@@ -79,10 +82,13 @@ class OfficeLocationController extends Controller
                 'latitude' => 'sometimes|numeric|between:-90,90',
                 'longitude' => 'sometimes|numeric|between:-180,180',
                 'radius_meters' => 'sometimes|numeric|min:10',
-                'work_start_time' => 'nullable|date_format:H:i',
-                'work_end_time' => 'nullable|date_format:H:i',
+                'work_start_time' => 'nullable|string',
+                'work_end_time' => 'nullable|string',
                 'is_active' => 'boolean',
             ]);
+
+            if (isset($validated['work_start_time']) && empty($validated['work_start_time'])) unset($validated['work_start_time']);
+            if (isset($validated['work_end_time']) && empty($validated['work_end_time'])) unset($validated['work_end_time']);
 
             $location->update($validated);
 
