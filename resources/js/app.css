@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 body {
-    font-family: 'Sarabun', 'Noto Sans Thai', sans-serif;
+    font-family: 'Sarabun', 'Noto Sans Thai', Tahoma, 'Segoe UI', sans-serif;
 }
 
 .card {

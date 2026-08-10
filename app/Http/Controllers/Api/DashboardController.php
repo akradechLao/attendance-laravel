@@ -124,14 +124,27 @@ class DashboardController extends Controller
                 ->orderBy('check_in', 'desc');
 
             $records = $query->get()->map(function ($log) {
+                $checkIn = $log->check_in;
+                $checkOut = $log->check_out;
+                if ($checkIn instanceof Carbon) {
+                    $checkIn = $checkIn->format('H:i');
+                } elseif (is_string($checkIn) && str_contains($checkIn, 'T')) {
+                    $checkIn = Carbon::parse($checkIn)->setTimezone('Asia/Bangkok')->format('H:i');
+                }
+                if ($checkOut instanceof Carbon) {
+                    $checkOut = $checkOut->format('H:i');
+                } elseif (is_string($checkOut) && str_contains($checkOut, 'T')) {
+                    $checkOut = Carbon::parse($checkOut)->setTimezone('Asia/Bangkok')->format('H:i');
+                }
                 return [
                     'id' => $log->id,
                     'employee_name' => $log->employee->name ?? '-',
                     'employee_code' => $log->employee->employee_code ?? '-',
                     'company_name' => $log->employee->company->name ?? '-',
                     'company_code' => $log->employee->company->code_prefix ?? '-',
-                    'check_in' => $log->check_in,
-                    'check_out' => $log->check_out,
+                    'date' => $log->date,
+                    'check_in' => $checkIn,
+                    'check_out' => $checkOut,
                     'check_in_status' => $log->check_in_status,
                     'scan_type' => $log->scan_type,
                     'is_late' => $log->check_in_status === 'late',

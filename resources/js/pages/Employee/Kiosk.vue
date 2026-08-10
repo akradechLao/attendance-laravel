@@ -50,7 +50,6 @@
       <div class="text-center mb-6 sm:mb-8">
         <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-blue-500/10 px-6 py-3 sm:px-8 sm:py-4 mb-3 sm:mb-4 inline-block">
           <p class="text-xl sm:text-2xl font-bold text-navy tabular-nums">{{ currentTime }}</p>
-          <p class="text-xs sm:text-sm text-blue-600 font-medium">{{ currentDate }}</p>
         </div>
         <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-navy mb-1 sm:mb-2">ระบบเช็คเวลาเข้างาน</h1>
         <p class="text-sm sm:text-base text-blue-600 font-medium">ETC Group</p>
@@ -485,7 +484,8 @@ function updateClock() {
   } else {
     bangkokNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }))
   }
-  currentTime.value = bangkokNow.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Asia/Bangkok' })
+  const pad = (n) => String(n).padStart(2, '0')
+  currentTime.value = `${bangkokNow.getFullYear()}-${pad(bangkokNow.getMonth() + 1)}-${pad(bangkokNow.getDate())} ${pad(bangkokNow.getHours())}:${pad(bangkokNow.getMinutes())}:${pad(bangkokNow.getSeconds())}`
   currentDate.value = bangkokNow.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Bangkok' })
 }
 
