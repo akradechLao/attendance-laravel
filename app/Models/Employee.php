@@ -5,6 +5,7 @@ use App\Constants\PositionConstants;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -38,6 +39,7 @@ class Employee extends Authenticatable
         'wfh_quota',
         'preferred_off_day',
         'is_active',
+        'office_location_id',
     ];
 
     protected $hidden = [
@@ -135,5 +137,24 @@ class Employee extends Authenticatable
             ->where('start_date', '<=', now()->toDateString())
             ->where('end_date', '>=', now()->toDateString())
             ->exists();
+    }
+
+    public function officeLocation(): BelongsTo
+    {
+        return $this->belongsTo(OfficeLocation::class);
+    }
+
+    public function assignedOfficeLocations()
+    {
+        return $this->belongsToMany(OfficeLocation::class, 'employee_office_locations');
+    }
+
+    public function getAssignedOfficeLocation()
+    {
+        $assigned = $this->assignedOfficeLocations()->first();
+        if ($assigned) {
+            return $assigned;
+        }
+        return $this->company->officeLocations()->where('is_active', true)->first();
     }
 }

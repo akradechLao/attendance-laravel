@@ -157,6 +157,10 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/office-locations', [OfficeLocationController::class, 'store']);
     Route::put('/office-locations/{id}', [OfficeLocationController::class, 'update']);
     Route::delete('/office-locations/{id}', [OfficeLocationController::class, 'destroy']);
+    Route::get('/office-locations/{id}/employees', [OfficeLocationController::class, 'getEmployees']);
+    Route::get('/office-locations/{id}/unassigned', [OfficeLocationController::class, 'getUnassignedEmployees']);
+    Route::post('/office-locations/{id}/assign', [OfficeLocationController::class, 'assignEmployees']);
+    Route::post('/office-locations/{id}/remove', [OfficeLocationController::class, 'removeEmployees']);
 
     // Face registration
     Route::post('/face/register', [FaceController::class, 'register']);

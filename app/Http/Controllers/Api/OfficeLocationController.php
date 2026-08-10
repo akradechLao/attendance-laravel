@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Employee;
 use App\Models\OfficeLocation;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -12,7 +13,7 @@ class OfficeLocationController extends Controller
     public function index(): JsonResponse
     {
         try {
-            $locations = OfficeLocation::all();
+            $locations = OfficeLocation::withCount('assignedEmployees')->get();
 
             return response()->json([
                 'success' => true,
@@ -37,9 +38,10 @@ class OfficeLocationController extends Controller
                 'address' => 'nullable|string|max:500',
                 'latitude' => 'required|numeric|between:-90,90',
                 'longitude' => 'required|numeric|between:-180,180',
-                'radius' => 'required|numeric|min:10',
-                'work_start_time' => 'required|date_format:H:i',
-                'work_end_time' => 'required|date_format:H:i|after:work_start_time',
+                'radius_meters' => 'required|numeric|min:10',
+                'work_start_time' => 'nullable|date_format:H:i',
+                'work_end_time' => 'nullable|date_format:H:i',
+                'is_active' => 'boolean',
             ]);
 
             $location = OfficeLocation::create($validated);
@@ -76,9 +78,10 @@ class OfficeLocationController extends Controller
                 'address' => 'nullable|string|max:500',
                 'latitude' => 'sometimes|numeric|between:-90,90',
                 'longitude' => 'sometimes|numeric|between:-180,180',
-                'radius' => 'sometimes|numeric|min:10',
-                'work_start_time' => 'sometimes|date_format:H:i',
-                'work_end_time' => 'sometimes|date_format:H:i',
+                'radius_meters' => 'sometimes|numeric|min:10',
+                'work_start_time' => 'nullable|date_format:H:i',
+                'work_end_time' => 'nullable|date_format:H:i',
+                'is_active' => 'boolean',
             ]);
 
             $location->update($validated);
@@ -132,6 +135,110 @@ class OfficeLocationController extends Controller
                 'success' => false,
                 'data' => null,
                 'message' => 'Failed to delete office location: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function getEmployees($id): JsonResponse
+    {
+        try {
+            $location = OfficeLocation::findOrFail($id);
+            $employees = $location->assignedEmployees()
+                ->with('company:id,name,code_prefix')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $employees,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'Failed to get employees: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function assignEmployees(Request $request, $id): JsonResponse
+    {
+        try {
+            $location = OfficeLocation::findOrFail($id);
+
+            $validated = $request->validate([
+                'employee_ids' => 'required|array',
+                'employee_ids.*' => 'exists:employees,id',
+            ]);
+
+            $location->assignedEmployees()->syncWithoutDetaching($validated['employee_ids']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Employees assigned successfully.',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to assign employees: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function removeEmployees(Request $request, $id): JsonResponse
+    {
+        try {
+            $location = OfficeLocation::findOrFail($id);
+
+            $validated = $request->validate([
+                'employee_ids' => 'required|array',
+                'employee_ids.*' => 'exists:employees,id',
+            ]);
+
+            $location->assignedEmployees()->detach($validated['employee_ids']);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Employees removed successfully.',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to remove employees: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function getUnassignedEmployees(Request $request, $id): JsonResponse
+    {
+        try {
+            $location = OfficeLocation::findOrFail($id);
+            $assignedIds = $location->assignedEmployees()->pluck('employees.id')->toArray();
+
+            $query = Employee::where('company_id', $location->company_id)
+                ->where('is_active', true)
+                ->whereNotIn('employees.id', $assignedIds);
+
+            if ($request->has('search') && $request->search) {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('employee_code', 'like', "%{$search}%")
+                      ->orWhere('division', 'like', "%{$search}%")
+                      ->orWhere('department', 'like', "%{$search}%");
+                });
+            }
+
+            $employees = $query->get(['id', 'name', 'employee_code', 'division', 'department']);
+
+            return response()->json([
+                'success' => true,
+                'data' => $employees,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'Failed to get unassigned employees: ' . $e->getMessage(),
             ], 500);
         }
     }

@@ -31,6 +31,8 @@ class FaceController extends Controller
                 'type' => 'required|string|in:check_in,check_out',
                 'latitude' => 'nullable|numeric',
                 'longitude' => 'nullable|numeric',
+                'accuracy' => 'nullable|numeric',
+                'custom_location_name' => 'nullable|string|max:255',
             ]);
 
             $employee = Employee::findOrFail($request->employee_id);
@@ -88,12 +90,25 @@ class FaceController extends Controller
                     ], 400);
                 }
 
-                $officeLocation = OfficeLocation::where('company_id', $employee->company_id)
-                    ->first();
+                $isRemote = $employee->hasActiveRemoteAssignment();
+                $officeLocation = $employee->getAssignedOfficeLocation();
 
                 $status = 'on_time';
+                $scanType = $isRemote ? 'remote_scan' : 'office_scan';
+                $remoteLatitude = null;
+                $remoteLongitude = null;
+                $remoteAccuracy = null;
+                $remoteLocationName = null;
 
-                if ($officeLocation && $request->latitude && $request->longitude) {
+                if ($isRemote && $request->latitude && $request->longitude) {
+                    $remoteLatitude = $request->latitude;
+                    $remoteLongitude = $request->longitude;
+                    $remoteAccuracy = $request->accuracy ?? null;
+                    $remoteLocationName = $request->custom_location_name ?: $this->reverseGeocode($request->latitude, $request->longitude);
+                } elseif (!$isRemote && $officeLocation && $request->latitude && $request->longitude) {
+                    $remoteLatitude = $request->latitude;
+                    $remoteLongitude = $request->longitude;
+
                     $distance = $this->calculateDistance(
                         $request->latitude,
                         $request->longitude,
@@ -101,7 +116,7 @@ class FaceController extends Controller
                         $officeLocation->longitude
                     );
 
-                    if ($distance > $officeLocation->radius) {
+                    if ($distance > $officeLocation->radius_meters) {
                         return response()->json([
                             'success' => false,
                             'data' => null,
@@ -109,9 +124,18 @@ class FaceController extends Controller
                         ], 400);
                     }
 
-                    $workStartTime = Carbon::parse($officeLocation->work_start_time);
-                    if (Carbon::now()->gt($workStartTime)) {
-                        $status = 'late';
+                    if ($officeLocation->work_start_time) {
+                        $workStartTime = Carbon::parse($officeLocation->work_start_time);
+                        if (Carbon::now()->gt($workStartTime)) {
+                            $status = 'late';
+                        }
+                    }
+                } elseif (!$isRemote && $officeLocation && !$request->latitude) {
+                    if ($officeLocation->work_start_time) {
+                        $workStartTime = Carbon::parse($officeLocation->work_start_time);
+                        if (Carbon::now()->gt($workStartTime)) {
+                            $status = 'late';
+                        }
                     }
                 }
 
@@ -125,15 +149,16 @@ class FaceController extends Controller
                     'check_in' => Carbon::now(),
                     'check_in_status' => $status,
                     'lat_long' => $latLong,
-                    'scan_type' => 'office_scan',
+                    'scan_type' => $scanType,
+                    'remote_latitude' => $remoteLatitude,
+                    'remote_longitude' => $remoteLongitude,
+                    'remote_accuracy' => $remoteAccuracy,
+                    'remote_location_name' => $remoteLocationName,
                 ]);
 
-                if ($request->latitude && $request->longitude) {
-                    $log->update([
-                        'remote_latitude' => $request->latitude,
-                        'remote_longitude' => $request->longitude,
-                    ]);
-                }
+                $locationLabel = $isRemote
+                    ? ($remoteLocationName ?: 'ตำแหน่งปัจจุบัน')
+                    : ($officeLocation->name ?? 'ออฟฟิศ');
 
                 return response()->json([
                     'success' => true,
@@ -141,7 +166,9 @@ class FaceController extends Controller
                         'attendance_log' => $log,
                         'face_match' => $result,
                     ],
-                    'message' => 'เช็คอินสำเร็จ. ' . ($status === 'late' ? 'สถานะ: สาย' : 'สถานะ: ตรงเวลา'),
+                    'message' => 'เช็คอินสำเร็จ (' . $locationLabel . ') '
+                        . ($status === 'late' ? 'สถานะ: สาย' : 'สถานะ: ตรงเวลา')
+                        . ($isRemote ? ' [นอกสถานที่]' : ''),
                 ], 201);
             }
 
@@ -159,9 +186,15 @@ class FaceController extends Controller
                     ], 400);
                 }
 
-                $log->update([
-                    'check_out' => Carbon::now(),
-                ]);
+                $updateData = ['check_out' => Carbon::now()];
+
+                if ($request->latitude && $request->longitude) {
+                    $updateData['remote_latitude'] = $request->latitude;
+                    $updateData['remote_longitude'] = $request->longitude;
+                    $updateData['remote_accuracy'] = $request->accuracy ?? null;
+                }
+
+                $log->update($updateData);
 
                 return response()->json([
                     'success' => true,
@@ -369,5 +402,24 @@ class FaceController extends Controller
         $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
 
         return $earthRadius * $c;
+    }
+
+    private function reverseGeocode(float $lat, float $lon): ?string
+    {
+        try {
+            $response = Http::timeout(5)->get("https://nominatim.openstreetmap.org/reverse", [
+                'lat' => $lat,
+                'lon' => $lon,
+                'format' => 'json',
+                'accept-language' => 'th',
+            ]);
+
+            if ($response->successful()) {
+                return $response->json('display_name');
+            }
+        } catch (\Exception $e) {
+            Log::warning('Reverse geocode failed: ' . $e->getMessage());
+        }
+        return null;
     }
 }

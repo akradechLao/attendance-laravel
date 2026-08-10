@@ -72,6 +72,22 @@ const props = defineProps({
   scanMode: {
     type: String,
     default: 'check_in'
+  },
+  latitude: {
+    type: Number,
+    default: null
+  },
+  longitude: {
+    type: Number,
+    default: null
+  },
+  accuracy: {
+    type: Number,
+    default: null
+  },
+  customLocationName: {
+    type: String,
+    default: ''
   }
 })
 
@@ -138,7 +154,11 @@ async function startScan() {
     const response = await axios.post('/api/face/verify', {
       employee_id: props.employeeId,
       image: imageData,
-      type: props.scanMode
+      type: props.scanMode,
+      latitude: props.latitude,
+      longitude: props.longitude,
+      accuracy: props.accuracy,
+      custom_location_name: props.customLocationName,
     })
 
     if (response.data.success) {

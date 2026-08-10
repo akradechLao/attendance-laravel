@@ -347,6 +347,7 @@
             :scan-mode="scanMode"
             :latitude="currentLatitude"
             :longitude="currentLongitude"
+            :accuracy="currentAccuracy"
             :custom-location-name="customLocationName"
             @verified="handleVerified"
             @failed="handleFailed"
@@ -441,6 +442,7 @@ const scanType = ref('office_scan')
 const customLocationName = ref('')
 const currentLatitude = ref(null)
 const currentLongitude = ref(null)
+const currentAccuracy = ref(null)
 const currentTime = ref('--:--:--')
 const currentDate = ref('')
 const serverTimeStr = ref(null)
@@ -545,6 +547,7 @@ function getCurrentPosition() {
       (pos) => {
         currentLatitude.value = pos.coords.latitude
         currentLongitude.value = pos.coords.longitude
+        currentAccuracy.value = pos.coords.accuracy
       },
       (err) => {
         console.error('Geolocation error:', err)
