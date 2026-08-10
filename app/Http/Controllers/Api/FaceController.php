@@ -10,6 +10,7 @@ use App\Models\OfficeLocation;
 use App\Models\LateForcedLeave;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
+use App\Helpers\AttendanceCalculator;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -78,11 +79,17 @@ class FaceController extends Controller
                 ], 401);
             }
 
-            $today = Carbon::today();
+            $now = Carbon::now();
 
             if ($request->type === 'check_in') {
+                // หาวันที่เริ่มกะ (รองรับกะข้ามคืน)
+                $shiftInfo = $this->getEmployeeShiftInfo($employee, $now);
+                $shiftStartDate = $shiftInfo['shift_start_date'];
+                $isOvernight = $shiftInfo['is_overnight'];
+
+                // ตรวจสอบรอบที่ยังไม่ได้เช็คเอาท์
                 $activeRound = AttendanceLog::where('emp_id', $employee->id)
-                    ->whereDate('date', $today)
+                    ->whereDate('date', $shiftStartDate)
                     ->whereNull('check_out')
                     ->first();
 
@@ -95,24 +102,23 @@ class FaceController extends Controller
                 }
 
                 $maxRound = AttendanceLog::where('emp_id', $employee->id)
-                    ->whereDate('date', $today)
+                    ->whereDate('date', $shiftStartDate)
                     ->max('round_no') ?? 0;
                 $nextRound = $maxRound + 1;
 
                 $isRemote = $employee->hasActiveRemoteAssignment();
                 $officeLocation = $employee->getAssignedOfficeLocation();
 
-                // ─── คำนวณเวลาเข้างานจากกะของพนักงาน ───
-                $workStartTime = $this->getWorkStartTime($employee, $today);
-
-                // ─── คำนวณสถานะการเข้างาน ───
-                $originalStatus = 'on_time';
+                // ─── คำนวณเวลาเข้างานจริงของกะ ───
+                $workStartTime = $this->getWorkStartTime($employee, $shiftStartDate, $shiftInfo['shift']);
                 $lateMinutes = 0;
-                $now = Carbon::now();
+                $originalStatus = 'on_time';
 
-                if ($workStartTime && $now->gt($workStartTime)) {
-                    $lateMinutes = (int) $workStartTime->diffInMinutes($now);
-                    $originalStatus = 'late';
+                if ($workStartTime) {
+                    $lateMinutes = AttendanceCalculator::calculateLateMinutes($workStartTime, $now);
+                    if ($lateMinutes > 0) {
+                        $originalStatus = 'late';
+                    }
                 }
 
                 $scanType = $isRemote ? 'remote_scan' : 'office_scan';
@@ -152,7 +158,7 @@ class FaceController extends Controller
 
                 $log = AttendanceLog::create([
                     'emp_id' => $employee->id,
-                    'date' => $today,
+                    'date' => $shiftStartDate,
                     'round_no' => $nextRound,
                     'check_in' => $now,
                     'check_in_status' => $originalStatus,
@@ -169,7 +175,7 @@ class FaceController extends Controller
 
                 // ─── สายเกิน 30 นาที → บังคับลากิจ 1 ชม. ───
                 if ($lateMinutes > 30) {
-                    $this->createForcedLeaveIfApplicable($employee, $log, $today, $lateMinutes);
+                    $this->createForcedLeaveIfApplicable($employee, $log, $shiftStartDate, $lateMinutes);
                 }
 
                 $locationLabel = $isRemote
@@ -184,7 +190,7 @@ class FaceController extends Controller
 
                 $lateForceMsg = '';
                 if ($lateMinutes > 30) {
-                    $existingLeave = $this->checkExistingLeave($employee, $today);
+                    $existingLeave = $this->checkExistingLeave($employee, $shiftStartDate);
                     if ($existingLeave) {
                         $leaveTypeLabel = $existingLeave->leaveType->name ?? $existingLeave->leave_type;
                         $lateForceMsg = ' (ลา: ' . $leaveTypeLabel . ' 1 ชม.)';
@@ -193,6 +199,8 @@ class FaceController extends Controller
                     }
                 }
 
+                $overnightMsg = $isOvernight ? ' [ข้ามคืน]' : '';
+
                 return response()->json([
                     'success' => true,
                     'data' => [
@@ -200,14 +208,18 @@ class FaceController extends Controller
                         'face_match' => $result,
                     ],
                     'message' => 'เช็คอินสำเร็จ' . $roundLabel . ' (' . $locationLabel . ') '
-                        . $statusMessage . $lateForceMsg
+                        . $statusMessage . $lateForceMsg . $overnightMsg
                         . ($isRemote ? ' [นอกสถานที่]' : ''),
                 ], 201);
             }
 
             if ($request->type === 'check_out') {
+                // หาวันที่เริ่มกะ
+                $shiftInfo = $this->getEmployeeShiftInfo($employee, $now);
+                $shiftStartDate = $shiftInfo['shift_start_date'];
+
                 $log = AttendanceLog::where('emp_id', $employee->id)
-                    ->whereDate('date', $today)
+                    ->whereDate('date', $shiftStartDate)
                     ->whereNull('check_out')
                     ->orderBy('round_no', 'desc')
                     ->first();
@@ -220,7 +232,7 @@ class FaceController extends Controller
                     ], 400);
                 }
 
-                $updateData = ['check_out' => Carbon::now()];
+                $updateData = ['check_out' => $now];
 
                 if ($request->latitude && $request->longitude) {
                     $updateData['remote_latitude'] = $request->latitude;
@@ -427,26 +439,72 @@ class FaceController extends Controller
     // ─── Private helpers ───
 
     /**
-     * หาเวลาเข้างานจากกะของพนักงาน (fallback = office location)
+     * หาข้อมูลกะของพนักงาน + วันที่เริ่มกะ (รองรับข้ามคืน)
+     *
+     * @return array{shift: ?WorkShift, shift_start_date: Carbon, is_overnight: bool}
      */
-    private function getWorkStartTime(Employee $employee, Carbon $date): ?Carbon
+    private function getEmployeeShiftInfo(Employee $employee, Carbon $now): array
     {
-        $shift = $employee->workShifts()
-            ->where(function ($q) {
+        // หา กะที่ 1: กะของวันนี้
+        $shiftToday = $this->findShiftForDate($employee, $now);
+
+        if ($shiftToday && $shiftToday->is_overnight) {
+            // กะข้ามคืน: ถ้ายังไม่เลยเวลาสิ้นสุดกะ → เริ่มเมื่อวาน
+            $endTime = $shiftToday->end_time instanceof Carbon
+                ? $shiftToday->end_time->format('H:i')
+                : $shiftToday->end_time;
+
+            $endCarbon = Carbon::parse($endTime);
+
+            if ($now->format('H:i') < $endCarbon->format('H:i')) {
+                // ยังอยู่ในช่วงเวลาสิ้นสุดกะ (เช่น 03:00 กะสิ้นสุด 04:00)
+                // → กะเริ่มเมื่อวาน
+                $shiftYesterday = $this->findShiftForDate($employee, Carbon::yesterday());
+                return [
+                    'shift' => $shiftYesterday ?? $shiftToday,
+                    'shift_start_date' => Carbon::yesterday(),
+                    'is_overnight' => true,
+                ];
+            }
+        }
+
+        // กะปกติ หรือ กะข้ามคืนที่เลยเวลาสิ้นสุดแล้ว
+        return [
+            'shift' => $shiftToday,
+            'shift_start_date' => $now->copy()->startOfDay(),
+            'is_overnight' => $shiftToday?->is_overnight ?? false,
+        ];
+    }
+
+    /**
+     * ค้นหากะของพนักงานสำหรับวันที่กำหนด
+     */
+    private function findShiftForDate(Employee $employee, Carbon $date): ?\App\Models\WorkShift
+    {
+        $dateStr = $date->toDateString();
+
+        return $employee->workShifts()
+            ->where(function ($q) use ($dateStr) {
                 $q->whereNull('start_date')
-                    ->orWhere('start_date', '<=', now()->toDateString());
+                    ->orWhere('start_date', '<=', $dateStr);
             })
-            ->where(function ($q) {
+            ->where(function ($q) use ($dateStr) {
                 $q->whereNull('end_date')
-                    ->orWhere('end_date', '>=', now()->toDateString());
+                    ->orWhere('end_date', '>=', $dateStr);
             })
             ->first();
+    }
 
+    /**
+     * หาเวลาเข้างานจากกะของพนักงาน (รองรับข้ามคืน)
+     */
+    private function getWorkStartTime(Employee $employee, Carbon $shiftStartDate, ?\App\Models\WorkShift $shift): ?Carbon
+    {
         if ($shift && $shift->start_time) {
             $time = $shift->start_time instanceof Carbon
                 ? $shift->start_time->format('H:i')
                 : $shift->start_time;
-            return Carbon::parse($date->toDateString() . ' ' . $time);
+            return Carbon::parse($shiftStartDate->toDateString() . ' ' . $time);
         }
 
         $officeLocation = $employee->getAssignedOfficeLocation();
@@ -454,7 +512,7 @@ class FaceController extends Controller
             $time = $officeLocation->work_start_time instanceof Carbon
                 ? $officeLocation->work_start_time->format('H:i')
                 : $officeLocation->work_start_time;
-            return Carbon::parse($date->toDateString() . ' ' . $time);
+            return Carbon::parse($shiftStartDate->toDateString() . ' ' . $time);
         }
 
         return null;
@@ -478,26 +536,25 @@ class FaceController extends Controller
     private function createForcedLeaveIfApplicable(
         Employee $employee,
         AttendanceLog $log,
-        Carbon $date,
+        Carbon $shiftStartDate,
         int $lateMinutes
     ): void {
-        // ตรวจสอบว่ามีบันทึกลาบังคับแล้วหรือยัง (รอบนี้)
+        // ตรวจสอบว่ามีบันทึกลาบังคับแล้วหรือยัง
         $existing = LateForcedLeave::where('emp_id', $employee->id)
-            ->where('date', $date)
+            ->where('date', $shiftStartDate)
             ->exists();
         if ($existing) {
             return;
         }
 
         // ตรวจสอบลามาแล้ว
-        $existingLeave = $this->checkExistingLeave($employee, $date);
+        $existingLeave = $this->checkExistingLeave($employee, $shiftStartDate);
         if ($existingLeave) {
-            // มีลามาแล้ว → ใช้ลามาแทน
             $leaveType = $existingLeave->leaveType;
             LateForcedLeave::create([
                 'emp_id' => $employee->id,
                 'attendance_log_id' => $log->id,
-                'date' => $date,
+                'date' => $shiftStartDate,
                 'late_minutes' => $lateMinutes,
                 'leave_minutes' => 60,
                 'leave_type' => $leaveType->name ?? 'personal',
@@ -506,11 +563,10 @@ class FaceController extends Controller
                 'reason' => 'สายเกิน 30 นาที (มีลามาแล้ว: ' . ($leaveType->name ?? 'ลากิจ') . ')',
             ]);
         } else {
-            // ไม่มีลา → บังคับลากิจ 1 ชม.
             LateForcedLeave::create([
                 'emp_id' => $employee->id,
                 'attendance_log_id' => $log->id,
-                'date' => $date,
+                'date' => $shiftStartDate,
                 'late_minutes' => $lateMinutes,
                 'leave_minutes' => 60,
                 'leave_type' => 'personal',

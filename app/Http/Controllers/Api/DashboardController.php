@@ -20,6 +20,7 @@ class DashboardController extends Controller
         try {
             $companyId = $request->get('company_id');
             $today = Carbon::today()->toDateString();
+            $yesterday = Carbon::yesterday()->toDateString();
 
             $employeeQuery = Employee::where('is_active', true);
             if ($companyId) {
@@ -27,7 +28,14 @@ class DashboardController extends Controller
             }
             $totalEmployees = $employeeQuery->count();
 
-            $attendanceQuery = AttendanceLog::where('date', $today)
+            // ดึงข้อมูลวันนี้ + กะข้ามคืนจากเมื่อวาน
+            $attendanceQuery = AttendanceLog::where(function ($q) use ($today, $yesterday) {
+                    $q->where('date', $today)
+                      ->orWhere(function ($q2) use ($yesterday) {
+                          $q2->where('date', $yesterday)
+                             ->whereNull('check_out');
+                      });
+                })
                 ->whereHas('employee', function ($q) use ($companyId) {
                     $q->where('is_active', true);
                     if ($companyId) {
@@ -41,8 +49,11 @@ class DashboardController extends Controller
             $checkedOut = (clone $attendanceQuery)->whereNotNull('check_out')->count();
             $absentToday = max(0, $totalEmployees - $presentToday);
 
-            // นับลากิจบังคับวันนี้
-            $forcedLeaveQuery = LateForcedLeave::where('date', $today)
+            // นับลากิจบังคับวันนี้ + กะข้ามคืน
+            $forcedLeaveQuery = LateForcedLeave::where(function ($q) use ($today, $yesterday) {
+                    $q->where('date', $today)
+                      ->orWhere('date', $yesterday);
+                })
                 ->whereHas('employee', function ($q) use ($companyId) {
                     $q->where('is_active', true);
                     if ($companyId) {
@@ -72,7 +83,13 @@ class DashboardController extends Controller
                 $totalQ = Employee::where('company_id', $company->id)->where('is_active', true);
                 $total = $totalQ->count();
 
-                $presentQ = AttendanceLog::where('date', $today)
+                $presentQ = AttendanceLog::where(function ($q) use ($today, $yesterday) {
+                        $q->where('date', $today)
+                          ->orWhere(function ($q2) use ($yesterday) {
+                              $q2->where('date', $yesterday)
+                                 ->whereNull('check_out');
+                          });
+                    })
                     ->whereHas('employee', function ($q) use ($company) {
                         $q->where('company_id', $company->id)->where('is_active', true);
                     });
@@ -126,9 +143,17 @@ class DashboardController extends Controller
     {
         try {
             $today = Carbon::today()->toDateString();
+            $yesterday = Carbon::yesterday()->toDateString();
             $companyId = $request->get('company_id');
 
-            $query = AttendanceLog::where('date', $today)
+            // ดึงข้อมูลวันนี้ + กะข้ามคืนจากเมื่อวาน (ที่ยังไม่ได้เช็คเอาท์)
+            $query = AttendanceLog::where(function ($q) use ($today, $yesterday) {
+                    $q->where('date', $today)
+                      ->orWhere(function ($q2) use ($yesterday) {
+                          $q2->where('date', $yesterday)
+                             ->whereNull('check_out');
+                      });
+                })
                 ->with(['employee', 'employee.company'])
                 ->whereHas('employee', function ($q) use ($companyId) {
                     $q->where('is_active', true);
@@ -169,12 +194,15 @@ class DashboardController extends Controller
                 }
 
                 $employee = $log->employee;
-                $shift = $employee->workShifts()->where(function ($q) {
+
+                // ค้นหากะ (รองรับข้ามคืน)
+                $logDate = $log->date instanceof Carbon ? $log->date->toDateString() : $log->date;
+                $shift = $employee->workShifts()->where(function ($q) use ($logDate) {
                     $q->whereNull('start_date')
-                        ->orWhere('start_date', '<=', now()->toDateString());
-                })->where(function ($q) {
+                        ->orWhere('start_date', '<=', $logDate);
+                })->where(function ($q) use ($logDate) {
                     $q->whereNull('end_date')
-                        ->orWhere('end_date', '>=', now()->toDateString());
+                        ->orWhere('end_date', '>=', $logDate);
                 })->first();
 
                 return [
