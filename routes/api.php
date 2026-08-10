@@ -29,6 +29,15 @@ use App\Http\Controllers\Api\EmployeeRequestController;
 |--------------------------------------------------------------------------
 */
 
+// Public routes - Server time (for kiosk clock sync)
+Route::get('/time', function () {
+    $now = now('Asia/Bangkok');
+    return response()->json([
+        'time' => $now->format('Y-m-d\TH:i:s.v') . '+07:00',
+        'timezone' => 'Asia/Bangkok',
+    ]);
+});
+
 // Public routes - Employee authentication (kiosk)
 Route::post('/employee/auth/search', [EmployeeAuthController::class, 'search']);
 Route::post('/employee/auth/verify', [EmployeeAuthController::class, 'verify']);

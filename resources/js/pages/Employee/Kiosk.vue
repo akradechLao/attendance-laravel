@@ -444,7 +444,8 @@ const currentLatitude = ref(null)
 const currentLongitude = ref(null)
 const currentTime = ref('--:--:--')
 const currentDate = ref('')
-const timeOffset = ref(0)
+const serverTimeStr = ref(null)
+const fetchTimeLocal = ref(Date.now())
 
 const faceRegCameraRef = ref(null)
 const faceRegCapturing = ref(false)
@@ -468,19 +469,24 @@ const adminForm = ref({ username: '', password: '' })
 
 async function fetchServerTime() {
   try {
-    const res = await axios.get('https://timeapi.io/api/time/current/zone?timeZone=Asia/Bangkok')
-    const serverNow = new Date(res.data.dateTime)
-    const localNow = new Date()
-    timeOffset.value = serverNow.getTime() - localNow.getTime()
+    const res = await axios.get('/api/time')
+    serverTimeStr.value = res.data.time
   } catch {
-    timeOffset.value = 0
+    serverTimeStr.value = null
   }
 }
 
 function updateClock() {
-  const now = new Date(Date.now() + timeOffset.value)
-  currentTime.value = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Asia/Bangkok' })
-  currentDate.value = now.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Bangkok' })
+  let bangkokNow
+  if (serverTimeStr.value) {
+    bangkokNow = new Date(serverTimeStr.value)
+    const elapsed = Date.now() - fetchTimeLocal.value
+    bangkokNow = new Date(bangkokNow.getTime() + elapsed)
+  } else {
+    bangkokNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Bangkok' }))
+  }
+  currentTime.value = bangkokNow.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', second: '2-digit', timeZone: 'Asia/Bangkok' })
+  currentDate.value = bangkokNow.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'Asia/Bangkok' })
 }
 
 let clockInterval = null
@@ -503,9 +509,14 @@ const filteredEmployees = computed(() => {
 })
 
 onMounted(async () => {
+  fetchTimeLocal.value = Date.now()
   await fetchServerTime()
   updateClock()
   clockInterval = setInterval(updateClock, 1000)
+  setInterval(async () => {
+    fetchTimeLocal.value = Date.now()
+    await fetchServerTime()
+  }, 300000)
   getCurrentPosition()
   await fetchCompanies()
 })
