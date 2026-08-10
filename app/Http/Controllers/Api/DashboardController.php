@@ -121,6 +121,7 @@ class DashboardController extends Controller
                         $q->where('company_id', $companyId);
                     }
                 })
+                ->orderBy('round_no', 'asc')
                 ->orderBy('check_in', 'desc');
 
             $records = $query->get()->map(function ($log) {
@@ -143,6 +144,7 @@ class DashboardController extends Controller
                     'company_name' => $log->employee->company->name ?? '-',
                     'company_code' => $log->employee->company->code_prefix ?? '-',
                     'date' => $log->date,
+                    'round_no' => $log->round_no ?? 1,
                     'check_in' => $checkIn,
                     'check_out' => $checkOut,
                     'check_in_status' => $log->check_in_status,

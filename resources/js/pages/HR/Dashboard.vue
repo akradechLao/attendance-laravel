@@ -108,6 +108,7 @@
                   <th class="text-left px-4 py-3 text-xs font-semibold text-gray-600">ชื่อ</th>
                   <th class="text-left px-4 py-3 text-xs font-semibold text-gray-600">รหัส</th>
                   <th class="text-left px-4 py-3 text-xs font-semibold text-gray-600">บริษัท</th>
+                  <th class="text-left px-4 py-3 text-xs font-semibold text-gray-600">รอบ</th>
                   <th class="text-left px-4 py-3 text-xs font-semibold text-gray-600">เวลาเข้า</th>
                   <th class="text-left px-4 py-3 text-xs font-semibold text-gray-600">เวลาออก</th>
                   <th class="text-left px-4 py-3 text-xs font-semibold text-gray-600">สถานะ</th>
@@ -128,6 +129,7 @@
                   <td class="px-4 py-3">
                     <span class="px-2 py-0.5 rounded text-xs font-medium text-white" :style="companyColorStyle(record.company_name)">{{ record.company_code }}</span>
                   </td>
+                  <td class="px-4 py-3 text-sm text-gray-600">{{ record.round_no || 1 }}</td>
                   <td class="px-4 py-3 text-sm font-medium" :class="record.is_late ? 'text-yellow-600' : 'text-green-600'">{{ record.check_in || '-' }}</td>
                   <td class="px-4 py-3 text-sm text-gray-600">{{ record.check_out || '-' }}</td>
                   <td class="px-4 py-3">

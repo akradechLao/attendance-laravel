@@ -772,7 +772,7 @@ function handleVerified(data) {
 
   result.value = {
     success: true,
-    message: scanMode.value === 'check_in' ? '✓ เช็คอินสำเร็จ' : '✓ เช็คเอาท์สำเร็จ',
+    message: data.message || (scanMode.value === 'check_in' ? '✓ เช็คอินสำเร็จ' : '✓ เช็คเอาท์สำเร็จ'),
     time: timeStr,
     location: scanType.value === 'remote_scan' ? customLocationName.value : null
   }

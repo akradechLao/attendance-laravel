@@ -78,17 +78,25 @@ class FaceController extends Controller
             $today = Carbon::today();
 
             if ($request->type === 'check_in') {
-                $existingLog = AttendanceLog::where('emp_id', $employee->id)
+                // ตรวจสอบว่ามีรอบที่ยังไม่ได้เช็คเอาท์หรือไม่
+                $activeRound = AttendanceLog::where('emp_id', $employee->id)
                     ->whereDate('date', $today)
+                    ->whereNull('check_out')
                     ->first();
 
-                if ($existingLog) {
+                if ($activeRound) {
                     return response()->json([
                         'success' => false,
                         'data' => null,
-                        'message' => 'Already checked in today.',
+                        'message' => 'กรุณาเช็คเอาท์รอบที่ ' . $activeRound->round_no . ' ก่อนเช็คอินรอบใหม่',
                     ], 400);
                 }
+
+                // หาเลขรอบถัดไป
+                $maxRound = AttendanceLog::where('emp_id', $employee->id)
+                    ->whereDate('date', $today)
+                    ->max('round_no') ?? 0;
+                $nextRound = $maxRound + 1;
 
                 $isRemote = $employee->hasActiveRemoteAssignment();
                 $officeLocation = $employee->getAssignedOfficeLocation();
@@ -146,6 +154,7 @@ class FaceController extends Controller
                 $log = AttendanceLog::create([
                     'emp_id' => $employee->id,
                     'date' => $today,
+                    'round_no' => $nextRound,
                     'check_in' => Carbon::now(),
                     'check_in_status' => $status,
                     'lat_long' => $latLong,
@@ -160,13 +169,15 @@ class FaceController extends Controller
                     ? ($remoteLocationName ?: 'ตำแหน่งปัจจุบัน')
                     : ($officeLocation->name ?? 'ออฟฟิศ');
 
+                $roundLabel = $nextRound > 1 ? ' (รอบที่ ' . $nextRound . ')' : '';
+
                 return response()->json([
                     'success' => true,
                     'data' => [
                         'attendance_log' => $log,
                         'face_match' => $result,
                     ],
-                    'message' => 'เช็คอินสำเร็จ (' . $locationLabel . ') '
+                    'message' => 'เช็คอินสำเร็จ' . $roundLabel . ' (' . $locationLabel . ') '
                         . ($status === 'late' ? 'สถานะ: สาย' : 'สถานะ: ตรงเวลา')
                         . ($isRemote ? ' [นอกสถานที่]' : ''),
                 ], 201);
@@ -176,13 +187,14 @@ class FaceController extends Controller
                 $log = AttendanceLog::where('emp_id', $employee->id)
                     ->whereDate('date', $today)
                     ->whereNull('check_out')
+                    ->orderBy('round_no', 'desc')
                     ->first();
 
                 if (!$log) {
                     return response()->json([
                         'success' => false,
                         'data' => null,
-                        'message' => 'No active check-in found for today.',
+                        'message' => 'ไม่พบรายการเช็คอินที่ยังไม่ได้เช็คเอาท์',
                     ], 400);
                 }
 
@@ -196,12 +208,15 @@ class FaceController extends Controller
 
                 $log->update($updateData);
 
+                $roundLabel = $log->round_no > 1 ? ' (รอบที่ ' . $log->round_no . ')' : '';
+
                 return response()->json([
                     'success' => true,
                     'data' => [
                         'attendance_log' => $log->fresh(),
                         'face_match' => $result,
                     ],
+                    'message' => 'เช็คเอาท์สำเร็จ' . $roundLabel,
                     'message' => 'เช็คเอาท์สำเร็จ',
                 ]);
             }
