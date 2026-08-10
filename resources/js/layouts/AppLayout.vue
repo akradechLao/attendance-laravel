@@ -145,6 +145,7 @@ const navItems = [
   { path: '/shifts', label: 'กะทำงาน', icon: '🔄' },
   { path: '/shift-assignments', label: 'มอบหมายกะรายเดือน', icon: '📅' },
   { path: '/mandatory-ot', label: 'มอบหมาย OT บังคับ', icon: '⏰' },
+  { path: '/attendance-adjustment', label: 'ปรับแก้สถานะเข้างาน', icon: '✏️' },
   { section: 'Remote' },
   { path: '/remote-assignments', label: 'ปฏิบัติงานต่างจังหวัด', icon: '📍' },
   { path: '/location-history', label: 'แผนที่', icon: '🗺' },

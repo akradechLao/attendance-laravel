@@ -24,6 +24,12 @@ class AttendanceLog extends Model
         'remote_accuracy',
         'remote_location_name',
         'remote_custom_name',
+        'original_status',
+        'final_status',
+        'late_minutes',
+        'adjusted_by',
+        'adjusted_at',
+        'adjustment_note',
     ];
 
     protected $casts = [
@@ -33,11 +39,22 @@ class AttendanceLog extends Model
         'remote_latitude' => 'decimal:8',
         'remote_longitude' => 'decimal:8',
         'remote_accuracy' => 'integer',
+        'adjusted_at' => 'datetime',
     ];
 
     public function employee(): BelongsTo
     {
         return $this->belongsTo(Employee::class, 'emp_id');
+    }
+
+    public function adjustedBy(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class, 'adjusted_by');
+    }
+
+    public function lateForcedLeave()
+    {
+        return $this->hasOne(LateForcedLeave::class);
     }
 
     public function isRemoteScan(): bool
@@ -57,5 +74,16 @@ class AttendanceLog extends Model
             return number_format($this->remote_latitude, 6) . ', ' . number_format($this->remote_longitude, 6);
         }
         return '-';
+    }
+
+    /**
+     * ได้สถานะสุดท้าย (ถ้าหัวหน้าปรับแล้วใช้ final_status, ไม่งั้นใช้ original_status)
+     */
+    public function getDisplayStatus(): string
+    {
+        if ($this->final_status) {
+            return $this->final_status;
+        }
+        return $this->original_status ?? $this->check_in_status ?? 'unknown';
     }
 }

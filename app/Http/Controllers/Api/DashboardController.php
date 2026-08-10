@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AttendanceLog;
 use App\Models\Employee;
 use App\Models\Company;
+use App\Models\LateForcedLeave;
 use App\Helpers\AttendanceCalculator;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -39,6 +40,17 @@ class DashboardController extends Controller
             $onTimeToday = (clone $attendanceQuery)->where('check_in_status', 'on_time')->count();
             $checkedOut = (clone $attendanceQuery)->whereNotNull('check_out')->count();
             $absentToday = max(0, $totalEmployees - $presentToday);
+
+            // นับลากิจบังคับวันนี้
+            $forcedLeaveQuery = LateForcedLeave::where('date', $today)
+                ->whereHas('employee', function ($q) use ($companyId) {
+                    $q->where('is_active', true);
+                    if ($companyId) {
+                        $q->where('company_id', $companyId);
+                    }
+                });
+            $forcedLeavesPending = (clone $forcedLeaveQuery)->where('status', 'pending')->count();
+            $forcedLeavesApproved = (clone $forcedLeaveQuery)->where('status', 'approved')->count();
 
             $monthStart = Carbon::now()->startOfMonth()->toDateString();
             $monthEnd = Carbon::now()->endOfMonth()->toDateString();
@@ -90,6 +102,8 @@ class DashboardController extends Controller
                         'on_time' => $onTimeToday,
                         'checked_out' => $checkedOut,
                         'absent' => $absentToday,
+                        'forced_leaves_pending' => $forcedLeavesPending,
+                        'forced_leaves_approved' => $forcedLeavesApproved,
                     ],
                     'monthly' => [
                         'late' => $monthlyLate,
@@ -173,9 +187,12 @@ class DashboardController extends Controller
                     'round_no' => $log->round_no ?? 1,
                     'check_in' => $checkIn,
                     'check_out' => $checkOut,
-                    'check_in_status' => $log->check_in_status,
+                    'original_status' => $log->original_status ?? $log->check_in_status,
+                    'final_status' => $log->final_status ?? $log->original_status ?? $log->check_in_status,
+                    'late_minutes' => $log->late_minutes,
                     'scan_type' => $log->scan_type,
-                    'is_late' => $log->check_in_status === 'late',
+                    'is_late' => ($log->final_status ?? $log->original_status ?? $log->check_in_status) === 'late',
+                    'has_forced_leave' => $log->lateForcedLeave()->exists(),
                     'work_minutes' => $workMinutes,
                     'work_hours_display' => $workHoursDisplay,
                     'shift_group' => $shift ? $shift->group_number : null,

@@ -22,6 +22,7 @@ use App\Http\Controllers\Api\CompanySettingsController;
 use App\Http\Controllers\Api\SystemSettingsController;
 use App\Http\Controllers\Api\EmployeeHistoryController;
 use App\Http\Controllers\Api\EmployeeRequestController;
+use App\Http\Controllers\Api\AttendanceAdjustmentController;
 
 /*
 |--------------------------------------------------------------------------
@@ -223,4 +224,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/mandatory-ot', [\App\Http\Controllers\Api\MandatoryOtController::class, 'index']);
     Route::post('/mandatory-ot', [\App\Http\Controllers\Api\MandatoryOtController::class, 'store']);
     Route::delete('/mandatory-ot/{id}', [\App\Http\Controllers\Api\MandatoryOtController::class, 'destroy']);
+
+    // Attendance Adjustment (ปรับแก้สถานะเข้างาน)
+    Route::get('/attendance-adjustment', [AttendanceAdjustmentController::class, 'index']);
+    Route::put('/attendance-adjustment/{id}/adjust', [AttendanceAdjustmentController::class, 'adjust']);
+    Route::get('/attendance-adjustment/forced-leaves', [AttendanceAdjustmentController::class, 'forcedLeaves']);
+    Route::put('/attendance-adjustment/forced-leaves/{id}/approve', [AttendanceAdjustmentController::class, 'approveForcedLeave']);
+    Route::put('/attendance-adjustment/forced-leaves/{id}/reject', [AttendanceAdjustmentController::class, 'rejectForcedLeave']);
 });

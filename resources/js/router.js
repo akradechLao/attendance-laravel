@@ -139,6 +139,12 @@ const routes = [
     meta: { requiresAuth: true, layout: 'app' }
   },
   {
+    path: '/attendance-adjustment',
+    name: 'AttendanceAdjustment',
+    component: () => import('./pages/HR/AttendanceAdjustment.vue'),
+    meta: { requiresAuth: true, layout: 'app' }
+  },
+  {
     path: '/photos',
     name: 'PhotoHistory',
     component: () => import('./pages/HR/PhotoHistory.vue'),

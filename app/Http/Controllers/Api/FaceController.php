@@ -7,6 +7,9 @@ use App\Models\AttendanceLog;
 use App\Models\Employee;
 use App\Models\EmployeeFaceData;
 use App\Models\OfficeLocation;
+use App\Models\LateForcedLeave;
+use App\Models\LeaveRequest;
+use App\Models\LeaveType;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -78,7 +81,6 @@ class FaceController extends Controller
             $today = Carbon::today();
 
             if ($request->type === 'check_in') {
-                // ตรวจสอบว่ามีรอบที่ยังไม่ได้เช็คเอาท์หรือไม่
                 $activeRound = AttendanceLog::where('emp_id', $employee->id)
                     ->whereDate('date', $today)
                     ->whereNull('check_out')
@@ -92,7 +94,6 @@ class FaceController extends Controller
                     ], 400);
                 }
 
-                // หาเลขรอบถัดไป
                 $maxRound = AttendanceLog::where('emp_id', $employee->id)
                     ->whereDate('date', $today)
                     ->max('round_no') ?? 0;
@@ -101,7 +102,19 @@ class FaceController extends Controller
                 $isRemote = $employee->hasActiveRemoteAssignment();
                 $officeLocation = $employee->getAssignedOfficeLocation();
 
-                $status = 'on_time';
+                // ─── คำนวณเวลาเข้างานจากกะของพนักงาน ───
+                $workStartTime = $this->getWorkStartTime($employee, $today);
+
+                // ─── คำนวณสถานะการเข้างาน ───
+                $originalStatus = 'on_time';
+                $lateMinutes = 0;
+                $now = Carbon::now();
+
+                if ($workStartTime && $now->gt($workStartTime)) {
+                    $lateMinutes = (int) $workStartTime->diffInMinutes($now);
+                    $originalStatus = 'late';
+                }
+
                 $scanType = $isRemote ? 'remote_scan' : 'office_scan';
                 $remoteLatitude = null;
                 $remoteLongitude = null;
@@ -131,20 +144,6 @@ class FaceController extends Controller
                             'message' => 'Outside office location radius.',
                         ], 400);
                     }
-
-                    if ($officeLocation->work_start_time) {
-                        $workStartTime = Carbon::parse($officeLocation->work_start_time);
-                        if (Carbon::now()->gt($workStartTime)) {
-                            $status = 'late';
-                        }
-                    }
-                } elseif (!$isRemote && $officeLocation && !$request->latitude) {
-                    if ($officeLocation->work_start_time) {
-                        $workStartTime = Carbon::parse($officeLocation->work_start_time);
-                        if (Carbon::now()->gt($workStartTime)) {
-                            $status = 'late';
-                        }
-                    }
                 }
 
                 $latLong = $request->latitude && $request->longitude
@@ -155,8 +154,11 @@ class FaceController extends Controller
                     'emp_id' => $employee->id,
                     'date' => $today,
                     'round_no' => $nextRound,
-                    'check_in' => Carbon::now(),
-                    'check_in_status' => $status,
+                    'check_in' => $now,
+                    'check_in_status' => $originalStatus,
+                    'original_status' => $originalStatus,
+                    'final_status' => $originalStatus,
+                    'late_minutes' => $lateMinutes > 0 ? $lateMinutes : null,
                     'lat_long' => $latLong,
                     'scan_type' => $scanType,
                     'remote_latitude' => $remoteLatitude,
@@ -165,11 +167,31 @@ class FaceController extends Controller
                     'remote_location_name' => $remoteLocationName,
                 ]);
 
+                // ─── สายเกิน 30 นาที → บังคับลากิจ 1 ชม. ───
+                if ($lateMinutes > 30) {
+                    $this->createForcedLeaveIfApplicable($employee, $log, $today, $lateMinutes);
+                }
+
                 $locationLabel = $isRemote
                     ? ($remoteLocationName ?: 'ตำแหน่งปัจจุบัน')
                     : ($officeLocation->name ?? 'ออฟฟิศ');
 
                 $roundLabel = $nextRound > 1 ? ' (รอบที่ ' . $nextRound . ')' : '';
+
+                $statusMessage = $originalStatus === 'late'
+                    ? 'สถานะ: สาย (' . $lateMinutes . ' นาที)'
+                    : 'สถานะ: ปกติ';
+
+                $lateForceMsg = '';
+                if ($lateMinutes > 30) {
+                    $existingLeave = $this->checkExistingLeave($employee, $today);
+                    if ($existingLeave) {
+                        $leaveTypeLabel = $existingLeave->leaveType->name ?? $existingLeave->leave_type;
+                        $lateForceMsg = ' (ลา: ' . $leaveTypeLabel . ' 1 ชม.)';
+                    } else {
+                        $lateForceMsg = ' (บังคับลากิจ 1 ชม.)';
+                    }
+                }
 
                 return response()->json([
                     'success' => true,
@@ -178,7 +200,7 @@ class FaceController extends Controller
                         'face_match' => $result,
                     ],
                     'message' => 'เช็คอินสำเร็จ' . $roundLabel . ' (' . $locationLabel . ') '
-                        . ($status === 'late' ? 'สถานะ: สาย' : 'สถานะ: ตรงเวลา')
+                        . $statusMessage . $lateForceMsg
                         . ($isRemote ? ' [นอกสถานที่]' : ''),
                 ], 201);
             }
@@ -217,7 +239,6 @@ class FaceController extends Controller
                         'face_match' => $result,
                     ],
                     'message' => 'เช็คเอาท์สำเร็จ' . $roundLabel,
-                    'message' => 'เช็คเอาท์สำเร็จ',
                 ]);
             }
 
@@ -400,6 +421,102 @@ class FaceController extends Controller
                 'data' => null,
                 'message' => 'Face registration failed.',
             ], 500);
+        }
+    }
+
+    // ─── Private helpers ───
+
+    /**
+     * หาเวลาเข้างานจากกะของพนักงาน (fallback = office location)
+     */
+    private function getWorkStartTime(Employee $employee, Carbon $date): ?Carbon
+    {
+        $shift = $employee->workShifts()
+            ->where(function ($q) {
+                $q->whereNull('start_date')
+                    ->orWhere('start_date', '<=', now()->toDateString());
+            })
+            ->where(function ($q) {
+                $q->whereNull('end_date')
+                    ->orWhere('end_date', '>=', now()->toDateString());
+            })
+            ->first();
+
+        if ($shift && $shift->start_time) {
+            $time = $shift->start_time instanceof Carbon
+                ? $shift->start_time->format('H:i')
+                : $shift->start_time;
+            return Carbon::parse($date->toDateString() . ' ' . $time);
+        }
+
+        $officeLocation = $employee->getAssignedOfficeLocation();
+        if ($officeLocation && $officeLocation->work_start_time) {
+            $time = $officeLocation->work_start_time instanceof Carbon
+                ? $officeLocation->work_start_time->format('H:i')
+                : $officeLocation->work_start_time;
+            return Carbon::parse($date->toDateString() . ' ' . $time);
+        }
+
+        return null;
+    }
+
+    /**
+     * ตรวจสอบว่าพนักงานมีลามาแล้วหรือยัง
+     */
+    private function checkExistingLeave(Employee $employee, Carbon $date): ?LeaveRequest
+    {
+        return LeaveRequest::where('emp_id', $employee->id)
+            ->where('start_date', '<=', $date)
+            ->where('end_date', '>=', $date)
+            ->where('status', 'approved')
+            ->first();
+    }
+
+    /**
+     * สร้างบันทึกลาบังคับ (ลากิจ 1 ชม.) ถ้าสายเกิน 30 นาที
+     */
+    private function createForcedLeaveIfApplicable(
+        Employee $employee,
+        AttendanceLog $log,
+        Carbon $date,
+        int $lateMinutes
+    ): void {
+        // ตรวจสอบว่ามีบันทึกลาบังคับแล้วหรือยัง (รอบนี้)
+        $existing = LateForcedLeave::where('emp_id', $employee->id)
+            ->where('date', $date)
+            ->exists();
+        if ($existing) {
+            return;
+        }
+
+        // ตรวจสอบลามาแล้ว
+        $existingLeave = $this->checkExistingLeave($employee, $date);
+        if ($existingLeave) {
+            // มีลามาแล้ว → ใช้ลามาแทน
+            $leaveType = $existingLeave->leaveType;
+            LateForcedLeave::create([
+                'emp_id' => $employee->id,
+                'attendance_log_id' => $log->id,
+                'date' => $date,
+                'late_minutes' => $lateMinutes,
+                'leave_minutes' => 60,
+                'leave_type' => $leaveType->name ?? 'personal',
+                'leave_request_id' => $existingLeave->id,
+                'status' => 'approved',
+                'reason' => 'สายเกิน 30 นาที (มีลามาแล้ว: ' . ($leaveType->name ?? 'ลากิจ') . ')',
+            ]);
+        } else {
+            // ไม่มีลา → บังคับลากิจ 1 ชม.
+            LateForcedLeave::create([
+                'emp_id' => $employee->id,
+                'attendance_log_id' => $log->id,
+                'date' => $date,
+                'late_minutes' => $lateMinutes,
+                'leave_minutes' => 60,
+                'leave_type' => 'personal',
+                'status' => 'pending',
+                'reason' => 'สายเกิน 30 นาที (' . $lateMinutes . ' นาที) → บังคับลากิจ 1 ชม.',
+            ]);
         }
     }
 
