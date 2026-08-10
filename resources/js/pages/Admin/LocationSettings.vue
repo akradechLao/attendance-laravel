@@ -3,8 +3,8 @@
     <div class="space-y-6">
       <div class="flex items-center justify-between">
         <div>
-          <h1 class="text-2xl font-bold text-navy">ตั้งค่าตำแหน่งจุดเช็คอิน</h1>
-          <p class="text-gray-500">กำหนดตำแหน่งที่ตั้งสำนักงานและจัดกลุ่มพนักงาน</p>
+          <h1 class="text-2xl font-bold text-navy">จุดเช็คอิน/เช็คเอาท์ สำหรับพนักงาน</h1>
+          <p class="text-gray-500">กำหนดตำแหน่งจุดอ้างอิง (ระยะรัศมี 200 เมตร) และจัดกลุ่มพนักงาน</p>
         </div>
         <button @click="openCreateForm" class="btn-primary">+ เพิ่มสถานที่</button>
       </div>

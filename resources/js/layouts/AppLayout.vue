@@ -160,7 +160,7 @@ const navItems = [
   { path: '/settings', label: 'ตั้งค่าพนักงาน', icon: '⚙' },
   { path: '/admin/company-settings', label: 'ตั้งค่าบริษัท', icon: '🏢' },
   { path: '/admin/system-settings', label: 'ตั้งค่าระบบ', icon: '🔧' },
-  { path: '/admin/location-settings', label: 'ตั้งค่าสถานที่', icon: '📍' },
+  { path: '/admin/location-settings', label: 'จุดเช็คอิน/เช็คเอาท์', icon: '📍' },
 ]
 
 function isActive(path) {
