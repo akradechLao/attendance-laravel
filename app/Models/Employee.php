@@ -96,7 +96,8 @@ class Employee extends Authenticatable
 
     public function workShifts()
     {
-        return $this->belongsToMany(WorkShift::class, 'employee_shifts');
+        return $this->belongsToMany(WorkShift::class, 'employee_shifts')
+            ->withPivot('start_date', 'end_date');
     }
 
     public function approvers()

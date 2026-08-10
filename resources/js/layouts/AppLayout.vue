@@ -143,6 +143,8 @@ const navItems = [
   { path: '/wfh', label: 'ปฏิบัติงานนอกสถานที่', icon: '🏠' },
   { path: '/holidays', label: 'วันหยุด', icon: '🎌' },
   { path: '/shifts', label: 'กะทำงาน', icon: '🔄' },
+  { path: '/shift-assignments', label: 'มอบหมายกะรายเดือน', icon: '📅' },
+  { path: '/mandatory-ot', label: 'มอบหมาย OT บังคับ', icon: '⏰' },
   { section: 'Remote' },
   { path: '/remote-assignments', label: 'ปฏิบัติงานต่างจังหวัด', icon: '📍' },
   { path: '/location-history', label: 'แผนที่', icon: '🗺' },

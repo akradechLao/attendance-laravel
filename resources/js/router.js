@@ -127,6 +127,18 @@ const routes = [
     meta: { requiresAuth: true, layout: 'app' }
   },
   {
+    path: '/shift-assignments',
+    name: 'ShiftAssignment',
+    component: () => import('./pages/HR/ShiftAssignment.vue'),
+    meta: { requiresAuth: true, layout: 'app' }
+  },
+  {
+    path: '/mandatory-ot',
+    name: 'MandatoryOt',
+    component: () => import('./pages/HR/MandatoryOt.vue'),
+    meta: { requiresAuth: true, layout: 'app' }
+  },
+  {
     path: '/photos',
     name: 'PhotoHistory',
     component: () => import('./pages/HR/PhotoHistory.vue'),

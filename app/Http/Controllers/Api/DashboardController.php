@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AttendanceLog;
 use App\Models\Employee;
 use App\Models\Company;
+use App\Helpers\AttendanceCalculator;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -127,22 +128,47 @@ class DashboardController extends Controller
             $records = $query->get()->map(function ($log) {
                 $checkIn = $log->check_in;
                 $checkOut = $log->check_out;
+
+                $checkInRaw = null;
+                $checkOutRaw = null;
+
                 if ($checkIn instanceof Carbon) {
+                    $checkInRaw = $checkIn->copy();
                     $checkIn = $checkIn->format('H:i');
                 } elseif (is_string($checkIn) && str_contains($checkIn, 'T')) {
-                    $checkIn = Carbon::parse($checkIn)->setTimezone('Asia/Bangkok')->format('H:i');
+                    $checkInRaw = Carbon::parse($checkIn)->setTimezone('Asia/Bangkok');
+                    $checkIn = $checkInRaw->format('H:i');
                 }
                 if ($checkOut instanceof Carbon) {
+                    $checkOutRaw = $checkOut->copy();
                     $checkOut = $checkOut->format('H:i');
                 } elseif (is_string($checkOut) && str_contains($checkOut, 'T')) {
-                    $checkOut = Carbon::parse($checkOut)->setTimezone('Asia/Bangkok')->format('H:i');
+                    $checkOutRaw = Carbon::parse($checkOut)->setTimezone('Asia/Bangkok');
+                    $checkOut = $checkOutRaw->format('H:i');
                 }
+
+                $workMinutes = 0;
+                $workHoursDisplay = '-';
+                if ($checkInRaw && $checkOutRaw) {
+                    $workMinutes = AttendanceCalculator::calculateWorkMinutes($checkInRaw, $checkOutRaw);
+                    $workHoursDisplay = AttendanceCalculator::formatMinutes($workMinutes);
+                }
+
+                $employee = $log->employee;
+                $shift = $employee->workShifts()->where(function ($q) {
+                    $q->whereNull('start_date')
+                        ->orWhere('start_date', '<=', now()->toDateString());
+                })->where(function ($q) {
+                    $q->whereNull('end_date')
+                        ->orWhere('end_date', '>=', now()->toDateString());
+                })->first();
+
                 return [
                     'id' => $log->id,
-                    'employee_name' => $log->employee->name ?? '-',
-                    'employee_code' => $log->employee->employee_code ?? '-',
-                    'company_name' => $log->employee->company->name ?? '-',
-                    'company_code' => $log->employee->company->code_prefix ?? '-',
+                    'employee_name' => $employee->name ?? '-',
+                    'employee_code' => $employee->employee_code ?? '-',
+                    'company_name' => $employee->company->name ?? '-',
+                    'company_code' => $employee->company->code_prefix ?? '-',
                     'date' => $log->date,
                     'round_no' => $log->round_no ?? 1,
                     'check_in' => $checkIn,
@@ -150,6 +176,10 @@ class DashboardController extends Controller
                     'check_in_status' => $log->check_in_status,
                     'scan_type' => $log->scan_type,
                     'is_late' => $log->check_in_status === 'late',
+                    'work_minutes' => $workMinutes,
+                    'work_hours_display' => $workHoursDisplay,
+                    'shift_group' => $shift ? $shift->group_number : null,
+                    'shift_time' => $shift ? ($shift->start_time->format('H:i') . '-' . $shift->end_time->format('H:i')) : '-',
                 ];
             });
 

@@ -213,4 +213,14 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/employee/ot-requests', [EmployeeRequestController::class, 'storeOt']);
     Route::post('/employee/wfh-requests', [EmployeeRequestController::class, 'storeWfh']);
     Route::post('/employee/change-password', [EmployeeRequestController::class, 'changePassword']);
+
+    // Shift Assignments (จัดการกะรายเดือน)
+    Route::get('/shift-assignments', [\App\Http\Controllers\Api\ShiftAssignmentController::class, 'index']);
+    Route::post('/shift-assignments', [\App\Http\Controllers\Api\ShiftAssignmentController::class, 'assign']);
+    Route::delete('/shift-assignments', [\App\Http\Controllers\Api\ShiftAssignmentController::class, 'remove']);
+
+    // Mandatory OT Assignments (มอบหมาย OT บังคับ)
+    Route::get('/mandatory-ot', [\App\Http\Controllers\Api\MandatoryOtController::class, 'index']);
+    Route::post('/mandatory-ot', [\App\Http\Controllers\Api\MandatoryOtController::class, 'store']);
+    Route::delete('/mandatory-ot/{id}', [\App\Http\Controllers\Api\MandatoryOtController::class, 'destroy']);
 });

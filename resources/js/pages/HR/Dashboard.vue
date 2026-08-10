@@ -108,9 +108,11 @@
                   <th class="text-left px-4 py-3 text-xs font-semibold text-gray-600">ชื่อ</th>
                   <th class="text-left px-4 py-3 text-xs font-semibold text-gray-600">รหัส</th>
                   <th class="text-left px-4 py-3 text-xs font-semibold text-gray-600">บริษัท</th>
+                  <th class="text-left px-4 py-3 text-xs font-semibold text-gray-600">กะ</th>
                   <th class="text-left px-4 py-3 text-xs font-semibold text-gray-600">รอบ</th>
                   <th class="text-left px-4 py-3 text-xs font-semibold text-gray-600">เวลาเข้า</th>
                   <th class="text-left px-4 py-3 text-xs font-semibold text-gray-600">เวลาออก</th>
+                  <th class="text-left px-4 py-3 text-xs font-semibold text-gray-600">ชั่วโมงทำงาน</th>
                   <th class="text-left px-4 py-3 text-xs font-semibold text-gray-600">สถานะ</th>
                   <th class="text-left px-4 py-3 text-xs font-semibold text-gray-600">ประเภท</th>
                 </tr>
@@ -126,12 +128,14 @@
                     </div>
                   </td>
                   <td class="px-4 py-3 text-sm text-gray-600">{{ record.employee_code }}</td>
-                  <td class="px-4 py-3">
+                   <td class="px-4 py-3">
                     <span class="px-2 py-0.5 rounded text-xs font-medium text-white" :style="companyColorStyle(record.company_name)">{{ record.company_code }}</span>
                   </td>
+                  <td class="px-4 py-3 text-xs text-gray-500">{{ record.shift_time || '-' }}</td>
                   <td class="px-4 py-3 text-sm text-gray-600">{{ record.round_no || 1 }}</td>
                   <td class="px-4 py-3 text-sm font-medium" :class="record.is_late ? 'text-yellow-600' : 'text-green-600'">{{ record.check_in || '-' }}</td>
                   <td class="px-4 py-3 text-sm text-gray-600">{{ record.check_out || '-' }}</td>
+                  <td class="px-4 py-3 text-sm font-medium" :class="record.work_minutes > 0 ? 'text-blue-600' : 'text-gray-400'">{{ record.work_hours_display }}</td>
                   <td class="px-4 py-3">
                     <span :class="['px-2 py-1 rounded-full text-xs font-medium', record.is_late ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700']">
                       {{ record.is_late ? 'สาย' : 'ปกติ' }}

@@ -25,7 +25,8 @@ class WorkShift extends Model
 
     public function employees()
     {
-        return $this->hasMany(Employee::class, 'group_type', 'group_number');
+        return $this->belongsToMany(Employee::class, 'employee_shifts')
+            ->withPivot('start_date', 'end_date');
     }
 
     public function getStartTimeFormattedAttribute(): string
