@@ -78,7 +78,7 @@
                   </svg>
                 </div>
                 <h2 class="text-2xl font-bold text-navy">{{ loginMode === 'admin' ? 'เข้าสู่ระบบ' : 'เข้าสู่ระบบพนักงาน' }}</h2>
-                <p class="text-gray-500 mt-1">{{ loginMode === 'admin' ? 'สำหรับผู้ดูแลระบบ' : 'เข้าสู่ระบบเพื่อขอลา/โอที/WFH' }}</p>
+                <p class="text-gray-500 mt-1">{{ loginMode === 'admin' ? 'สำหรับผู้ดูแลระบบ' : 'เข้าสู่ระบบเพื่อขอลา/โอที/ปฏิบัติงานนอกสถานที่' }}</p>
               </div>
 
               <!-- Error message -->

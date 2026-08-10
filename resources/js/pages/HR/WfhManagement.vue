@@ -22,7 +22,7 @@ const loadWfhRecords = async () => {
     })
     wfhRecords.value = response.data.data
   } catch (error) {
-    console.error('Failed to load WFH records:', error)
+    console.error('Failed to load records:', error)
   }
 }
 
@@ -40,14 +40,14 @@ const submitWfh = async () => {
       end_date: selectedEndDate.value || selectedDate.value,
       reason: reason.value,
     })
-    alert('ส่งคำขอ WFH สำเร็จ')
+    alert('ส่งคำขอสำเร็จ')
     showForm.value = false
     selectedDate.value = new Date().toISOString().split('T')[0]
     selectedEndDate.value = ''
     reason.value = ''
     await loadWfhRecords()
   } catch (error) {
-    alert('เกิดข้อผิดพลาดในการส่งคำขอ WFH')
+    alert('เกิดข้อผิดพลาดในการส่งคำขอ')
   } finally {
     loading.value = false
   }
@@ -68,14 +68,14 @@ const getStatusBadge = (status) => {
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-bold text-gray-900">Work From Home</h1>
-        <p class="text-gray-500">จัดการการลา WFH</p>
+        <h1 class="text-2xl font-bold text-gray-900">ปฏิบัติงานนอกสถานที่</h1>
+        <p class="text-gray-500">จัดการการปฏิบัติงานนอกสถานที่</p>
       </div>
       <button
         @click="showForm = true"
         class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
       >
-        + ขอ WFH
+        + ขอปฏิบัติงานนอกสถานที่
       </button>
     </div>
 
@@ -108,7 +108,7 @@ const getStatusBadge = (status) => {
     <!-- WFH Form Modal -->
     <div v-if="showForm" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-        <h3 class="text-lg font-bold mb-4">ขอ WFH</h3>
+        <h3 class="text-lg font-bold mb-4">ขอปฏิบัติงานนอกสถานที่</h3>
         <div class="space-y-4">
           <div>
             <label class="block text-sm font-medium text-gray-700">วันที่เริ่ม</label>

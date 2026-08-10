@@ -132,7 +132,7 @@ class EmployeeRequestController extends Controller
             if ($existing) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'วันนี้มีคำขอ WFH แล้ว',
+                    'message' => 'วันนี้มีคำขอปฏิบัติงานนอกสถานที่แล้ว',
                 ], 400);
             }
 
@@ -146,7 +146,7 @@ class EmployeeRequestController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => $wfh,
-                'message' => 'ส่งคำขอ WFH สำเร็จ',
+                'message' => 'ส่งคำขอสำเร็จ',
             ]);
         } catch (\Exception $e) {
             return response()->json([

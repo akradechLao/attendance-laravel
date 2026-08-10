@@ -36,7 +36,7 @@ class LeaveConstants
         'vacation' => 'ลาพักร้อน',
         'maternity' => 'ลาคลอด',
         'paternity' => 'ลาคลอด',
-        'wfh' => 'ทำงานที่บ้าน',
+        'wfh' => 'ปฏิบัติงานนอกสถานที่',
         'training' => 'อบรม',
     ];
 }

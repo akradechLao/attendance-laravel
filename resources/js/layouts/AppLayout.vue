@@ -140,7 +140,7 @@ const navItems = [
   { section: 'HR Management' },
   { path: '/leave', label: 'ลางาน', icon: '📅' },
   { path: '/ot', label: 'OT', icon: '⏰' },
-  { path: '/wfh', label: 'WFH', icon: '🏠' },
+  { path: '/wfh', label: 'ปฏิบัติงานนอกสถานที่', icon: '🏠' },
   { path: '/holidays', label: 'วันหยุด', icon: '🎌' },
   { path: '/shifts', label: 'กะทำงาน', icon: '🔄' },
   { section: 'Remote' },

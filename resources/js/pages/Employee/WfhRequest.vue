@@ -7,7 +7,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
           </svg>
         </router-link>
-        <h1 class="text-xl font-bold text-white">ขอ WFH</h1>
+        <h1 class="text-xl font-bold text-white">ขอปฏิบัติงานนอกสถานที่</h1>
       </div>
     </header>
 
@@ -23,14 +23,14 @@
       <form v-else @submit.prevent="handleSubmit" class="space-y-6">
         <!-- วันที่ -->
         <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
-          <label class="block text-white font-semibold mb-3">วันที่ต้องการ WFH</label>
+          <label class="block text-white font-semibold mb-3">วันที่ต้องการปฏิบัติงานนอกสถานที่</label>
           <input v-model="form.date" type="date" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" required />
         </div>
 
         <!-- เหตุผล -->
         <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
           <label class="block text-white font-semibold mb-3">เหตุผล</label>
-          <textarea v-model="form.reason" rows="3" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" placeholder="กรอกเหตุผลการขอ WFH"></textarea>
+          <textarea v-model="form.reason" rows="3" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" placeholder="กรอกเหตุผลการขอปฏิบัติงานนอกสถานที่"></textarea>
         </div>
 
         <div v-if="error" class="bg-red-500/20 border border-red-500/30 rounded-xl p-4">
