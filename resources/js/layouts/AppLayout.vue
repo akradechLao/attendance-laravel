@@ -76,6 +76,16 @@
             </svg>
           </button>
 
+          <button
+            @click="goBack"
+            class="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-navy transition-colors"
+            title="ย้อนกลับ"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+
           <div class="hidden lg:block"></div>
 
           <!-- User info -->
@@ -160,5 +170,13 @@ function isActive(path) {
 function handleLogout() {
   logout()
   router.push('/login')
+}
+
+function goBack() {
+  if (window.history.length > 1) {
+    router.go(-1)
+  } else {
+    router.push('/dashboard')
+  }
 }
 </script>
