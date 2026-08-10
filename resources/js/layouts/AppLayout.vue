@@ -144,7 +144,7 @@ const navItems = [
   { path: '/holidays', label: 'วันหยุด', icon: '🎌' },
   { path: '/shifts', label: 'กะทำงาน', icon: '🔄' },
   { section: 'Remote' },
-  { path: '/remote-assignments', label: 'มอบหมาย Remote', icon: '📍' },
+  { path: '/remote-assignments', label: 'ปฏิบัติงานต่างจังหวัด', icon: '📍' },
   { path: '/location-history', label: 'แผนที่', icon: '🗺' },
   { section: 'Supervisor' },
   { path: '/supervisor/leave-approval', label: 'อนุมัติลางาน', icon: '✅' },

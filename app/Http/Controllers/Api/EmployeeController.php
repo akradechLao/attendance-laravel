@@ -13,9 +13,24 @@ class EmployeeController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            $employees = Employee::with('company')
-                ->withCount('faceData')
-                ->paginate($request->get('per_page', 15));
+            $query = Employee::with('company')
+                ->withCount('faceData');
+
+            if ($request->has('search') && $request->search) {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('employee_code', 'like', "%{$search}%")
+                      ->orWhere('division', 'like', "%{$search}%")
+                      ->orWhere('department', 'like', "%{$search}%");
+                });
+            }
+
+            if ($request->has('company_id') && $request->company_id) {
+                $query->where('company_id', $request->company_id);
+            }
+
+            $employees = $query->paginate($request->get('per_page', 15));
 
             return response()->json([
                 'success' => true,
