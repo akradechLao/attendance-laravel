@@ -167,7 +167,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import axios from 'axios'
+import api from '../../services/api'
 import AppLayout from '../../layouts/AppLayout.vue'
 import LoadingSpinner from '../../components/LoadingSpinner.vue'
 
@@ -217,7 +217,7 @@ function formatDate(dateStr) {
 async function fetchLeaves() {
   loading.value = true
   try {
-    const response = await axios.get('/api/leaves')
+    const response = await api.get('/api/leaves')
     leaves.value = response.data.data || response.data
   } catch (error) {
     console.error('Error fetching leaves:', error)
@@ -230,7 +230,7 @@ async function approveLeave(leave) {
   if (!confirm('ยืนยันการอนุมัติลา?')) return
   processing.value = true
   try {
-    await axios.put(`/api/leaves/${leave.id}/approve`)
+    await api.put(`/api/leaves/${leave.id}/approve`)
     fetchLeaves()
   } catch (error) {
     console.error('Error approving leave:', error)
@@ -244,7 +244,7 @@ async function rejectLeave(leave) {
   if (!confirm('ยืนยันการปฏิเสธลา?')) return
   processing.value = true
   try {
-    await axios.put(`/api/leaves/${leave.id}/reject`)
+    await api.put(`/api/leaves/${leave.id}/reject`)
     fetchLeaves()
   } catch (error) {
     console.error('Error rejecting leave:', error)

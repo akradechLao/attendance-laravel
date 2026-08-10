@@ -149,7 +149,7 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import axios from 'axios'
+import api from '../../services/api'
 import AppLayout from '../../layouts/AppLayout.vue'
 import LoadingSpinner from '../../components/LoadingSpinner.vue'
 
@@ -179,7 +179,7 @@ const filters = reactive({
 
 async function fetchCompanies() {
   try {
-    const response = await axios.get('/api/companies')
+    const response = await api.get('/api/companies')
     companies.value = response.data.data || response.data
   } catch (error) {
     console.error('Error fetching companies:', error)
@@ -196,7 +196,7 @@ async function fetchReport() {
       page: currentPage.value,
       per_page: perPage.value
     }
-    const response = await axios.get('/api/reports/attendance', { params })
+    const response = await api.get('/api/reports/attendance', { params })
     attendances.value = response.data.data || response.data
     totalItems.value = response.data.total || attendances.value.length
     totalPages.value = Math.ceil(totalItems.value / perPage.value)

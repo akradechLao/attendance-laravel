@@ -151,7 +151,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
-import axios from 'axios'
+import api from '../../services/api'
 import AppLayout from '../../layouts/AppLayout.vue'
 import LoadingSpinner from '../../components/LoadingSpinner.vue'
 
@@ -201,9 +201,9 @@ async function fetchData() {
   try {
     const params = selectedCompany.value ? { company_id: selectedCompany.value } : {}
     const [statsRes, todayRes, companiesRes] = await Promise.all([
-      axios.get('/api/dashboard/stats', { params }),
-      axios.get('/api/dashboard/today', { params }),
-      axios.get('/api/companies')
+      api.get('/api/dashboard/stats', { params }),
+      api.get('/api/dashboard/today', { params }),
+      api.get('/api/companies')
     ])
 
     const sd = statsRes.data?.data || {}

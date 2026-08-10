@@ -165,7 +165,7 @@
 
 <script setup>
 import { ref, reactive, onMounted, nextTick, watch } from 'vue'
-import axios from 'axios'
+import api from '../../services/api'
 import AppLayout from '../../layouts/AppLayout.vue'
 
 const loading = ref(true)
@@ -216,8 +216,8 @@ async function loadData() {
   loading.value = true
   try {
     const [locRes, compRes] = await Promise.all([
-      axios.get('/api/office-locations'),
-      axios.get('/api/companies'),
+      api.get('/api/office-locations'),
+      api.get('/api/companies'),
     ])
     locations.value = locRes.data.data || []
     companies.value = compRes.data.data || []
@@ -270,9 +270,9 @@ async function saveLocation() {
   saving.value = true
   try {
     if (editingId.value) {
-      await axios.put(`/api/office-locations/${editingId.value}`, form)
+      await api.put(`/api/office-locations/${editingId.value}`, form)
     } else {
-      await axios.post('/api/office-locations', form)
+      await api.post('/api/office-locations', form)
     }
     showForm.value = false
     await loadData()
@@ -286,7 +286,7 @@ async function saveLocation() {
 async function deleteLocation(loc) {
   if (!confirm(`ต้องการลบ "${loc.name}" ใช่หรือไม่?`)) return
   try {
-    await axios.delete(`/api/office-locations/${loc.id}`)
+    await api.delete(`/api/office-locations/${loc.id}`)
     await loadData()
   } catch (e) {
     alert('เกิดข้อผิดพลาด')
@@ -303,7 +303,7 @@ async function openAssignModal(loc) {
 
 async function loadAssignedEmployees(locId) {
   try {
-    const res = await axios.get(`/api/office-locations/${locId}/employees`)
+    const res = await api.get(`/api/office-locations/${locId}/employees`)
     assignedEmployees.value = res.data.data || []
   } catch (e) {
     assignedEmployees.value = []
@@ -314,7 +314,7 @@ async function searchUnassigned() {
   if (!assignLocation.value) return
   try {
     const params = assignSearch.value ? { search: assignSearch.value } : {}
-    const res = await axios.get(`/api/office-locations/${assignLocation.value.id}/unassigned`, { params })
+    const res = await api.get(`/api/office-locations/${assignLocation.value.id}/unassigned`, { params })
     unassignedEmployees.value = res.data.data || []
   } catch (e) {
     unassignedEmployees.value = []
@@ -323,7 +323,7 @@ async function searchUnassigned() {
 
 async function assignEmployee(emp) {
   try {
-    await axios.post(`/api/office-locations/${assignLocation.value.id}/assign`, {
+    await api.post(`/api/office-locations/${assignLocation.value.id}/assign`, {
       employee_ids: [emp.id],
     })
     await loadAssignedEmployees(assignLocation.value.id)
@@ -335,7 +335,7 @@ async function assignEmployee(emp) {
 
 async function removeEmployee(emp) {
   try {
-    await axios.post(`/api/office-locations/${assignLocation.value.id}/remove`, {
+    await api.post(`/api/office-locations/${assignLocation.value.id}/remove`, {
       employee_ids: [emp.id],
     })
     await loadAssignedEmployees(assignLocation.value.id)

@@ -227,7 +227,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, watch } from 'vue'
-import axios from 'axios'
+import api from '../../services/api'
 import AppLayout from '../../layouts/AppLayout.vue'
 import LoadingSpinner from '../../components/LoadingSpinner.vue'
 import Modal from '../../components/Modal.vue'
@@ -284,7 +284,7 @@ async function fetchEmployees() {
       search: searchQuery.value,
       company_id: selectedCompany.value || undefined
     }
-    const response = await axios.get('/api/employees', { params })
+    const response = await api.get('/api/employees', { params })
     employees.value = response.data.data || response.data
     totalItems.value = response.data.total || employees.value.length
   } catch (error) {
@@ -296,7 +296,7 @@ async function fetchEmployees() {
 
 async function fetchCompanies() {
   try {
-    const response = await axios.get('/api/companies')
+    const response = await api.get('/api/companies')
     companies.value = response.data.data || response.data
   } catch (error) {
     console.error('Error fetching companies:', error)
@@ -324,9 +324,9 @@ async function saveEmployee() {
   saving.value = true
   try {
     if (showEditModal.value) {
-      await axios.put(`/api/employees/${editId.value}`, form)
+      await api.put(`/api/employees/${editId.value}`, form)
     } else {
-      await axios.post('/api/employees', form)
+      await api.post('/api/employees', form)
     }
     closeModal()
     fetchEmployees()
@@ -341,7 +341,7 @@ async function saveEmployee() {
 async function deleteEmployee() {
   deleting.value = true
   try {
-    await axios.delete(`/api/employees/${deleteTarget.value.id}`)
+    await api.delete(`/api/employees/${deleteTarget.value.id}`)
     showDeleteModal.value = false
     fetchEmployees()
   } catch (error) {
@@ -364,7 +364,7 @@ async function resetPassword(employee) {
   if (newPassword === null) return
 
   try {
-    const res = await axios.post(`/api/employees/${employee.id}/reset-password`, {
+    const res = await api.post(`/api/employees/${employee.id}/reset-password`, {
       password: newPassword || 'password'
     })
     if (res.data.success) {

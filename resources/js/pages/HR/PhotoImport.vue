@@ -134,7 +134,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import axios from 'axios'
+import api from '../../services/api'
 import AppLayout from '../../layouts/AppLayout.vue'
 
 const searchQuery = ref('')
@@ -161,7 +161,7 @@ function searchEmployees() {
     try {
       const params = { search: searchQuery.value, per_page: 20 }
       if (selectedCompanyId.value) params.company_id = selectedCompanyId.value
-      const res = await axios.get('/api/employees', { params })
+      const res = await api.get('/api/employees', { params })
       searchResults.value = res.data.data?.data || res.data.data || []
     } catch {
       searchResults.value = []
@@ -226,7 +226,7 @@ async function uploadAndRegister() {
       uploadedPhotos.value.map(photo => fileToBase64(photo.file))
     )
 
-    await axios.post(`/api/employees/${selectedEmployee.value.id}/face`, {
+    await api.post(`/api/employees/${selectedEmployee.value.id}/face`, {
       images: base64Photos
     })
 
@@ -252,7 +252,7 @@ function fileToBase64(file) {
 
 onMounted(async () => {
   try {
-    const res = await axios.get('/api/companies')
+    const res = await api.get('/api/companies')
     companies.value = res.data.data || []
   } catch {}
 })

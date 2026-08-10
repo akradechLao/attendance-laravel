@@ -149,7 +149,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import axios from 'axios'
+import api from '../../services/api'
 
 const assignments = ref([])
 const companies = ref([])
@@ -182,7 +182,7 @@ const stats = computed(() => {
 })
 
 onMounted(async () => {
-  const res = await axios.get('/api/companies')
+  const res = await api.get('/api/companies')
   companies.value = res.data.data || res.data
   loadAssignments()
 })
@@ -192,14 +192,14 @@ async function loadAssignments() {
   if (filter.value.status) params.status = filter.value.status
   if (filter.value.company_id) params.company_id = filter.value.company_id
   
-  const res = await axios.get('/api/remote-assignments', { params })
+  const res = await api.get('/api/remote-assignments', { params })
   assignments.value = res.data.data?.data || res.data.data || []
 }
 
 async function createAssignment() {
   submitting.value = true
   try {
-    await axios.post('/api/remote-assignments', form.value)
+    await api.post('/api/remote-assignments', form.value)
     showCreateModal.value = false
     form.value = { employee_id: '', company_id: '', start_date: '', end_date: '', destination: '', reason: '' }
     loadAssignments()
@@ -213,7 +213,7 @@ async function createAssignment() {
 async function approve(item) {
   if (!confirm(`อนุมัติคำขอของ ${item.employee?.name}?`)) return
   try {
-    await axios.put(`/api/remote-assignments/${item.id}/approve`, {})
+    await api.put(`/api/remote-assignments/${item.id}/approve`, {})
     loadAssignments()
   } catch (err) {
     alert(err.response?.data?.message || 'เกิดข้อผิดพลาด')
@@ -223,7 +223,7 @@ async function approve(item) {
 async function reject(item) {
   if (!confirm(`ปฏิเสธคำขอของ ${item.employee?.name}?`)) return
   try {
-    await axios.put(`/api/remote-assignments/${item.id}/reject`, {})
+    await api.put(`/api/remote-assignments/${item.id}/reject`, {})
     loadAssignments()
   } catch (err) {
     alert(err.response?.data?.message || 'เกิดข้อผิดพลาด')

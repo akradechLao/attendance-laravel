@@ -151,7 +151,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import axios from 'axios'
+import api from '../../services/api'
 import AppLayout from '../../layouts/AppLayout.vue'
 import LoadingSpinner from '../../components/LoadingSpinner.vue'
 import Camera from '../../components/Camera.vue'
@@ -177,7 +177,7 @@ const currentPositionLabel = computed(() => {
 
 async function fetchEmployee() {
   try {
-    const response = await axios.get(`/api/employees/${route.params.id}`)
+    const response = await api.get(`/api/employees/${route.params.id}`)
     employee.value = response.data.data || response.data
   } catch (error) {
     console.error('Error fetching employee:', error)
@@ -204,7 +204,7 @@ function handlePhotoCaptured(imageData) {
 async function registerFace() {
   registering.value = true
   try {
-    await axios.post(`/api/employees/${route.params.id}/face`, {
+    await api.post(`/api/employees/${route.params.id}/face`, {
       images: capturedPhotos.value.map(p => p.data)
     })
     showSuccess.value = true

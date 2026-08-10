@@ -187,7 +187,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import axios from 'axios'
+import api from '../../services/api'
 import AppLayout from '../../layouts/AppLayout.vue'
 import LoadingSpinner from '../../components/LoadingSpinner.vue'
 
@@ -217,7 +217,7 @@ function formatDate(dateStr) {
 async function fetchOts() {
   loading.value = true
   try {
-    const response = await axios.get('/api/ots')
+    const response = await api.get('/api/ots')
     ots.value = response.data.data || response.data
   } catch (error) {
     console.error('Error fetching OTs:', error)
@@ -230,7 +230,7 @@ async function managerApprove(ot) {
   if (!confirm('ยืนยันการอนุมัติ OT?')) return
   processing.value = true
   try {
-    await axios.put(`/api/ots/${ot.id}/manager-approve`)
+    await api.put(`/api/ots/${ot.id}/manager-approve`)
     fetchOts()
   } catch (error) {
     console.error('Error approving OT:', error)
@@ -244,7 +244,7 @@ async function hrApprove(ot) {
   if (!confirm('ยืนยันการอนุมัติ OT?')) return
   processing.value = true
   try {
-    await axios.put(`/api/ots/${ot.id}/hr-approve`)
+    await api.put(`/api/ots/${ot.id}/hr-approve`)
     fetchOts()
   } catch (error) {
     console.error('Error approving OT:', error)
@@ -258,7 +258,7 @@ async function rejectOt(ot) {
   if (!confirm('ยืนยันการปฏิเสธ OT?')) return
   processing.value = true
   try {
-    await axios.put(`/api/ots/${ot.id}/reject`)
+    await api.put(`/api/ots/${ot.id}/reject`)
     fetchOts()
   } catch (error) {
     console.error('Error rejecting OT:', error)

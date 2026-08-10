@@ -85,7 +85,7 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
-import axios from 'axios'
+import api from '../../services/api'
 import L from 'leaflet'
 
 const mapContainer = ref(null)
@@ -146,7 +146,7 @@ function initMap() {
 
 async function loadRemoteEmployees() {
   try {
-    const res = await axios.get('/api/remote/realtime-locations')
+    const res = await api.get('/api/remote/realtime-locations')
     remoteEmployees.value = res.data.data || []
     updateMapMarkers(remoteEmployees.value)
   } catch (err) {
@@ -167,7 +167,7 @@ async function loadHistory() {
   if (!selectedEmployeeId.value) return
   
   try {
-    const res = await axios.get(`/api/remote/location-history/${selectedEmployeeId.value}`, {
+    const res = await api.get(`/api/remote/location-history/${selectedEmployeeId.value}`, {
       params: { date: selectedDate.value }
     })
     locationHistory.value = res.data.data || []
@@ -251,7 +251,7 @@ async function saveLocationName() {
   if (!editingLocation.value) return
   
   try {
-    await axios.put(`/api/remote/location-name/${editingLocation.value.id}`, {
+    await api.put(`/api/remote/location-name/${editingLocation.value.id}`, {
       custom_name: editForm.value.custom_name
     })
     editingLocation.value.custom_name = editForm.value.custom_name

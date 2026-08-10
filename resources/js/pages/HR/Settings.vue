@@ -316,7 +316,7 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
-import axios from 'axios'
+import api from '../../services/api'
 import AppLayout from '../../layouts/AppLayout.vue'
 import LoadingSpinner from '../../components/LoadingSpinner.vue'
 import Modal from '../../components/Modal.vue'
@@ -384,7 +384,7 @@ function formatDate(dateStr) {
 
 async function fetchLocations() {
   try {
-    const response = await axios.get('/api/settings/locations')
+    const response = await api.get('/api/settings/locations')
     locations.value = response.data.data || response.data
   } catch (error) {
     console.error('Error fetching locations:', error)
@@ -393,7 +393,7 @@ async function fetchLocations() {
 
 async function fetchCompany() {
   try {
-    const response = await axios.get('/api/company-settings')
+    const response = await api.get('/api/company-settings')
     const company = response.data.company || {}
     companyForm.name = company.name || ''
     companyForm.phone = company.phone || ''
@@ -428,7 +428,7 @@ function processLogoFile(file) {
 
 async function removeLogo() {
   try {
-    await axios.delete('/api/company-settings/logo')
+    await api.delete('/api/company-settings/logo')
     companyForm.logoPreview = null
     companyForm.logoFile = null
     companyForm.logoId = null
@@ -440,7 +440,7 @@ async function removeLogo() {
 async function saveCompanyInfo() {
   saving.value = true
   try {
-    await axios.put('/api/company-settings', {
+    await api.put('/api/company-settings', {
       name: companyForm.name,
       phone: companyForm.phone,
       email: companyForm.email,
@@ -451,7 +451,7 @@ async function saveCompanyInfo() {
     if (companyForm.logoFile) {
       const formData = new FormData()
       formData.append('logo', companyForm.logoFile)
-      const logoRes = await axios.post('/api/company-settings/logo', formData, {
+      const logoRes = await api.post('/api/company-settings/logo', formData, {
         headers: { 'Content-Type': 'multipart/form-data' }
       })
       companyForm.logoPreview = logoRes.data.logo_url
@@ -469,7 +469,7 @@ async function saveCompanyInfo() {
 
 async function fetchHolidays() {
   try {
-    const response = await axios.get('/api/settings/holidays')
+    const response = await api.get('/api/settings/holidays')
     holidays.value = response.data.data || response.data
   } catch (error) {
     console.error('Error fetching holidays:', error)
@@ -478,7 +478,7 @@ async function fetchHolidays() {
 
 async function fetchShifts() {
   try {
-    const response = await axios.get('/api/settings/shifts')
+    const response = await api.get('/api/settings/shifts')
     shifts.value = response.data.data || response.data
   } catch (error) {
     console.error('Error fetching shifts:', error)
@@ -507,9 +507,9 @@ async function saveLocation() {
   saving.value = true
   try {
     if (editLocationId.value) {
-      await axios.put(`/api/settings/locations/${editLocationId.value}`, locationForm)
+      await api.put(`/api/settings/locations/${editLocationId.value}`, locationForm)
     } else {
-      await axios.post('/api/settings/locations', locationForm)
+      await api.post('/api/settings/locations', locationForm)
     }
     closeLocationModal()
     fetchLocations()
@@ -524,7 +524,7 @@ async function saveLocation() {
 async function deleteLocation(location) {
   if (!confirm(`ยืนยันการลบ "${location.name}"?`)) return
   try {
-    await axios.delete(`/api/settings/locations/${location.id}`)
+    await api.delete(`/api/settings/locations/${location.id}`)
     fetchLocations()
   } catch (error) {
     console.error('Error deleting location:', error)
@@ -534,7 +534,7 @@ async function deleteLocation(location) {
 async function saveHoliday() {
   saving.value = true
   try {
-    await axios.post('/api/settings/holidays', holidayForm)
+    await api.post('/api/settings/holidays', holidayForm)
     showHolidayModal.value = false
     Object.assign(holidayForm, { date: '', name: '' })
     fetchHolidays()
@@ -549,7 +549,7 @@ async function saveHoliday() {
 async function deleteHoliday(holiday) {
   if (!confirm(`ยืนยันการลบ "${holiday.name}"?`)) return
   try {
-    await axios.delete(`/api/settings/holidays/${holiday.id}`)
+    await api.delete(`/api/settings/holidays/${holiday.id}`)
     fetchHolidays()
   } catch (error) {
     console.error('Error deleting holiday:', error)
@@ -577,9 +577,9 @@ async function saveShift() {
   saving.value = true
   try {
     if (editShiftId.value) {
-      await axios.put(`/api/settings/shifts/${editShiftId.value}`, shiftForm)
+      await api.put(`/api/settings/shifts/${editShiftId.value}`, shiftForm)
     } else {
-      await axios.post('/api/settings/shifts', shiftForm)
+      await api.post('/api/settings/shifts', shiftForm)
     }
     closeShiftModal()
     fetchShifts()
@@ -594,7 +594,7 @@ async function saveShift() {
 async function deleteShift(shift) {
   if (!confirm(`ยืนยันการลบ "${shift.name}"?`)) return
   try {
-    await axios.delete(`/api/settings/shifts/${shift.id}`)
+    await api.delete(`/api/settings/shifts/${shift.id}`)
     fetchShifts()
   } catch (error) {
     console.error('Error deleting shift:', error)
