@@ -15,7 +15,7 @@ const loadOtRequests = async () => {
     const response = await api.get('/api/ot-requests', {
       params: { status: 'pending' }
     })
-    otRequests.value = response.data.data
+    otRequests.value = response.data.data?.data || response.data.data || []
   } catch (error) {
     console.error('Failed to load OT requests:', error)
   } finally {

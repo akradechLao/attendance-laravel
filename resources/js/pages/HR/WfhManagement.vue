@@ -20,7 +20,7 @@ const loadWfhRecords = async () => {
     const response = await api.get('/api/wfh-records', {
       params: { emp_id: store.user?.emp_id }
     })
-    wfhRecords.value = response.data.data
+    wfhRecords.value = response.data.data?.data || response.data.data || []
   } catch (error) {
     console.error('Failed to load records:', error)
   }

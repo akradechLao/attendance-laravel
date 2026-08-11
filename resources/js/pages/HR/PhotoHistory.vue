@@ -15,7 +15,7 @@ onMounted(async () => {
 const loadEmployees = async () => {
   try {
     const response = await api.get('/api/employees')
-    employees.value = response.data.data
+    employees.value = response.data.data?.data || response.data.data || []
   } catch (error) {
     console.error('Failed to load employees:', error)
   }
@@ -35,7 +35,7 @@ const loadPhotos = async () => {
         month: selectedMonth.value,
       }
     })
-    photos.value = response.data.data
+    photos.value = response.data.data?.data || response.data.data || []
   } catch (error) {
     console.error('Failed to load photos:', error)
   } finally {

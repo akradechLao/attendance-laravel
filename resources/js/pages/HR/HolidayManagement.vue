@@ -23,7 +23,7 @@ const loadHolidays = async () => {
     const response = await api.get('/api/holidays', {
       params: { year: selectedYear.value }
     })
-    holidays.value = response.data.data
+    holidays.value = response.data.data?.data || response.data.data || []
   } catch (error) {
     console.error('Failed to load holidays:', error)
   } finally {

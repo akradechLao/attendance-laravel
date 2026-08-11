@@ -575,7 +575,7 @@ onMounted(async () => {
 async function fetchCompanies() {
   try {
     const response = await axios.get('/api/companies')
-    const all = response.data.data || []
+    const all = response.data.data?.data || response.data.data || []
     companies.value = companyOrder
       .map(name => all.find(c => c.name === name))
       .filter(Boolean)
@@ -650,7 +650,7 @@ async function searchEmployees() {
       company_id: selectedCompany.value.id,
       query: ''
     })
-    employees.value = response.data.data || []
+    employees.value = response.data.data?.data || response.data.data || []
   } catch (error) {
     console.error('Error searching employees:', error)
   } finally {

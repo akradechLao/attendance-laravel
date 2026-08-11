@@ -16,7 +16,7 @@ const loadTeamCalendar = async () => {
     const response = await api.get('/api/team-calendar', {
       params: { date: selectedDate.value }
     })
-    teamMembers.value = response.data.data
+    teamMembers.value = response.data.data?.data || response.data.data || []
   } catch (error) {
     console.error('Failed to load team calendar:', error)
   } finally {

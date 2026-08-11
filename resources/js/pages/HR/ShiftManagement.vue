@@ -26,7 +26,7 @@ const loadShifts = async () => {
     const response = await api.get('/api/shift-schedules', {
       params: { month: selectedMonth.value }
     })
-    shifts.value = response.data.data
+    shifts.value = response.data.data?.data || response.data.data || []
   } catch (error) {
     console.error('Failed to load shifts:', error)
   } finally {
@@ -37,7 +37,7 @@ const loadShifts = async () => {
 const loadEmployees = async () => {
   try {
     const response = await api.get('/api/employees')
-    employees.value = response.data.data
+    employees.value = response.data.data?.data || response.data.data || []
   } catch (error) {
     console.error('Failed to load employees:', error)
   }

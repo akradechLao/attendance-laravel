@@ -21,7 +21,7 @@ const loadSettings = async () => {
   loading.value = true
   try {
     const response = await api.get('/api/company-settings')
-    settings.value = response.data.data
+    settings.value = response.data.data?.data || response.data.data || {}
   } catch (error) {
     console.error('Failed to load settings:', error)
   } finally {
