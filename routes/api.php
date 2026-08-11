@@ -276,3 +276,13 @@ Route::get('/employee/{id}/office-location', function (\App\Models\Employee $emp
     ]);
 });
 
+
+// Shift Swap Routes
+Route::prefix('shift-swaps')->middleware('auth:sanctum')->group(function () {
+    Route::get('/', [ShiftSwapController::class, 'index']);
+    Route::get('/my-requests', [ShiftSwapController::class, 'myRequests']);
+    Route::get('/team-swaps', [ShiftSwapController::class, 'teamSwaps']);
+    Route::post('/', [ShiftSwapController::class, 'store']);
+    Route::put('/{id}/approve', [ShiftSwapController::class, 'approve']);
+    Route::put('/{id}/reject', [ShiftSwapController::class, 'reject']);
+});
