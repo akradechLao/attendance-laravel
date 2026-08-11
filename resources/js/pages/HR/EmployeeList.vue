@@ -197,6 +197,19 @@
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">แผนก</label>
             <input v-model="form.department" type="text" class="input-field" />
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700">เลขบัตรประชาชน</label>
+              <input v-model="form.id_card" type="text" class="input-field" maxlength="13" placeholder="1234567890123" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">ประกันสังคม</label>
+              <input v-model="form.social_security" type="text" class="input-field" placeholder="เลขประกันสังคม" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">วุฒิการศึกษา</label>
+              <input v-model="form.education" type="text" class="input-field" placeholder="เช่น ป.ตรี, ป.โท" />
+            </div>
           </div>
           <div class="flex justify-end gap-3 pt-4">
             <button type="button" @click="closeModal" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
@@ -356,7 +369,7 @@ function closeModal() {
   showAddModal.value = false
   showEditModal.value = false
   editId.value = null
-  Object.assign(form, { name: '', code: '', company_id: '', position: '', department: '' })
+  Object.assign(form, { name: '', code: '', company_id: '', position: '', department: '', id_card: '', social_security: '', education: '' })
 }
 
 async function resetPassword(employee) {
