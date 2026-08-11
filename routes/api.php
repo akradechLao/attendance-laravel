@@ -232,3 +232,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/attendance-adjustment/forced-leaves/{id}/approve', [AttendanceAdjustmentController::class, 'approveForcedLeave']);
     Route::put('/attendance-adjustment/forced-leaves/{id}/reject', [AttendanceAdjustmentController::class, 'rejectForcedLeave']);
 });
+
+// Permission routes
+use App\Http\Controllers\Api\PermissionController;
+
+Route::middleware('auth:sanctum')->prefix('api/permissions')->group(function () {
+    Route::get('/employees', [PermissionController::class, 'index']);
+    Route::put('/employees/{id}/role', [PermissionController::class, 'updateRole']);
+    Route::put('/employees/{id}/status', [PermissionController::class, 'updateStatus']);
+    Route::post('/employees/{id}/reset-password', [PermissionController::class, 'resetPassword']);
+    Route::post('/change-password', [PermissionController::class, 'changePassword']);
+});
+
+// OT Summary
+use App\Http\Controllers\Api\OtSummaryController;
+Route::middleware('auth:sanctum')->get('/ot-summary', [OtSummaryController::class, 'index']);

@@ -1,0 +1,153 @@
+<template>
+  <div class="max-w-7xl mx-auto">
+    <div class="flex items-center justify-between mb-6">
+      <h1 class="text-2xl font-bold">สรุปโอที</h1>
+      <div class="flex gap-2 items-center">
+        <select v-model="selectedMonth" @change="fetchSummary" class="px-4 py-2 border rounded-lg">
+          <option v-for="m in months" :key="m.value" :value="m.value">{{ m.label }}</option>
+        </select>
+        <button @click="exportCSV" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">
+          ส่งออก CSV
+        </button>
+      </div>
+    </div>
+
+    <!-- Cycle Info -->
+    <div class="bg-blue-50 rounded-lg p-4 mb-6 flex items-center gap-4">
+      <div class="text-blue-800">
+        <span class="font-semibold">รอบบัญชี:</span>
+        {{ summary.cycle_start }} ถึง {{ summary.cycle_end }}
+      </div>
+      <div class="text-blue-600">
+        วันหยุดในรอบ: {{ summary.holidays?.length || 0 }} วัน
+      </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+      <div class="bg-white rounded-lg shadow p-4 text-center">
+        <div class="text-2xl font-bold text-blue-600">{{ totals.total_hours }}</div>
+        <div class="text-sm text-gray-500">ชั่วโมงรวม</div>
+      </div>
+      <div class="bg-white rounded-lg shadow p-4 text-center">
+        <div class="text-2xl font-bold text-green-600">{{ totals.hours_1x }}</div>
+        <div class="text-sm text-gray-500">1 เท่า (วันหยุด)</div>
+      </div>
+      <div class="bg-white rounded-lg shadow p-4 text-center">
+        <div class="text-2xl font-bold text-yellow-600">{{ totals.hours_15x }}</div>
+        <div class="text-sm text-gray-500">1.5 เท่า (วันปกติ)</div>
+      </div>
+      <div class="bg-white rounded-lg shadow p-4 text-center">
+        <div class="text-2xl font-bold text-orange-600">{{ totals.hours_2x }}</div>
+        <div class="text-sm text-gray-500">2 เท่า (รายวัน)</div>
+      </div>
+      <div class="bg-white rounded-lg shadow p-4 text-center">
+        <div class="text-2xl font-bold text-red-600">{{ totals.hours_3x }}</div>
+        <div class="text-sm text-gray-500">3 เท่า (เกิน 8 ชม.)</div>
+      </div>
+    </div>
+
+    <!-- Employee Table -->
+    <div class="bg-white rounded-lg shadow overflow-hidden">
+      <table class="w-full">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-4 py-3 text-left text-sm font-medium text-gray-600">รหัส</th>
+            <th class="px-4 py-3 text-left text-sm font-medium text-gray-600">ชื่อ-สกุล</th>
+            <th class="px-4 py-3 text-center text-sm font-medium text-gray-600">วัน OT</th>
+            <th class="px-4 py-3 text-center text-sm font-medium text-gray-600">ชม. รวม</th>
+            <th class="px-4 py-3 text-center text-sm font-medium text-gray-600 text-green-600">1 เท่า</th>
+            <th class="px-4 py-3 text-center text-sm font-medium text-gray-600 text-yellow-600">1.5 เท่า</th>
+            <th class="px-4 py-3 text-center text-sm font-medium text-gray-600 text-orange-600">2 เเท่า</th>
+            <th class="px-4 py-3 text-center text-sm font-medium text-gray-600 text-red-600">3 เท่า</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="emp in summary.summaries" :key="emp.emp_id" class="border-t hover:bg-gray-50">
+            <td class="px-4 py-3 text-sm">{{ emp.employee_code }}</td>
+            <td class="px-4 py-3 text-sm font-medium">{{ emp.emp_name }}</td>
+            <td class="px-4 py-3 text-center text-sm">{{ emp.ot_days }}</td>
+            <td class="px-4 py-3 text-center text-sm font-semibold">{{ emp.total_hours }}</td>
+            <td class="px-4 py-3 text-center text-sm text-green-600">{{ emp.hours_1x || '-' }}</td>
+            <td class="px-4 py-3 text-center text-sm text-yellow-600">{{ emp.hours_15x || '-' }}</td>
+            <td class="px-4 py-3 text-center text-sm text-orange-600">{{ emp.hours_2x || '-' }}</td>
+            <td class="px-4 py-3 text-center text-sm text-red-600">{{ emp.hours_3x || '-' }}</td>
+          </tr>
+          <tr v-if="!summary.summaries?.length" class="border-t">
+            <td colspan="8" class="px-4 py-8 text-center text-gray-400">ไม่มีข้อมูลโอทีในรอบนี้</td>
+          </tr>
+        </tbody>
+        <tfoot v-if="summary.summaries?.length" class="bg-gray-50 font-semibold">
+          <tr>
+            <td colspan="2" class="px-4 py-3 text-sm">รวม</td>
+            <td class="px-4 py-3 text-center text-sm">{{ summary.summaries?.length }}</td>
+            <td class="px-4 py-3 text-center text-sm">{{ totals.total_hours }}</td>
+            <td class="px-4 py-3 text-center text-sm text-green-600">{{ totals.hours_1x }}</td>
+            <td class="px-4 py-3 text-center text-sm text-yellow-600">{{ totals.hours_15x }}</td>
+            <td class="px-4 py-3 text-center text-sm text-orange-600">{{ totals.hours_2x }}</td>
+            <td class="px-4 py-3 text-center text-sm text-red-600">{{ totals.hours_3x }}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted } from 'vue'
+import api from '@/services/api'
+
+const summary = ref({ summaries: [], holidays: [], cycle_start: '', cycle_end: '' })
+const selectedMonth = ref(new Date().toISOString().slice(0, 7))
+
+const months = computed(() => {
+  const result = []
+  const now = new Date()
+  for (let i = 0; i < 12; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1)
+    const val = d.toISOString().slice(0, 7)
+    const label = d.toLocaleDateString('th-TH', { year: 'numeric', month: 'long' })
+    result.push({ value: val, label })
+  }
+  return result
+})
+
+const totals = computed(() => {
+  const s = summary.value.summaries || []
+  return {
+    total_hours: s.reduce((sum, e) => sum + e.total_hours, 0),
+    hours_1x: s.reduce((sum, e) => sum + (e.hours_1x || 0), 0),
+    hours_15x: s.reduce((sum, e) => sum + (e.hours_15x || 0), 0),
+    hours_2x: s.reduce((sum, e) => sum + (e.hours_2x || 0), 0),
+    hours_3x: s.reduce((sum, e) => sum + (e.hours_3x || 0), 0),
+  }
+})
+
+const fetchSummary = async () => {
+  try {
+    const res = await api.get('/api/ot-summary', { params: { month: selectedMonth.value } })
+    summary.value = res.data
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+const exportCSV = () => {
+  const rows = summary.value.summaries || []
+  if (!rows.length) return
+
+  const headers = ['รหัส', 'ชื่อ', 'วัน OT', 'ชม.รวม', '1 เท่า', '1.5 เท่า', '2 เท่า', '3 เท่า']
+  const csv = [headers.join(',')]
+  rows.forEach(r => {
+    csv.push([r.employee_code, r.emp_name, r.ot_days, r.total_hours, r.hours_1x||0, r.hours_15x||0, r.hours_2x||0, r.hours_3x||0].join(','))
+  })
+
+  const blob = new Blob(['\uFEFF' + csv.join('\n')], { type: 'text/csv;charset=utf-8;' })
+  const link = document.createElement('a')
+  link.href = URL.createObjectURL(blob)
+  link.download = `ot-summary-${selectedMonth.value}.csv`
+  link.click()
+}
+
+onMounted(fetchSummary)
+</script>

@@ -67,7 +67,7 @@
                   <td class="px-6 py-4">
                     <div class="flex items-center gap-3">
                       <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                        <span class="text-blue-600 font-semibold">{{ employee.name.charAt(0) }}</span>
+                        <span class="text-blue-600 font-semibold">{{ (employee.name || "").charAt(0) }}</span>
                       </div>
                       <span class="font-medium text-navy">{{ employee.name }}</span>
                     </div>
