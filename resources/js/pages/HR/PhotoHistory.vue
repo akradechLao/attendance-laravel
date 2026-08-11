@@ -53,7 +53,7 @@ const registeredPct = computed(() => filteredEmployees.value.length > 0 ? Math.r
       <p class="text-gray-500">ตรวจสอบพนักงานที่ลงทะเบียนใบหน้าแล้ว / ยังไม่ลงทะเบียน</p>
     </div>
 
-    < Stats Cards -->
+    <!-- Stats Cards -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
       <div class="card p-4">
         <div class="text-sm text-gray-500">ทั้งหมด</div>
@@ -69,7 +69,7 @@ const registeredPct = computed(() => filteredEmployees.value.length > 0 ? Math.r
       </div>
     </div>
 
-    < Filter -->
+    <!-- Filter -->
     <div class="card p-4">
       <div class="flex flex-col sm:flex-row gap-3">
         <input v-model="searchQuery" type="text" class="input-field flex-1" placeholder="ค้นหาชื่อหรือรหัส..." />
@@ -80,10 +80,10 @@ const registeredPct = computed(() => filteredEmployees.value.length > 0 ? Math.r
       </div>
     </div>
 
-    < Loading -->
+    <!-- Loading -->
     <div v-if="loading" class="text-center py-12 text-gray-500">กำลังโหลด...</div>
 
-    < Table -->
+    <!-- Table -->
     <div v-else class="card overflow-hidden">
       <div class="overflow-x-auto">
         <table class="w-full">

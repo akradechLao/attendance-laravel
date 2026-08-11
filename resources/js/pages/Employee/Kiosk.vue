@@ -657,6 +657,7 @@ function updateDistance() {
 }
 
 function getCurrentPosition() {
+  if (!navigator.geolocation) {
     gpsStatus.value = 'no_device'
     return
   }
