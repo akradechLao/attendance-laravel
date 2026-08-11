@@ -247,3 +247,20 @@ Route::middleware('auth:sanctum')->prefix('api/permissions')->group(function () 
 // OT Summary
 use App\Http\Controllers\Api\OtSummaryController;
 Route::middleware('auth:sanctum')->get('/ot-summary', [OtSummaryController::class, 'index']);
+
+Route::get('/employee/{id}/office-location', function (\App\Models\Employee $employee) {
+    $office = $employee->getAssignedOfficeLocation();
+    if (!$office) {
+        return response()->json(['success' => true, 'data' => null]);
+    }
+    return response()->json([
+        'success' => true,
+        'data' => [
+            'id' => $office->id,
+            'name' => $office->name,
+            'latitude' => $office->latitude,
+            'longitude' => $office->longitude,
+            'radius_meters' => $office->radius_meters,
+        ]
+    ]);
+});

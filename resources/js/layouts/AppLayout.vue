@@ -162,7 +162,7 @@ const navItems = [
   { path: '/permission', label: 'จัดการสิทธิ์', icon: '🔑' },
   { path: '/change-password', label: 'เปลี่ยนรหัสผ่าน', icon: '🔐' },
   { section: 'Admin' },
-  { path: '/photos', label: 'ประวัติภาพ', icon: '📷' },
+  { path: '/photos', label: 'สถานะลงทะเบียนใบหน้า', icon: '🧑' },
   { path: '/photo-import', label: 'นำเข้ารูปใบหน้า', icon: '📸' },
   { path: '/settings', label: 'ตั้งค่าพนักงาน', icon: '⚙' },
   { path: '/admin/company-settings', label: 'ตั้งค่าบริษัท', icon: '🏢' },
