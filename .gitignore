@@ -25,3 +25,21 @@ database/database.sqlite
 bootstrap/cache/*
 composer.lock
 package-lock.json
+
+# Storage files (cache, sessions, views)
+storage/framework/cache/
+storage/framework/sessions/
+storage/framework/views/
+storage/logs/
+storage/app/Template*
+storage/app/public/companies/
+
+# Python models (large files)
+python/models/*.dat
+python/*.bak
+
+# Shell scripts (temporary)
+*.sh
+
+# Backup files
+*.bak
