@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceLog;
+use App\Models\WfhRecord;
 use App\Models\Employee;
 use App\Models\EmployeeFaceData;
 use App\Models\OfficeLocation;

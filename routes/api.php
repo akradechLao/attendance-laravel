@@ -263,4 +263,18 @@ Route::get('/employee/{id}/office-location', function (\App\Models\Employee $emp
             'radius_meters' => $office->radius_meters,
         ]
     ]);
+})
+
+// WFH Routes
+Route::prefix('wfh')->group(function () {
+    Route::get('/', [WfhRequestController::class, 'index']);
+    Route::get('/available-saturdays', [WfhRequestController::class, 'availableSaturdays']);
+    Route::get('/my-requests', [WfhRequestController::class, 'myRequests']);
+    Route::get('/team-requests', [WfhRequestController::class, 'teamRequests']);
+    Route::post('/', [WfhRequestController::class, 'store']);
+    Route::put('/{id}/approve', [WfhRequestController::class, 'approve']);
+    Route::put('/{id}/reject', [WfhRequestController::class, 'reject']);
+    Route::delete('/{id}', [WfhRequestController::class, 'cancel']);
 });
+
+);
