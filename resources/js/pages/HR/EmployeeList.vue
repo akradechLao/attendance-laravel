@@ -285,7 +285,7 @@ async function fetchEmployees() {
       company_id: selectedCompany.value || undefined
     }
     const response = await api.get('/api/employees', { params })
-    employees.value = response.data.data || response.data
+    employees.value = response.data.data?.data || response.data.data || response.data
     totalItems.value = response.data.total || employees.value.length
   } catch (error) {
     console.error('Error fetching employees:', error)
@@ -297,7 +297,7 @@ async function fetchEmployees() {
 async function fetchCompanies() {
   try {
     const response = await api.get('/api/companies')
-    companies.value = response.data.data || response.data
+    companies.value = response.data.data?.data || response.data.data || response.data
   } catch (error) {
     console.error('Error fetching companies:', error)
   }

@@ -43,3 +43,5 @@ python/*.bak
 
 # Backup files
 *.bak
+public/build/manifest.json
+public/build/.vite/

@@ -180,7 +180,7 @@ const filters = reactive({
 async function fetchCompanies() {
   try {
     const response = await api.get('/api/companies')
-    companies.value = response.data.data || response.data
+    companies.value = response.data.data?.data || response.data.data || []
   } catch (error) {
     console.error('Error fetching companies:', error)
   }
@@ -197,7 +197,7 @@ async function fetchReport() {
       per_page: perPage.value
     }
     const response = await api.get('/api/reports/attendance', { params })
-    attendances.value = response.data.data || response.data
+    attendances.value = response.data.data?.data || response.data.data || []
     totalItems.value = response.data.total || attendances.value.length
     totalPages.value = Math.ceil(totalItems.value / perPage.value)
 
