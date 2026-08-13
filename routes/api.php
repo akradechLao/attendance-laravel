@@ -289,6 +289,12 @@ Route::prefix('shift-swaps')->middleware('auth:sanctum')->group(function () {
 
 // Telegram Routes
 Route::post('/telegram/test', [TelegramController::class, 'test']);
+Route::get('/telegram/bot-info', fn() => response()->json(['data' => App\Services\TelegramService::getBotInfo()]));
+Route::get('/telegram/groups', [TelegramController::class, 'groups']);
+Route::post('/telegram/groups', [TelegramController::class, 'storeGroup']);
+Route::put('/telegram/groups/{id}', [TelegramController::class, 'updateGroup']);
+Route::delete('/telegram/groups/{id}', [TelegramController::class, 'deleteGroup']);
+Route::post('/telegram/test-group', [TelegramController::class, 'testGroup']);
 Route::get('/employee-stats', [EmployeeStatsController::class, 'index']);
 // Leave Request Routes
 Route::prefix('leave')->middleware('auth:sanctum')->group(function () {
