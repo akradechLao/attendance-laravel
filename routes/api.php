@@ -23,6 +23,7 @@ use App\Http\Controllers\Api\SystemSettingsController;
 use App\Http\Controllers\Api\EmployeeHistoryController;
 use App\Http\Controllers\Api\EmployeeRequestController;
 use App\Http\Controllers\Api\AttendanceAdjustmentController;
+use App\Http\Controllers\Api\TelegramController;
 
 /*
 |--------------------------------------------------------------------------
