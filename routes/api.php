@@ -290,3 +290,12 @@ Route::prefix('shift-swaps')->middleware('auth:sanctum')->group(function () {
 // Telegram Routes
 Route::post('/telegram/test', [TelegramController::class, 'test']);
 Route::get('/employee-stats', [EmployeeStatsController::class, 'index']);
+// Leave Request Routes
+Route::prefix('leave')->middleware('auth:sanctum')->group(function () {
+    Route::get('/balance', [LeaveRequestController::class, 'balance']);
+    Route::get('/my-requests', [LeaveRequestController::class, 'myRequests']);
+    Route::get('/team-leaves', [LeaveRequestController::class, 'teamLeaves']);
+    Route::post('/', [LeaveRequestController::class, 'store']);
+    Route::put('/{id}/approve', [LeaveRequestController::class, 'approve']);
+    Route::put('/{id}/reject', [LeaveRequestController::class, 'reject']);
+});
