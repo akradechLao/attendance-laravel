@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen flex bg-gray-50">
+  <div class="min-h-screen flex page-fresh">
     <!-- Mobile overlay -->
     <div
       v-if="sidebarOpen"
