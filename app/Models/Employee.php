@@ -25,6 +25,7 @@ class Employee extends Authenticatable
         'id_card',
         'social_security',
         'education',
+        'telegram_chat_id',
         'start_date',
         'employee_code',
         'group_type',

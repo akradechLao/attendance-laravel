@@ -286,3 +286,6 @@ Route::prefix('shift-swaps')->middleware('auth:sanctum')->group(function () {
     Route::put('/{id}/approve', [ShiftSwapController::class, 'approve']);
     Route::put('/{id}/reject', [ShiftSwapController::class, 'reject']);
 });
+
+// Telegram Routes
+Route::post('/telegram/test', [TelegramController::class, 'test']);
