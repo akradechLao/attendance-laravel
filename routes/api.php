@@ -289,3 +289,4 @@ Route::prefix('shift-swaps')->middleware('auth:sanctum')->group(function () {
 
 // Telegram Routes
 Route::post('/telegram/test', [TelegramController::class, 'test']);
+Route::get('/employee-stats', [EmployeeStatsController::class, 'index']);
