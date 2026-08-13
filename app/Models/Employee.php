@@ -162,4 +162,37 @@ class Employee extends Authenticatable
         }
         return $this->company->officeLocations()->where('is_active', true)->first();
     }
+
+    public static function calculateDistance(float $lat1, float $lon1, float $lat2, float $lon2): float
+    {
+        $R = 6371000;
+        $dLat = deg2rad($lat2 - $lat1);
+        $dLon = deg2rad($lon2 - $lon1);
+        $a = sin($dLat / 2) * sin($dLat / 2) +
+             cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
+             sin($dLon / 2) * sin($dLon / 2);
+        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
+        return $R * $c;
+    }
+
+    public function getDistanceToOffice(?float $lat, ?float $lon): ?array
+    {
+        $office = $this->getAssignedOfficeLocation();
+        if (!$office || $lat === null || $lon === null) {
+            return null;
+        }
+
+        $distance = self::calculateDistance($lat, $lon, $office->latitude, $office->longitude);
+
+        return [
+            'distance_meters' => round($distance),
+            'within_radius' => $distance <= $office->radius_meters,
+            'radius_meters' => $office->radius_meters,
+            'office_name' => $office->name,
+            'message' => $distance <= $office->radius_meters
+                ? 'อยู่ในรัศมี ' . round($distance) . ' เมตร จาก ' . $office->name
+                : 'อยู่ห่าง ' . round($distance) . ' เมตร จาก ' . $office->name . ' (เกินรัศมี ' . $office->radius_meters . ' เมตร)',
+        ];
+    }
+
 }
