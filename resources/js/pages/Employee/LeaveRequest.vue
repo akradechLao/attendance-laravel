@@ -14,6 +14,8 @@
           </div>
           <div class="text-xs text-gray-500">{{ b.name }}</div>
           <div class="text-[10px] text-gray-400">ใช้แล้ว {{ b.used }}/{{ b.entitled }}</div>
+          <div v-if="b.vacation_accumulated > 0" class="text-[10px] text-purple-500 mt-1 font-semibold">+{{ b.vacation_accumulated }} วันพิเศษ</div>
+          <div v-if="b.vacation_expiry_date" class="text-[10px] text-orange-400">หมดอายุ {{ b.vacation_expiry_date }}</div>
         </div>
       </div>
     </div>
