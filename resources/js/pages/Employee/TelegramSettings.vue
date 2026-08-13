@@ -51,7 +51,7 @@
             <div class="text-[10px] text-gray-400">Chat ID: {{ g.telegram_chat_id }}</div>
           </div>
           <div class="flex items-center gap-2">
-            <span :class="g.is_active ? "text-green-600" : "text-gray-400" class="text-xs">
+            <span :class="g.is_active ? 'text-green-600' : 'text-gray-400'" class="text-xs">
               {{ g.is_active ? "เปิด" : "ปิด" }}
             </span>
             <button @click="testGroup(g.id)" class="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">ทดสอบ</button>
@@ -110,7 +110,7 @@
     </div>
 
     <div v-if="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-lg text-white text-sm z-50"
-         :class="toast.type === "success" ? "bg-green-600" : "bg-red-600"">{{ toast.message }}</div>
+         :class="toast.type === 'success' ? 'bg-green-600' : 'bg-red-600'">{{ toast.message }}</div>
   </div>
 </template>
 

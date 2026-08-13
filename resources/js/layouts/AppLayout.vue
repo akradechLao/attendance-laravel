@@ -168,6 +168,8 @@ const navItems = [
   { path: '/admin/company-settings', label: 'ตั้งค่าบริษัท', icon: '🏢' },
   { path: '/admin/system-settings', label: 'ตั้งค่าระบบ', icon: '🔧' },
   { path: '/admin/location-settings', label: 'จุดเช็คอิน/เช็คเอาท์', icon: '📍' },
+  ,
+  { path: '/telegram-settings', label: 'Telegram Settings', icon: '✈' }
 ]
 
 function isActive(path) {

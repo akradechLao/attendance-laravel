@@ -209,6 +209,12 @@ const routes = [
     name: 'LocationSettings',
     component: () => import('./pages/Admin/LocationSettings.vue'),
     meta: { requiresAuth: true, layout: 'app' }
+  },
+  {
+    path: '/telegram-settings',
+    name: 'TelegramSettings',
+    component: () => import('./pages/Employee/TelegramSettings.vue'),
+    meta: { requiresAuth: true, layout: 'app' }
   }
 ]
 
