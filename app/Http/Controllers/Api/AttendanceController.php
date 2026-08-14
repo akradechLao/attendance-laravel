@@ -69,12 +69,19 @@ class AttendanceController extends Controller
                     $request->longitude
                 );
             } else {
-                // Office scan - verify within office radius
-                $officeLocation = OfficeLocation::where('company_id', $employee->company_id)
-                    ->where('is_active', true)
-                    ->first();
+                // Office scan - verify within assigned office radius
+                $officeLocations = $employee->officeLocations()->where('is_active', true)->get();
 
-                if ($officeLocation) {
+                if ($officeLocations->isEmpty()) {
+                    $officeLocations = OfficeLocation::where('company_id', $employee->company_id)
+                        ->where('is_active', true)
+                        ->get();
+                }
+
+                $withinAnyOffice = false;
+                $nearestDistance = null;
+
+                foreach ($officeLocations as $officeLocation) {
                     $distance = $this->locationService->calculateDistance(
                         $request->latitude,
                         $request->longitude,
@@ -82,12 +89,22 @@ class AttendanceController extends Controller
                         $officeLocation->longitude
                     );
 
-                    if ($distance > $officeLocation->radius_meters) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => 'Outside office radius. Distance: ' . round($distance) . 'm',
-                        ], 400);
+                    if ($distance <= $officeLocation->radius_meters) {
+                        $withinAnyOffice = true;
+                        break;
                     }
+
+                    if ($nearestDistance === null || $distance < $nearestDistance) {
+                        $nearestDistance = $distance;
+                        $nearestOffice = $officeLocation;
+                    }
+                }
+
+                if (!$withinAnyOffice && $nearestOffice) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Outside office radius. Nearest: ' . $nearestOffice->name . ' (' . round($nearestDistance) . 'm)',
+                    ], 400);
                 }
             }
 

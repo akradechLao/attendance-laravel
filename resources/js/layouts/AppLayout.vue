@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen flex bg-cream">
+  <div class="min-h-screen flex page-fresh">
     <!-- Mobile overlay -->
     <div
       v-if="sidebarOpen"
@@ -10,13 +10,13 @@
     <!-- Sidebar -->
     <aside
       :class="[
-        'fixed lg:static inset-y-0 left-0 z-50 w-64 bg-navy transform transition-transform duration-300 lg:translate-x-0',
+        'fixed lg:static inset-y-0 left-0 z-50 w-64 bg-white transform transition-transform duration-300 lg:translate-x-0',
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       ]"
     >
       <div class="flex flex-col h-full">
         <!-- Logo -->
-        <div class="p-6 border-b border-slate-700">
+        <div class="p-6 border-b border-gray-200">
           <h1 class="text-xl font-bold text-white flex items-center gap-2">
             <svg class="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
@@ -30,14 +30,14 @@
           <template v-for="item in navItems" :key="item.path">
             <!-- Section Header -->
             <div v-if="item.section" class="pt-4 pb-2">
-              <p class="px-4 text-xs font-semibold text-slate-500 uppercase tracking-wider">{{ item.section }}</p>
+              <p class="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">{{ item.section }}</p>
             </div>
 
             <!-- Nav Link -->
             <router-link
               v-else
               :to="item.path"
-              class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-700 hover:text-white transition-colors duration-200"
+              class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-white transition-colors duration-200"
               :class="{ 'bg-blue-500 text-white': isActive(item.path) }"
               @click="sidebarOpen = false"
             >
@@ -48,10 +48,10 @@
         </nav>
 
         <!-- Footer -->
-        <div class="p-4 border-t border-slate-700">
+        <div class="p-4 border-t border-gray-200">
           <router-link
             to="/employee"
-            class="flex items-center gap-3 px-4 py-3 rounded-lg text-slate-300 hover:bg-slate-700 hover:text-white transition-colors duration-200"
+            class="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-600 hover:bg-gray-100 hover:text-white transition-colors duration-200"
             @click="sidebarOpen = false"
           >
             <span class="text-lg">👁</span>
@@ -157,13 +157,19 @@ const navItems = [
   { path: '/manager/leave-approval', label: 'อนุมัติลางาน (ผู้จัดการ)', icon: '✅' },
   { path: '/manager/ot-approval', label: 'อนุมัติ OT (ผู้จัดการ)', icon: '✅' },
   { path: '/manager/team-report', label: 'รายงานทีม', icon: '📊' },
+  { path: '/ot-summary', label: 'สรุปโอที', icon: '📊' },
+  { section: 'Settings' },
+  { path: '/permission', label: 'จัดการสิทธิ์', icon: '🔑' },
+  { path: '/change-password', label: 'เปลี่ยนรหัสผ่าน', icon: '🔐' },
   { section: 'Admin' },
-  { path: '/photos', label: 'ประวัติภาพ', icon: '📷' },
+  { path: '/photos', label: 'สถานะลงทะเบียนใบหน้า', icon: '🧑' },
   { path: '/photo-import', label: 'นำเข้ารูปใบหน้า', icon: '📸' },
   { path: '/settings', label: 'ตั้งค่าพนักงาน', icon: '⚙' },
   { path: '/admin/company-settings', label: 'ตั้งค่าบริษัท', icon: '🏢' },
   { path: '/admin/system-settings', label: 'ตั้งค่าระบบ', icon: '🔧' },
   { path: '/admin/location-settings', label: 'จุดเช็คอิน/เช็คเอาท์', icon: '📍' },
+  ,
+  { path: '/telegram-settings', label: 'Telegram Settings', icon: '✈' }
 ]
 
 function isActive(path) {

@@ -109,3 +109,32 @@ body {
     min-height: 44px;
     min-width: 44px;
 }
+
+/* Fresh gradient background */
+.page-fresh {
+    min-height: 100vh;
+    background: linear-gradient(160deg, #f0f9ff 0%, #ffffff 40%, #f5f3ff 70%, #f0fdf4 100%);
+    position: relative;
+}
+.page-fresh::before {
+    content: '';
+    position: fixed;
+    top: -120px;
+    right: -120px;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(59,130,246,0.08) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+}
+.page-fresh::after {
+    content: '';
+    position: fixed;
+    bottom: -100px;
+    left: -100px;
+    width: 350px;
+    height: 350px;
+    background: radial-gradient(circle, rgba(16,185,129,0.06) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+}

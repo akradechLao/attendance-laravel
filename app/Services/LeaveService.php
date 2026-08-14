@@ -3,75 +3,182 @@
 namespace App\Services;
 
 use App\Models\Employee;
-use App\Models\LeaveRequest;
+use App\Models\LeaveBalance;
 use App\Models\LeaveType;
+use Carbon\Carbon;
 
 class LeaveService
 {
-    public function requestLeave(array $data): LeaveRequest
+    public function getEntitledDays(Employee $employee, LeaveType $leaveType, int $year): float
     {
-        $leaveType = LeaveType::findOrFail($data['leave_type_id']);
-        $employee = Employee::findOrFail($data['emp_id']);
+        if (!$leaveType->accrual) {
+            return (float) $leaveType->max_days_per_year;
+        }
 
-        $totalDays = $this->calculateDays($data['start_date'], $data['end_date']);
+        $yearsOfService = $this->getYearsOfService($employee, $year);
 
-        $leaveRequest = LeaveRequest::create([
-            'company_id' => $data['company_id'],
-            'emp_id' => $data['emp_id'],
-            'leave_type_id' => $data['leave_type_id'],
-            'reason' => $data['reason'],
-            'start_date' => $data['start_date'],
-            'end_date' => $data['end_date'],
-            'total_days' => $totalDays,
-            'status' => 'pending',
-            'supervisor_id' => $data['supervisor_id'] ?? null,
-        ]);
-
-        return $leaveRequest;
+        return match($leaveType->code) {
+            'annual' => $this->getAnnualLeaveEntitlement($yearsOfService),
+            default => (float) $leaveType->max_days_per_year,
+        };
+    }
+    private function getYearsOfService(Employee $employee, int $year): int
+    {
+        if (!$employee->start_date) {
+            return 0;
+        }
+        $start = Carbon::parse($employee->start_date);
+        $end = Carbon::create($year, 12, 31);
+        return (int) $start->diffInYears($end);
     }
 
-    public function approveLeave(int $leaveRequestId, int $approverId): LeaveRequest
+    private function getAnnualLeaveEntitlement(int $yearsOfService): float
     {
-        $leaveRequest = LeaveRequest::findOrFail($leaveRequestId);
-        $leaveRequest->update([
-            'status' => 'approved',
-            'approved_by' => $approverId,
-            'approved_date' => now(),
-        ]);
+        return match(true) {
+            $yearsOfService < 1 => 0,
+            $yearsOfService < 5 => 6,
+            $yearsOfService < 10 => 8,
+            default => 10,
+        };
+    }
+    public function getLeaveBalance(Employee $employee, LeaveType $leaveType, int $year): array
+    {
+        $balance = LeaveBalance::where("emp_id", $employee->id)
+            ->where("leave_type_id", $leaveType->id)
+            ->where("year", $year)
+            ->first();
 
-        return $leaveRequest;
+        if (!$balance) {
+            $entitled = $this->getEntitledDays($employee, $leaveType, $year);
+            $balance = LeaveBalance::create([
+                "emp_id" => $employee->id,
+                "leave_type_id" => $leaveType->id,
+                "year" => $year,
+                "entitled_days" => $entitled,
+                "used_days" => 0,
+                "carried_forward" => 0,
+                "vacation_accumulated" => 0,
+                "vacation_expiry_date" => null,
+            ]);
+        }
+
+        $vacationRemaining = 0;
+        if ($leaveType->code === "annual" && $balance->vacation_accumulated > 0) {
+            $now = Carbon::now();
+            if ($balance->vacation_expiry_date && $now->lte($balance->vacation_expiry_date)) {
+                $vacationRemaining = (float) $balance->vacation_accumulated;
+            }
+        }
+
+        return [
+            "entitled" => (float) $balance->entitled_days,
+            "used" => (float) $balance->used_days,
+            "remaining" => (float) ($balance->entitled_days + $balance->carried_forward - $balance->used_days),
+            "vacation_accumulated" => $vacationRemaining,
+            "vacation_expiry_date" => $balance->vacation_expiry_date?->format("Y-m-d"),
+        ];
     }
 
-    public function rejectLeave(int $leaveRequestId, int $rejectorId, string $reason): LeaveRequest
+    public function getAllBalances(Employee $employee, int $year): array
     {
-        $leaveRequest = LeaveRequest::findOrFail($leaveRequestId);
-        $leaveRequest->update([
-            'status' => 'rejected',
-            'rejected_by' => $rejectorId,
-            'rejection_reason' => $reason,
-        ]);
+        $leaveTypes = LeaveType::where("company_id", $employee->company_id)
+            ->where("is_active", true)
+            ->get();
 
-        return $leaveRequest;
+        $balances = [];
+        foreach ($leaveTypes as $type) {
+            $balance = $this->getLeaveBalance($employee, $type, $year);
+            $balances[] = [
+                "leave_type_id" => $type->id,
+                "name" => $type->name,
+                "code" => $type->code,
+                "entitled" => $balance["entitled"],
+                "used" => $balance["used"],
+                "remaining" => $balance["remaining"],
+                "vacation_accumulated" => $balance["vacation_accumulated"],
+                "vacation_expiry_date" => $balance["vacation_expiry_date"],
+            ];
+        }
+        return $balances;
     }
 
-    public function getLeaveBalance(int $empId, int $leaveTypeId): int
+    public function deductLeave(Employee $employee, LeaveType $leaveType, float $days, int $year): void
     {
-        $employee = Employee::findOrFail($empId);
-        $leaveType = LeaveType::findOrFail($leaveTypeId);
+        $balance = LeaveBalance::where("emp_id", $employee->id)
+            ->where("leave_type_id", $leaveType->id)
+            ->where("year", $year)->first();
+        if (!$balance) return;
 
-        $used = LeaveRequest::where('emp_id', $empId)
-            ->where('leave_type_id', $leaveTypeId)
-            ->whereYear('start_date', now()->year)
-            ->sum('total_days');
+        $remaining = (float) ($balance->entitled_days + $balance->carried_forward - $balance->used_days);
+        $toDeductFromVacation = 0;
 
-        return max(0, $leaveType->quota_daily - $used);
+        if ($days > $remaining) {
+            $toDeductFromVacation = $days - $remaining;
+        }
+
+        $balance->increment("used_days", $days - $toDeductFromVacation);
+
+        if ($toDeductFromVacation > 0 && $leaveType->code === "annual") {
+            $balance->decrement("vacation_accumulated", $toDeductFromVacation);
+        }
     }
 
-    private function calculateDays(string $startDate, string $endDate): int
+    public function restoreLeave(Employee $employee, LeaveType $leaveType, float $days, int $year): void
     {
-        $start = \Carbon\Carbon::parse($startDate);
-        $end = \Carbon\Carbon::parse($endDate);
+        $balance = LeaveBalance::where("emp_id", $employee->id)
+            ->where("leave_type_id", $leaveType->id)
+            ->where("year", $year)->first();
+        if ($balance) {
+            $balance->decrement("used_days", $days);
+        }
+    }
 
-        return $start->diffInDays($end) + 1;
+    public function accumulateVacation(): int
+    {
+        $previousYear = Carbon::now()->subYear()->year;
+        $currentYear = Carbon::now()->year;
+        $expiryDate = Carbon::create($currentYear + 1, 5, 31);
+        $count = 0;
+
+        $annualLeaveTypes = LeaveType::where("code", "annual")->where("is_active", true)->get();
+
+        foreach ($annualLeaveTypes as $leaveType) {
+            $previousBalances = LeaveBalance::where("leave_type_id", $leaveType->id)
+                ->where("year", $previousYear)
+                ->where("entitled_days", ">", 0)
+                ->get();
+
+            foreach ($previousBalances as $prevBalance) {
+                $vacationDays = floor($prevBalance->entitled_days / 2);
+
+                if ($vacationDays <= 0) continue;
+
+                $balance = LeaveBalance::firstOrCreate(
+                    [
+                        "emp_id" => $prevBalance->emp_id,
+                        "leave_type_id" => $leaveType->id,
+                        "year" => $currentYear,
+                    ],
+                    [
+                        "entitled_days" => 0,
+                        "used_days" => 0,
+                        "carried_forward" => 0,
+                        "vacation_accumulated" => $vacationDays,
+                        "vacation_expiry_date" => $expiryDate,
+                    ]
+                );
+
+                if ($balance->wasRecentlyCreated === false) {
+                    $balance->update([
+                        "vacation_accumulated" => $balance->vacation_accumulated + $vacationDays,
+                        "vacation_expiry_date" => $expiryDate,
+                    ]);
+                }
+
+                $count++;
+            }
+        }
+
+        return $count;
     }
 }

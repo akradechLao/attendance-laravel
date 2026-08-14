@@ -1,111 +1,134 @@
 <template>
-  <div class="min-h-screen bg-gradient-to-br from-navy via-slate-800 to-blue-900">
-    <header class="bg-white/10 backdrop-blur-sm border-b border-white/10">
-      <div class="max-w-2xl mx-auto px-4 py-4 flex items-center gap-3">
-        <router-link to="/employee/menu" class="text-white hover:text-blue-200">
-          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-          </svg>
-        </router-link>
-        <h1 class="text-xl font-bold text-white">ขอลางาน</h1>
-      </div>
-    </header>
+  <div class="p-4 space-y-6">
+    <h1 class="text-2xl font-bold text-[#0f172a]">ขอลา</h1>
 
-    <main class="max-w-2xl mx-auto px-4 py-8">
-      <!-- Success Message -->
-      <div v-if="success" class="bg-emerald-500/20 border border-emerald-500/30 rounded-xl p-6 mb-6 text-center">
-        <p class="text-emerald-400 text-lg font-semibold">ส่งคำขอสำเร็จ!</p>
-        <p class="text-blue-200 mt-2">รอหัวหน้าอนุมัติ</p>
-        <router-link to="/employee/menu" class="mt-4 inline-block px-6 py-2 bg-emerald-500/30 rounded-lg text-white hover:bg-emerald-500/40 transition-colors">
-          กลับหน้าเมนู
-        </router-link>
+    <!-- Leave Balance -->
+    <div class="bg-white rounded-xl shadow p-4">
+      <h2 class="font-semibold text-[#0f172a] mb-3">สิทธิ์ลาคงเหลือ ({{ year }})</h2>
+      <div class="grid grid-cols-3 gap-3">
+        <div v-for="b in balances" :key="b.leave_type_id"
+             class="text-center p-3 rounded-lg"
+             :class="b.remaining > 0 ? 'bg-blue-50' : 'bg-gray-50'">
+          <div class="text-lg font-bold" :class="b.remaining > 0 ? 'text-blue-600' : 'text-gray-400'">
+            {{ b.remaining }}
+          </div>
+          <div class="text-xs text-gray-500">{{ b.name }}</div>
+          <div class="text-[10px] text-gray-400">ใช้แล้ว {{ b.used }}/{{ b.entitled }}</div>
+          <div v-if="b.vacation_accumulated > 0" class="text-[10px] text-purple-500 mt-1 font-semibold">+{{ b.vacation_accumulated }} วันพิเศษ</div>
+          <div v-if="b.vacation_expiry_date" class="text-[10px] text-orange-400">หมดอายุ {{ b.vacation_expiry_date }}</div>
+        </div>
       </div>
+    </div>
 
-      <!-- Form -->
-      <form v-else @submit.prevent="handleSubmit" class="space-y-6">
-        <!-- ประเภทการลา -->
-        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
-          <label class="block text-white font-semibold mb-3">ประเภทการลา</label>
-          <select v-model="form.leave_type_id" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-            <option value="" disabled class="text-gray-800">เลือกประเภท</option>
-            <option v-for="type in leaveTypes" :key="type.id" :value="type.id" class="text-gray-800">{{ type.name }}</option>
+    <!-- Leave Form -->
+    <div class="bg-white rounded-xl shadow p-4">
+      <h2 class="font-semibold text-[#0f172a] mb-3">ส่งคำขอลา</h2>
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700">ประเภทลา</label>
+          <select v-model="form.leave_type_id" class="w-full border rounded-lg p-2">
+            <option value="">เลือกประเภทลา</option>
+            <option v-for="b in balances" :key="b.leave_type_id" :value="b.leave_type_id"
+                    :disabled="b.remaining <= 0 && b.code !== 'unpaid'">
+              {{ b.name }} (เหลือ {{ b.remaining }} วัน)
+            </option>
           </select>
         </div>
-
-        <!-- วันที่ -->
-        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
-          <div class="grid grid-cols-2 gap-4">
-            <div>
-              <label class="block text-white font-semibold mb-2">ตั้งแต่วันที่</label>
-              <input v-model="form.start_date" type="date" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" required />
-            </div>
-            <div>
-              <label class="block text-white font-semibold mb-2">ถึงวันที่</label>
-              <input v-model="form.end_date" type="date" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" required />
-            </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700">วันที่เริ่ม</label>
+            <input type="date" v-model="form.start_date" class="w-full border rounded-lg p-2" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">วันที่สิ้นสุด</label>
+            <input type="date" v-model="form.end_date" class="w-full border rounded-lg p-2" />
           </div>
         </div>
-
-        <!-- เหตุผล -->
-        <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
-          <label class="block text-white font-semibold mb-3">เหตุผล</label>
-          <textarea v-model="form.reason" rows="3" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none" placeholder="กรอกเหตุผลการลา"></textarea>
+        <div>
+          <label class="block text-sm font-medium text-gray-700">เหตุผล</label>
+          <textarea v-model="form.reason" rows="3" class="w-full border rounded-lg p-2" placeholder="กรอกเหตุผล..." />
         </div>
-
-        <!-- Error -->
-        <div v-if="error" class="bg-red-500/20 border border-red-500/30 rounded-xl p-4">
-          <p class="text-red-400 text-sm">{{ error }}</p>
+        <div v-if="totalDays > 0" class="text-sm text-blue-600">
+          จำนวนวันลา: {{ totalDays }} วัน
         </div>
-
-        <!-- Submit -->
-        <button type="submit" :disabled="loading" class="w-full py-4 bg-blue-500 hover:bg-blue-600 disabled:bg-blue-500/50 rounded-xl text-white font-bold text-lg transition-colors flex items-center justify-center gap-2">
-          <span v-if="loading" class="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
-          <span>{{ loading ? 'กำลังส่ง...' : 'ส่งคำขอ' }}</span>
+        <button @click="submitLeave" :disabled="submitting"
+                class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50">
+          {{ submitting ? 'กำลังส่ง...' : 'ส่งคำขอลา' }}
         </button>
-      </form>
-    </main>
+      </div>
+    </div>
+
+    <!-- My Requests -->
+    <div class="bg-white rounded-xl shadow p-4">
+      <h2 class="font-semibold text-[#0f172a] mb-3">คำขอลาของฉัน</h2>
+      <div v-if="myLeaves.length === 0" class="text-center py-4 text-gray-500">ยังไม่มีคำขอ</div>
+      <div v-else class="space-y-3">
+        <div v-for="leave in myLeaves" :key="leave.id"
+             class="p-3 rounded-lg flex justify-between items-center"
+             :class="{'bg-yellow-50': leave.status==='pending', 'bg-green-50': leave.status==='approved', 'bg-red-50': leave.status==='rejected'}">
+          <div>
+            <div class="font-semibold text-sm">{{ leave.leave_type?.name }}</div>
+            <div class="text-xs text-gray-500">{{ leave.start_date }} - {{ leave.end_date }} ({{ leave.total_days }} วัน)</div>
+          </div>
+          <span class="px-3 py-1 rounded-full text-xs font-semibold"
+                :class="{'bg-yellow-100 text-yellow-700': leave.status==='pending', 'bg-green-100 text-green-700': leave.status==='approved', 'bg-red-100 text-red-700': leave.status==='rejected'}">
+            {{ statusText(leave.status) }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-lg text-white text-sm"
+         :class="toast.type==='success' ? 'bg-green-600' : 'bg-red-600'">{{ toast.message }}</div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
-import axios from 'axios'
+import { ref, onMounted, computed } from 'vue'
+import api from '@/services/api'
+import state from '@/store'
 
-const loading = ref(false)
-const error = ref('')
-const success = ref(false)
-const leaveTypes = ref([])
+const user = computed(() => state.user)
+const employeeId = computed(() => user.value?.id)
+const year = new Date().getFullYear()
+const balances = ref([])
+const myLeaves = ref([])
+const submitting = ref(false)
+const toast = ref(null)
 
-const form = reactive({
-  leave_type_id: '',
-  start_date: '',
-  end_date: '',
-  reason: ''
+const form = ref({ leave_type_id: '', start_date: '', end_date: '', reason: '' })
+
+const totalDays = computed(() => {
+  if (!form.value.start_date || !form.value.end_date) return 0
+  const start = new Date(form.value.start_date)
+  const end = new Date(form.value.end_date)
+  return Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1)
 })
 
-onMounted(async () => {
+const loadData = async () => {
   try {
-    const res = await axios.get('/api/leave/types')
-    if (res.data.success) leaveTypes.value = res.data.data
-  } catch (e) {
-    leaveTypes.value = [{ id: 1, name: 'ลากิจ' }, { id: 2, name: 'ลาป่วย' }, { id: 3, name: 'ลาพักผ่อน' }]
-  }
-})
-
-async function handleSubmit() {
-  loading.value = true
-  error.value = ''
-  try {
-    const res = await axios.post('/api/employee/leave-requests', form)
-    if (res.data.success) {
-      success.value = true
-    } else {
-      error.value = res.data.message || 'เกิดข้อผิดพลาด'
-    }
-  } catch (e) {
-    error.value = e.response?.data?.message || 'เกิดข้อผิดพลาด'
-  } finally {
-    loading.value = false
-  }
+    const [balRes, leaveRes] = await Promise.all([
+      api.get('/api/leave/balance', { params: { emp_id: employeeId.value, year } }),
+      api.get('/api/leave/my-requests', { params: { emp_id: employeeId.value } })
+    ])
+    balances.value = balRes.data.data || []
+    myLeaves.value = leaveRes.data.data || []
+  } catch (err) { console.error(err) }
 }
+
+const submitLeave = async () => {
+  submitting.value = true
+  try {
+    await api.post('/api/leave', { ...form.value, emp_id: employeeId.value })
+    showToast('success', 'ส่งคำขอลาสำเร็จ')
+    form.value = { leave_type_id: '', start_date: '', end_date: '', reason: '' }
+    loadData()
+  } catch (err) { showToast('error', err.response?.data?.message || 'เกิดข้อผิดพลาด') }
+  submitting.value = false
+}
+
+const statusText = (s) => ({ pending:'รอหัวหน้าอนุมัติ', approved:'อนุมัติแล้ว', rejected:'ปฏิเสธ' })[s] || s
+const showToast = (type, message) => { toast.value = {type, message}; setTimeout(() => toast.value = null, 3000) }
+
+onMounted(loadData)
 </script>

@@ -83,6 +83,9 @@ class EmployeeController extends Controller
                 'department' => 'nullable|string|max:255',
                 'has_ot' => 'boolean',
                 'is_active' => 'boolean',
+                'id_card' => 'nullable|string|max:13',
+                'social_security' => 'nullable|string|max:20',
+                'education' => 'nullable|string|max:255',
             ]);
 
             $validated['has_ot'] = $validated['has_ot'] ?? false;
@@ -124,6 +127,9 @@ class EmployeeController extends Controller
                 'department' => 'nullable|string|max:255',
                 'has_ot' => 'boolean',
                 'is_active' => 'boolean',
+                'id_card' => 'nullable|string|max:13',
+                'social_security' => 'nullable|string|max:20',
+                'education' => 'nullable|string|max:255',
             ]);
 
             $employee->update($validated);

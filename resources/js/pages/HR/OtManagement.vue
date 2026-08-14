@@ -218,7 +218,7 @@ async function fetchOts() {
   loading.value = true
   try {
     const response = await api.get('/api/ots')
-    ots.value = response.data.data || response.data
+    ots.value = response.data.data?.data || response.data.data || []
   } catch (error) {
     console.error('Error fetching OTs:', error)
   } finally {

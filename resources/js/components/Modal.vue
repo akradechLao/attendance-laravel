@@ -5,28 +5,22 @@
         v-if="show"
         class="fixed inset-0 z-50 flex items-center justify-center p-4"
       >
-        <!-- Backdrop -->
         <div
-          class="absolute inset-0 bg-black/50"
+          class="absolute inset-0 bg-black/80 backdrop-blur-sm"
           @click="$emit('close')"
         ></div>
-
-        <!-- Modal content -->
-        <div class="relative bg-white rounded-xl shadow-xl w-full max-w-md animate-fadeIn">
-          <!-- Header -->
-          <div class="flex items-center justify-between px-6 py-4 border-b">
-            <h3 class="text-lg font-semibold text-navy">{{ title }}</h3>
+        <div class="relative bg-dark-800 rounded-2xl shadow-2xl w-full max-w-md border border-dark-700 overflow-hidden">
+          <div class="flex items-center justify-between px-6 py-4 border-b border-dark-700">
+            <h3 class="text-lg font-semibold text-white">{{ title }}</h3>
             <button
               @click="$emit('close')"
-              class="p-1 hover:bg-gray-100 rounded-lg transition-colors"
+              class="p-1 hover:bg-dark-700 rounded-lg transition-colors"
             >
-              <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-5 h-5 text-dark-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           </div>
-
-          <!-- Body -->
           <div class="px-6 py-4">
             <slot />
           </div>
@@ -38,26 +32,13 @@
 
 <script setup>
 defineProps({
-  show: {
-    type: Boolean,
-    default: false
-  },
-  title: {
-    type: String,
-    default: ''
-  }
+  show: { type: Boolean, default: false },
+  title: { type: String, default: '' }
 })
-
 defineEmits(['close'])
 </script>
 
 <style scoped>
-.modal-enter-active,
-.modal-leave-active {
-  transition: opacity 0.2s ease;
-}
-.modal-enter-from,
-.modal-leave-to {
-  opacity: 0;
-}
+.modal-enter-active, .modal-leave-active { transition: opacity 0.2s ease; }
+.modal-enter-from, .modal-leave-to { opacity: 0; }
 </style>

@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceLog;
+use App\Models\WfhRecord;
+use App\Services\TelegramService;
 use App\Models\Employee;
 use App\Models\EmployeeFaceData;
 use App\Models\OfficeLocation;
@@ -698,4 +700,44 @@ class FaceController extends Controller
         }
         return null;
     }
+
+    private function sendTelegramNotification($employee, $type, $time, $latLong = null, $distanceInfo = null)
+    {
+        try {
+            $telegram = new TelegramService();
+            $companyName = $employee->company->name ?? '-';
+            $statusText = $type === 'check_in' ? 'เช็คอิน' : 'เช็คออก';
+            $emoji = $type === 'check_in' ? '🟢' : '🔴';
+            
+            $message = "$emoji <b>$statusText สำเร็จ</b>\n\n";
+            $message .= "👤 <b>ชื่อ:</b> {$employee->name}\n";
+            $message .= "🏢 <b>บริษัท:</b> $companyName\n";
+            $message .= "🕐 <b>เวลา:</b> $time\n";
+            if ($latLong) {
+                $message .= "📍 <b>GPS:</b> $latLong\n";
+            }
+            if ($distanceInfo) {
+                $message .= "📏 <b>ระยะห่าง:</b> $distanceInfo\n";
+            }
+
+            // Send to employee
+            if ($employee->telegram_chat_id) {
+                $telegram->sendToChat($employee->telegram_chat_id, $message);
+            }
+
+            // Send to supervisor
+            if ($employee->supervisor && $employee->supervisor->telegram_chat_id) {
+                $supMessage = "$emoji <b>$statusText - {$employee->name}</b>\n\n";
+                $supMessage .= "🏢 <b>บริษัท:</b> $companyName\n";
+                $supMessage .= "🕐 <b>เวลา:</b> $time\n";
+                if ($distanceInfo) {
+                    $supMessage .= "📏 <b>ระยะห่าง:</b> $distanceInfo\n";
+                }
+                $telegram->sendToChat($employee->supervisor->telegram_chat_id, $supMessage);
+            }
+        } catch (\Exception $e) {
+            // Silent fail
+        }
+    }
+
 }

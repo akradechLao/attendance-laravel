@@ -178,7 +178,7 @@ const currentPositionLabel = computed(() => {
 async function fetchEmployee() {
   try {
     const response = await api.get(`/api/employees/${route.params.id}`)
-    employee.value = response.data.data || response.data
+    employee.value = response.data.data?.data || response.data.data || {}
   } catch (error) {
     console.error('Error fetching employee:', error)
   } finally {

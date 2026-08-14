@@ -25,6 +25,7 @@ use App\Http\Controllers\Api\EmployeeRequestController;
 use App\Http\Controllers\Api\AttendanceAdjustmentController;
 use App\Http\Controllers\Api\AttendanceVerificationController;
 use App\Http\Controllers\Api\AutoOtController;
+use App\Http\Controllers\Api\TelegramController;
 
 /*
 |--------------------------------------------------------------------------
@@ -245,4 +246,77 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/auto-ot/{id}/approve', [AutoOtController::class, 'approve']);
     Route::put('/auto-ot/{id}/reject', [AutoOtController::class, 'reject']);
     Route::post('/auto-ot/approve-all', [AutoOtController::class, 'approveAll']);
+});
+
+// Permission routes
+use App\Http\Controllers\Api\PermissionController;
+
+Route::prefix('wfh')->middleware('auth:sanctum')->group(function () {
+    Route::get('/', [WfhRequestController::class, 'index']);
+    Route::get('/available-saturdays', [WfhRequestController::class, 'availableSaturdays']);
+    Route::get('/my-requests', [WfhRequestController::class, 'myRequests']);
+    Route::get('/team-requests', [WfhRequestController::class, 'teamRequests']);
+    Route::post('/', [WfhRequestController::class, 'store']);
+    Route::put('/{id}/approve', [WfhRequestController::class, 'approve']);
+    Route::put('/{id}/reject', [WfhRequestController::class, 'reject']);
+    Route::delete('/{id}', [WfhRequestController::class, 'cancel']);
+});
+
+Route::middleware('auth:sanctum')->prefix('api/permissions')->group(function () {
+    Route::get('/employees', [PermissionController::class, 'index']);
+    Route::put('/employees/{id}/role', [PermissionController::class, 'updateRole']);
+    Route::put('/employees/{id}/status', [PermissionController::class, 'updateStatus']);
+    Route::post('/employees/{id}/reset-password', [PermissionController::class, 'resetPassword']);
+    Route::post('/change-password', [PermissionController::class, 'changePassword']);
+});
+
+// OT Summary
+use App\Http\Controllers\Api\OtSummaryController;
+Route::middleware('auth:sanctum')->get('/ot-summary', [OtSummaryController::class, 'index']);
+
+Route::get('/employee/{id}/office-location', function (\App\Models\Employee $employee) {
+    $office = $employee->getAssignedOfficeLocation();
+    if (!$office) {
+        return response()->json(['success' => true, 'data' => null]);
+    }
+    return response()->json([
+        'success' => true,
+        'data' => [
+            'id' => $office->id,
+            'name' => $office->name,
+            'latitude' => $office->latitude,
+            'longitude' => $office->longitude,
+            'radius_meters' => $office->radius_meters,
+        ]
+    ]);
+});
+
+
+// Shift Swap Routes
+Route::prefix('shift-swaps')->middleware('auth:sanctum')->group(function () {
+    Route::get('/', [ShiftSwapController::class, 'index']);
+    Route::get('/my-requests', [ShiftSwapController::class, 'myRequests']);
+    Route::get('/team-swaps', [ShiftSwapController::class, 'teamSwaps']);
+    Route::post('/', [ShiftSwapController::class, 'store']);
+    Route::put('/{id}/approve', [ShiftSwapController::class, 'approve']);
+    Route::put('/{id}/reject', [ShiftSwapController::class, 'reject']);
+});
+
+// Telegram Routes
+Route::post('/telegram/test', [TelegramController::class, 'test']);
+Route::get('/telegram/bot-info', fn() => response()->json(['data' => App\Services\TelegramService::getBotInfo()]));
+Route::get('/telegram/groups', [TelegramController::class, 'groups']);
+Route::post('/telegram/groups', [TelegramController::class, 'storeGroup']);
+Route::put('/telegram/groups/{id}', [TelegramController::class, 'updateGroup']);
+Route::delete('/telegram/groups/{id}', [TelegramController::class, 'deleteGroup']);
+Route::post('/telegram/test-group', [TelegramController::class, 'testGroup']);
+Route::get('/employee-stats', [EmployeeStatsController::class, 'index']);
+// Leave Request Routes
+Route::prefix('leave')->middleware('auth:sanctum')->group(function () {
+    Route::get('/balance', [LeaveRequestController::class, 'balance']);
+    Route::get('/my-requests', [LeaveRequestController::class, 'myRequests']);
+    Route::get('/team-leaves', [LeaveRequestController::class, 'teamLeaves']);
+    Route::post('/', [LeaveRequestController::class, 'store']);
+    Route::put('/{id}/approve', [LeaveRequestController::class, 'approve']);
+    Route::put('/{id}/reject', [LeaveRequestController::class, 'reject']);
 });

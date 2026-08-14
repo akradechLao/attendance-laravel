@@ -67,7 +67,7 @@
                   <td class="px-6 py-4">
                     <div class="flex items-center gap-3">
                       <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
-                        <span class="text-blue-600 font-semibold">{{ employee.name.charAt(0) }}</span>
+                        <span class="text-blue-600 font-semibold">{{ (employee.name || "").charAt(0) }}</span>
                       </div>
                       <span class="font-medium text-navy">{{ employee.name }}</span>
                     </div>
@@ -197,6 +197,19 @@
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">แผนก</label>
             <input v-model="form.department" type="text" class="input-field" />
+
+            <div>
+              <label class="block text-sm font-medium text-gray-700">เลขบัตรประชาชน</label>
+              <input v-model="form.id_card" type="text" class="input-field" maxlength="13" placeholder="1234567890123" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">ประกันสังคม</label>
+              <input v-model="form.social_security" type="text" class="input-field" placeholder="เลขประกันสังคม" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700">วุฒิการศึกษา</label>
+              <input v-model="form.education" type="text" class="input-field" placeholder="เช่น ป.ตรี, ป.โท" />
+            </div>
           </div>
           <div class="flex justify-end gap-3 pt-4">
             <button type="button" @click="closeModal" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
@@ -285,7 +298,7 @@ async function fetchEmployees() {
       company_id: selectedCompany.value || undefined
     }
     const response = await api.get('/api/employees', { params })
-    employees.value = response.data.data || response.data
+    employees.value = response.data.data?.data || response.data.data || response.data
     totalItems.value = response.data.total || employees.value.length
   } catch (error) {
     console.error('Error fetching employees:', error)
@@ -297,7 +310,7 @@ async function fetchEmployees() {
 async function fetchCompanies() {
   try {
     const response = await api.get('/api/companies')
-    companies.value = response.data.data || response.data
+    companies.value = response.data.data?.data || response.data.data || response.data
   } catch (error) {
     console.error('Error fetching companies:', error)
   }
@@ -356,7 +369,7 @@ function closeModal() {
   showAddModal.value = false
   showEditModal.value = false
   editId.value = null
-  Object.assign(form, { name: '', code: '', company_id: '', position: '', department: '' })
+  Object.assign(form, { name: '', code: '', company_id: '', position: '', department: '', id_card: '', social_security: '', education: '' })
 }
 
 async function resetPassword(employee) {

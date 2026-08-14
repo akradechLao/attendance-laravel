@@ -15,7 +15,7 @@ const loadLeaveRequests = async () => {
     const response = await api.get('/api/leave-requests', {
       params: { status: 'pending' }
     })
-    leaveRequests.value = response.data.data
+    leaveRequests.value = response.data.data?.data || response.data.data || []
   } catch (error) {
     console.error('Failed to load leave requests:', error)
   } finally {

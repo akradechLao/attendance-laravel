@@ -385,7 +385,7 @@ function formatDate(dateStr) {
 async function fetchLocations() {
   try {
     const response = await api.get('/api/settings/locations')
-    locations.value = response.data.data || response.data
+    locations.value = response.data.data?.data || response.data.data || []
   } catch (error) {
     console.error('Error fetching locations:', error)
   }
@@ -470,7 +470,7 @@ async function saveCompanyInfo() {
 async function fetchHolidays() {
   try {
     const response = await api.get('/api/settings/holidays')
-    holidays.value = response.data.data || response.data
+    holidays.value = response.data.data?.data || response.data.data || []
   } catch (error) {
     console.error('Error fetching holidays:', error)
   }
@@ -479,7 +479,7 @@ async function fetchHolidays() {
 async function fetchShifts() {
   try {
     const response = await api.get('/api/settings/shifts')
-    shifts.value = response.data.data || response.data
+    shifts.value = response.data.data?.data || response.data.data || []
   } catch (error) {
     console.error('Error fetching shifts:', error)
   }

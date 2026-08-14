@@ -337,7 +337,32 @@
             <input v-model="customLocationName" type="text" inputmode="text" class="input-field text-base" placeholder="เช่น โรงแรมABC, สำนักงานลูกค้า" />
           </div>
 
-          <!-- Check-in / Check-out toggle -->
+          <!-- GPS Status Indicator -->
+          <div v-if="scanType === 'office_scan'" class="mb-4 p-3 rounded-xl border-2 transition-all duration-300"
+            :class="gpsInRange ? 'border-green-400 bg-green-50' : gpsStatus === 'found' ? 'border-red-400 bg-red-50' : 'border-yellow-300 bg-yellow-50'">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <div class="w-4 h-4 rounded-full animate-pulse"
+                  :class="gpsStatus === 'found' ? (gpsInRange ? 'bg-green-500' : 'bg-red-500') : 'bg-yellow-400'"></div>
+                <span class="text-sm font-medium"
+                  :class="gpsStatus === 'found' ? (gpsInRange ? 'text-green-700' : 'text-red-700') : 'text-yellow-700'">
+                  {{ gpsStatusText }}
+                </span>
+              </div>
+              <span v-if="distanceToOffice !== null" class="text-sm font-bold"
+                :class="gpsInRange ? 'text-green-600' : 'text-red-600'">
+                {{ Math.round(distanceToOffice) }} ม.
+              </span>
+            </div>
+            <div v-if="officeLocation" class="text-xs text-gray-500 mt-1">
+              📍 {{ officeLocation.name }} (รัศมี {{ officeLocation.radius_meters }}ม.)
+            </div>
+            <div v-if="currentAccuracy" class="text-xs text-gray-400 mt-1">
+              ความแม่นยำ GPS: {{ Math.round(currentAccuracy) }}ม.
+            </div>
+          </div>
+
+          < Check-in / Check-out toggle -->
           <div class="flex justify-center gap-2 mb-4">
             <button
               @click="scanMode = 'check_in'"
@@ -510,6 +535,9 @@ const reregisterEmployee = ref(null)
 const reregisterLoading = ref(false)
 
 const scanMode = ref('check_in')  // 'check_in' or 'check_out'
+const officeLocation = ref(null)
+const distanceToOffice = ref(null)
+const gpsStatus = ref('acquiring')  // 'acquiring' | 'found' | 'error' | 'no_device'
 
 // Admin/HR Login
 const showAdminLogin = ref(false)
@@ -551,6 +579,18 @@ const companyStyles = {
 
 const companyOrder = ['ETC1992', 'STC', 'ETECH', 'NTC']
 
+const gpsInRange = computed(() => {
+  return distanceToOffice.value <= officeLocation.value.radius_meters
+})
+
+const gpsStatusText = computed(() => {
+  if (gpsStatus.value === 'no_device') return 'อุปกรณ์ไม่รองรับ GPS'
+  if (gpsStatus.value === 'error') return 'ไม่สามารถระบุตำแหน่งได้'
+  if (gpsStatus.value === 'acquiring') return 'กำลังระบุตำแหน่ง...'
+  if (gpsInRange.value) return 'อยู่ในระยะเช็คอินได้'
+  return 'อยู่นอกระยะเช็คอิน'
+})
+
 const filteredEmployees = computed(() => {
   if (!searchQuery.value) return []
   const q = searchQuery.value.toLowerCase()
@@ -575,7 +615,7 @@ onMounted(async () => {
 async function fetchCompanies() {
   try {
     const response = await axios.get('/api/companies')
-    const all = response.data.data || []
+    const all = response.data.data?.data || response.data.data || []
     companies.value = companyOrder
       .map(name => all.find(c => c.name === name))
       .filter(Boolean)
@@ -590,20 +630,67 @@ async function fetchCompanies() {
   }
 }
 
-function getCurrentPosition() {
-  if (navigator.geolocation) {
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        currentLatitude.value = pos.coords.latitude
-        currentLongitude.value = pos.coords.longitude
-        currentAccuracy.value = pos.coords.accuracy
-      },
-      (err) => {
-        console.error('Geolocation error:', err)
-      },
-      { enableHighAccuracy: true }
+function calculateDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371000
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLon = (lon2 - lon1) * Math.PI / 180
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon/2) * Math.sin(dLon/2)
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+}
+
+async function fetchOfficeLocation(employeeId) {
+  try {
+    const res = await axios.get('/api/employee/' + employeeId + '/office-location')
+    officeLocation.value = res.data.data
+  } catch { officeLocation.value = null }
+}
+
+function updateDistance() {
+  if (currentLatitude.value && currentLongitude.value && officeLocation.value) {
+    distanceToOffice.value = calculateDistance(
+      currentLatitude.value, currentLongitude.value,
+      officeLocation.value.latitude, officeLocation.value.longitude
     )
   }
+}
+
+function getCurrentPosition() {
+  if (!navigator.geolocation) {
+    gpsStatus.value = 'no_device'
+    return
+  }
+  gpsStatus.value = 'acquiring'
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      currentLatitude.value = pos.coords.latitude
+      currentLongitude.value = pos.coords.longitude
+      currentAccuracy.value = pos.coords.accuracy
+      gpsStatus.value = 'found'
+      updateDistance()
+    },
+    (err) => {
+      gpsStatus.value = 'error'
+      console.error('Geolocation error:', err)
+    },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
+  )
+}
+
+// ติดตาม GPS เปลี่ยนแปลง
+if (navigator.geolocation) {
+  navigator.geolocation.watchPosition(
+    (pos) => {
+      currentLatitude.value = pos.coords.latitude
+      currentLongitude.value = pos.coords.longitude
+      currentAccuracy.value = pos.coords.accuracy
+      gpsStatus.value = 'found'
+      updateDistance()
+    },
+    () => {},
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 10000 }
+  )
 }
 
 function selectCompany(company) {
@@ -650,7 +737,7 @@ async function searchEmployees() {
       company_id: selectedCompany.value.id,
       query: ''
     })
-    employees.value = response.data.data || []
+    employees.value = response.data.data?.data || response.data.data || []
   } catch (error) {
     console.error('Error searching employees:', error)
   } finally {
@@ -690,6 +777,8 @@ async function doReregister() {
 async function selectEmployee(employee) {
   selectedEmployee.value = employee
   scanningError.value = ''
+  await fetchOfficeLocation(employee.id)
+  updateDistance()
 
   try {
     const faceRes = await axios.get(`/api/employees/${employee.id}/face-data`)

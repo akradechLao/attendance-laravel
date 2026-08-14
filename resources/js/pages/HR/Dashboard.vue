@@ -3,7 +3,7 @@
     <div class="space-y-6">
       <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 class="text-2xl font-bold text-navy">แดชบอร์ด</h1>
+          <h1 class="text-2xl font-bold text-gray-800">แดชบอร์ด</h1>
           <p class="text-gray-500">ภาพรวมการเข้างานวันนี้</p>
         </div>
         <div class="flex items-center gap-4">
@@ -26,7 +26,7 @@
         <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-8 gap-3">
           <div class="card text-center">
             <p class="text-xs text-gray-500 mb-1">พนักงานทั้งหมด</p>
-            <p class="text-3xl font-bold text-navy">{{ stats.total }}</p>
+            <p class="text-3xl font-bold text-gray-800">{{ stats.total }}</p>
           </div>
           <div class="card text-center">
             <p class="text-xs text-gray-500 mb-1">เข้างานวันนี้</p>
@@ -60,8 +60,8 @@
 
         <div class="card">
           <div class="flex items-center justify-between mb-2">
-            <h3 class="text-sm font-semibold text-navy">อัตราเข้างานวันนี้</h3>
-            <span class="text-sm font-bold text-navy">{{ attendancePercent }}%</span>
+            <h3 class="text-sm font-semibold text-gray-800">อัตราเข้างานวันนี้</h3>
+            <span class="text-sm font-bold text-gray-800">{{ attendancePercent }}%</span>
           </div>
           <div class="w-full bg-gray-200 rounded-full h-4 overflow-hidden">
             <div class="flex h-full">
@@ -77,16 +77,16 @@
         </div>
 
         <div v-if="companyStats.length > 0">
-          <h2 class="text-lg font-semibold text-navy mb-3">แยกตามบริษัท</h2>
+          <h2 class="text-lg font-semibold text-gray-800 mb-3">แยกตามบริษัท</h2>
           <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             <div v-for="cs in companyStats" :key="cs.company_id" class="card hover:shadow-lg transition-shadow">
               <div class="flex items-center justify-between mb-3">
                 <div class="flex items-center gap-2">
-                  <div class="w-10 h-10 rounded-lg flex items-center justify-center text-white font-bold text-sm" :style="companyColorStyle(cs.company_name)">
+                  <div class="w-10 h-10 rounded-lg flex items-center justify-center text-gray-800 font-bold text-sm" :style="companyColorStyle(cs.company_name)">
                     {{ cs.company_name.charAt(0) }}
                   </div>
                   <div>
-                    <p class="font-bold text-navy text-sm">{{ cs.company_name }}</p>
+                    <p class="font-bold text-gray-800 text-sm">{{ cs.company_name }}</p>
                     <p class="text-xs text-gray-500">{{ cs.total }} คน</p>
                   </div>
                 </div>
@@ -106,7 +106,7 @@
 
         <div class="card">
           <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-semibold text-navy">รายการเข้างานวันนี้ ({{ records.length }} รายการ)</h2>
+            <h2 class="text-lg font-semibold text-gray-800">รายการเข้างานวันนี้ ({{ records.length }} รายการ)</h2>
           </div>
           <div v-if="records.length === 0" class="text-center py-8 text-gray-500">ยังไม่มีรายการเข้างานวันนี้</div>
           <div v-else class="overflow-x-auto">
@@ -132,12 +132,12 @@
                       <div class="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
                         <span class="text-blue-600 text-xs font-semibold">{{ record.employee_name?.charAt(0) }}</span>
                       </div>
-                      <span class="font-medium text-navy text-sm">{{ record.employee_name }}</span>
+                      <span class="font-medium text-gray-800 text-sm">{{ record.employee_name }}</span>
                     </div>
                   </td>
                   <td class="px-4 py-3 text-sm text-gray-600">{{ record.employee_code }}</td>
                    <td class="px-4 py-3">
-                    <span class="px-2 py-0.5 rounded text-xs font-medium text-white" :style="companyColorStyle(record.company_name)">{{ record.company_code }}</span>
+                    <span class="px-2 py-0.5 rounded text-xs font-medium text-gray-800" :style="companyColorStyle(record.company_name)">{{ record.company_code }}</span>
                   </td>
                   <td class="px-4 py-3 text-xs text-gray-500">{{ record.shift_time || '-' }}</td>
                   <td class="px-4 py-3 text-sm text-gray-600">{{ record.round_no || 1 }}</td>
