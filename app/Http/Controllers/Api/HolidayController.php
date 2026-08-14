@@ -12,7 +12,7 @@ class HolidayController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $holidays = CompanyHoliday::where('company_id', $request->user()->company_id ?? 1)
+        $holidays = CompanyHoliday::where('company_id', $this->resolveCompanyId($request))
             ->whereYear('date', $request->year ?? date('Y'))
             ->orderBy('date')
             ->get();
@@ -27,7 +27,7 @@ class HolidayController extends Controller
             'date' => 'required|date',
         ]);
 
-        $validated['company_id'] = $request->user()->company_id ?? 1;
+        $validated['company_id'] = $this->resolveCompanyId($request);
         $validated['year'] = date('Y', strtotime($validated['date']));
 
         $holiday = CompanyHoliday::create($validated);
@@ -42,7 +42,7 @@ class HolidayController extends Controller
             'date' => 'required|date',
         ]);
 
-        $holiday = CompanyHoliday::where('company_id', $request->user()->company_id ?? 1)
+        $holiday = CompanyHoliday::where('company_id', $this->resolveCompanyId($request))
             ->findOrFail($id);
 
         $holiday->update([
@@ -76,7 +76,7 @@ class HolidayController extends Controller
             return response()->json(['message' => 'ไม่พบข้อมูลวันหยุดราชการปี ' . $year]);
         }
 
-        $companyId = $request->user()->company_id ?? 1;
+        $companyId = $this->resolveCompanyId($request);
         $imported = 0;
 
         foreach ($holidays as $item) {

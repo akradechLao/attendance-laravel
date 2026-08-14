@@ -30,7 +30,7 @@ class WfhController extends Controller
             'reason' => 'required|string',
         ]);
 
-        $validated['company_id'] = $request->user()->company_id ?? 1;
+        $validated['company_id'] = $this->resolveCompanyId($request);
         $validated['status'] = 'pending';
 
         $record = WfhRecord::create($validated);

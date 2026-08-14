@@ -32,7 +32,7 @@ class ShiftController extends Controller
             'shift_code' => 'required|string',
         ]);
 
-        $validated['company_id'] = $request->user()->company_id ?? 1;
+        $validated['company_id'] = $this->resolveCompanyId($request);
 
         $shift = ShiftSchedule::create($validated);
 
