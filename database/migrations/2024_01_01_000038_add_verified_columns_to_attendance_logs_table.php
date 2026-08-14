@@ -9,7 +9,12 @@ return new class extends Migration
     {
         $hasIsVerified = DB::select("SHOW COLUMNS FROM attendance_logs LIKE 'is_verified'");
         if (empty($hasIsVerified)) {
-            DB::statement("ALTER TABLE attendance_logs ADD COLUMN is_verified TINYINT(1) DEFAULT 0 AFTER adjustment_note");
+            $position = '';
+            $hasAdjustmentNote = DB::select("SHOW COLUMNS FROM attendance_logs LIKE 'adjustment_note'");
+            if (!empty($hasAdjustmentNote)) {
+                $position = ' AFTER adjustment_note';
+            }
+            DB::statement("ALTER TABLE attendance_logs ADD COLUMN is_verified TINYINT(1) DEFAULT 0$position");
         }
 
         $hasVerifiedBy = DB::select("SHOW COLUMNS FROM attendance_logs LIKE 'verified_by'");
