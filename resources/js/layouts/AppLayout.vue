@@ -27,7 +27,7 @@
 
         <!-- Navigation -->
         <nav class="flex-1 p-4 space-y-1 overflow-y-auto custom-scrollbar">
-          <template v-for="item in navItems" :key="item.section || item.path">
+          <template v-for="item in navItems" :key="(item && (item.section || item.path)) || Math.random()">
             <!-- Section Header -->
             <div v-if="item.section" class="pt-4 pb-2">
               <p class="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">{{ item.section }}</p>
@@ -168,7 +168,6 @@ const navItems = [
   { path: '/admin/company-settings', label: 'ตั้งค่าบริษัท', icon: '🏢' },
   { path: '/admin/system-settings', label: 'ตั้งค่าระบบ', icon: '🔧' },
   { path: '/admin/location-settings', label: 'จุดเช็คอิน/เช็คเอาท์', icon: '📍' },
-  ,
   { path: '/telegram-settings', label: 'Telegram Settings', icon: '✈' }
 ]
 
