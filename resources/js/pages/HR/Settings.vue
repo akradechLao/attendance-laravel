@@ -298,6 +298,7 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
 import api from '../../services/api'
+import store from '../../store'
 import AppLayout from '../../layouts/AppLayout.vue'
 import LoadingSpinner from '../../components/LoadingSpinner.vue'
 import Modal from '../../components/Modal.vue'
@@ -322,11 +323,11 @@ const selectedCompanyId = ref(null)
 const holidayYear = ref(new Date().getFullYear())
 const shiftMonth = ref(new Date().toISOString().slice(0, 7))
 const isSuperAdmin = computed(() => {
-  const uid = (storeUser.company_id ?? 0)
+  const uid = storeUser.value.company_id ?? 0
   return !uid
 })
 
-const storeUser = JSON.parse(localStorage.getItem('user') || 'null') || {}
+const storeUser = computed(() => store.user || {})
 
 const showLocationModal = ref(false)
 const showHolidayModal = ref(false)
@@ -363,7 +364,7 @@ async function loadCompanies() {
     if (isSuperAdmin.value) {
       if (companies.value.length) selectedCompanyId.value = companies.value[0].id
     } else {
-      selectedCompanyId.value = storeUser.company_id || companies.value[0]?.id || null
+      selectedCompanyId.value = storeUser.value.company_id || companies.value[0]?.id || null
     }
   } catch (e) {
     console.error('Error loading companies:', e)
