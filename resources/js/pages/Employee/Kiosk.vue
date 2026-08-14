@@ -65,7 +65,7 @@
               :key="company.id"
               @click="selectCompany(company)"
               class="company-btn p-4 sm:p-6 rounded-xl transition-all duration-200 text-center group touch-target"
-              :style="companyStyles[company.name] || 'background: linear-gradient(135deg, #64748b, #334155); color: white; border: 2px solid rgba(100,116,139,0.5);'"
+              :style="companyStyles[company.code_prefix] || 'background: linear-gradient(135deg, #64748b, #334155); color: white; border: 2px solid rgba(100,116,139,0.5);'"
             >
               <div class="w-14 h-14 sm:w-20 sm:h-20 mx-auto mb-2 sm:mb-3 rounded-xl flex items-center justify-center transition-transform group-hover:scale-110 group-active:scale-105 overflow-hidden">
                 <img
@@ -571,13 +571,13 @@ function updateClock() {
 let clockInterval = null
 
 const companyStyles = {
-  'ETC1992': 'background: linear-gradient(135deg, #10b981, #047857); color: white; border: 2px solid rgba(52,211,153,0.5); box-shadow: 0 10px 25px rgba(16,185,129,0.25);',
+  'ETC': 'background: linear-gradient(135deg, #10b981, #047857); color: white; border: 2px solid rgba(52,211,153,0.5); box-shadow: 0 10px 25px rgba(16,185,129,0.25);',
   'STC': 'background: linear-gradient(135deg, #a855f7, #7e22ce); color: white; border: 2px solid rgba(168,85,247,0.5); box-shadow: 0 10px 25px rgba(168,85,247,0.25);',
-  'ETECH': 'background: linear-gradient(135deg, #f97316, #c2410c); color: white; border: 2px solid rgba(251,146,60,0.5); box-shadow: 0 10px 25px rgba(249,115,22,0.25);',
+  'ETE': 'background: linear-gradient(135deg, #f97316, #c2410c); color: white; border: 2px solid rgba(251,146,60,0.5); box-shadow: 0 10px 25px rgba(249,115,22,0.25);',
   'NTC': 'background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; border: 2px solid rgba(96,165,250,0.5); box-shadow: 0 10px 25px rgba(59,130,246,0.25);',
 }
 
-const companyOrder = ['ETC1992', 'STC', 'ETECH', 'NTC']
+const companyOrder = ['ETC', 'STC', 'ETE', 'NTC']
 
 const gpsInRange = computed(() => {
   if (!officeLocation.value || distanceToOffice.value === null) return false
@@ -618,15 +618,15 @@ async function fetchCompanies() {
     const response = await axios.get('/api/companies')
     const all = response.data.data?.data || response.data.data || []
     companies.value = companyOrder
-      .map(name => all.find(c => c.name === name))
+      .map(name => all.find(c => c.code_prefix === name))
       .filter(Boolean)
   } catch (error) {
     console.error('Error fetching companies:', error)
     companies.value = [
-      { id: 2, name: 'ETC1992' },
-      { id: 4, name: 'STC' },
-      { id: 3, name: 'ETECH' },
-      { id: 1, name: 'NTC' }
+      { id: 2, name: 'Eastern Thai Consulting 1992 Co.,Ltd.', code_prefix: 'ETC' },
+      { id: 4, name: 'STC', code_prefix: 'STC' },
+      { id: 3, name: 'ETECH', code_prefix: 'ETE' },
+      { id: 1, name: 'NTC', code_prefix: 'NTC' }
     ]
   }
 }

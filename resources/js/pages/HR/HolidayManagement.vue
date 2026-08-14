@@ -3,15 +3,29 @@ import { ref, onMounted, computed } from 'vue'
 import api from '@/services/api'
 
 const loading = ref(false)
+const importing = ref(false)
 const holidays = ref([])
 const showForm = ref(false)
+const editingId = ref(null)
 const selectedYear = ref(new Date().getFullYear())
+const importYear = ref(new Date().getFullYear())
 const newHoliday = ref({
   name: '',
   date: '',
 })
 
 const months = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม']
+
+const formatDate = (d) => {
+  if (!d) return ''
+  const parts = String(d).split('-')
+  return parts.length === 3 ? parts[2] + '/' + parts[1] + '/' + parts[0] : d
+}
+
+const yearOptions = computed(() => {
+  const y = new Date().getFullYear()
+  return [y - 1, y, y + 1, y + 2]
+})
 
 onMounted(async () => {
   await loadHolidays()
@@ -31,22 +45,52 @@ const loadHolidays = async () => {
   }
 }
 
-const addHoliday = async () => {
+const openAdd = () => {
+  editingId.value = null
+  newHoliday.value = { name: '', date: '' }
+  showForm.value = true
+}
+
+const openEdit = (holiday) => {
+  editingId.value = holiday.id
+  newHoliday.value = { name: holiday.name, date: holiday.date }
+  showForm.value = true
+}
+
+const saveHoliday = async () => {
   if (!newHoliday.value.name || !newHoliday.value.date) {
     alert('กรุณากรอกข้อมูลให้ครบถ้วน')
     return
   }
 
   try {
-    await api.post('/api/holidays', {
-      ...newHoliday.value,
-    })
-    alert('เพิ่มวันหยุดสำเร็จ')
+    if (editingId.value) {
+      await api.put(`/api/holidays/${editingId.value}`, newHoliday.value)
+      alert('แก้ไขวันหยุดสำเร็จ')
+    } else {
+      await api.post('/api/holidays', newHoliday.value)
+      alert('เพิ่มวันหยุดสำเร็จ')
+    }
     showForm.value = false
     newHoliday.value = { name: '', date: '' }
     await loadHolidays()
   } catch (error) {
-    alert('เกิดข้อผิดพลาดในการเพิ่มวันหยุด')
+    alert('เกิดข้อผิดพลาดในการบันทึกวันหยุด')
+  }
+}
+
+const importHolidays = async () => {
+  if (!confirm(`ดึงวันหยุดราชการปี ${importYear.value} มาใส่ตาราง? (รายการซ้ำวันที่จะอัปเดตชื่อใหม่)`)) return
+  importing.value = true
+  try {
+    const res = await api.post('/api/holidays/import-official', { year: importYear.value })
+    alert(res.data?.message || 'นำเข้าวันหยุดราชการเรียบร้อย')
+    selectedYear.value = importYear.value
+    await loadHolidays()
+  } catch (error) {
+    alert(error.response?.data?.message || 'เกิดข้อผิดพลาดในการนำเข้าวันหยุดราชการ')
+  } finally {
+    importing.value = false
   }
 }
 
@@ -71,11 +115,20 @@ const deleteHoliday = async (id) => {
         <h1 class="text-2xl font-bold text-gray-900">Holiday Management</h1>
         <p class="text-gray-500">จัดการวันหยุดราชการ</p>
       </div>
-      <div class="flex gap-3">
+      <div class="flex gap-3 items-center flex-wrap">
+        <div class="flex gap-2 items-center">
+          <select v-model="importYear" class="px-3 py-2 border rounded-lg">
+            <option v-for="year in yearOptions" :key="year" :value="year">{{ year }}</option>
+          </select>
+          <button @click="importHolidays" :disabled="importing"
+            class="px-4 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 disabled:opacity-50">
+            {{ importing ? 'กำลังนำเข้า...' : 'นำเข้าวันหยุดราชการ' }}
+          </button>
+        </div>
         <select v-model="selectedYear" @change="loadHolidays" class="px-3 py-2 border rounded-lg">
-          <option v-for="year in [2024, 2025, 2026]" :key="year" :value="year">{{ year }}</option>
+          <option v-for="year in yearOptions" :key="year" :value="year">{{ year }}</option>
         </select>
-        <button @click="showForm = true" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
+        <button @click="openAdd" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
           + เพิ่มวันหยุด
         </button>
       </div>
@@ -93,11 +146,18 @@ const deleteHoliday = async (id) => {
           </tr>
         </thead>
         <tbody class="divide-y divide-gray-200">
+          <tr v-if="loading">
+            <td colspan="4" class="px-6 py-8 text-center text-sm text-gray-500">กำลังโหลด...</td>
+          </tr>
+          <tr v-else-if="holidays.length === 0">
+            <td colspan="4" class="px-6 py-8 text-center text-sm text-gray-500">ไม่พบวันหยุดในปีที่เลือก</td>
+          </tr>
           <tr v-for="holiday in holidays" :key="holiday.id">
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ holiday.date }}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ formatDate(holiday.date) }}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ months[new Date(holiday.date).getMonth()] }}</td>
             <td class="px-6 py-4 text-sm text-gray-900">{{ holiday.name }}</td>
-            <td class="px-6 py-4 whitespace-nowrap">
+            <td class="px-6 py-4 whitespace-nowrap space-x-3">
+              <button @click="openEdit(holiday)" class="text-blue-600 hover:text-blue-800">แก้ไข</button>
               <button @click="deleteHoliday(holiday.id)" class="text-red-600 hover:text-red-800">ลบ</button>
             </td>
           </tr>
@@ -105,10 +165,10 @@ const deleteHoliday = async (id) => {
       </table>
     </div>
 
-    <!-- Add Holiday Modal -->
+    <!-- Add / Edit Holiday Modal -->
     <div v-if="showForm" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-        <h3 class="text-lg font-bold mb-4">เพิ่มวันหยุด</h3>
+        <h3 class="text-lg font-bold mb-4">{{ editingId ? 'แก้ไขวันหยุด' : 'เพิ่มวันหยุด' }}</h3>
         <div class="space-y-4">
           <div>
             <label class="block text-sm font-medium text-gray-700">ชื่อวันหยุด</label>
@@ -120,7 +180,7 @@ const deleteHoliday = async (id) => {
           </div>
           <div class="flex gap-3 justify-end">
             <button @click="showForm = false" class="px-4 py-2 border rounded-lg hover:bg-gray-50">ยกเลิก</button>
-            <button @click="addHoliday" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">เพิ่ม</button>
+            <button @click="saveHoliday" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">บันทึก</button>
           </div>
         </div>
       </div>
