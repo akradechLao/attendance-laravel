@@ -27,7 +27,7 @@
 
         <!-- Navigation -->
         <nav class="flex-1 p-4 space-y-1 overflow-y-auto custom-scrollbar">
-          <template v-for="item in navItems" :key="item.path">
+          <template v-for="item in navItems" :key="item.section || item.path">
             <!-- Section Header -->
             <div v-if="item.section" class="pt-4 pb-2">
               <p class="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">{{ item.section }}</p>
