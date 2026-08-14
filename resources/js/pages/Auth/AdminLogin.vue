@@ -2,15 +2,15 @@
   <div class="min-h-screen relative overflow-hidden flex items-center justify-center p-4">
     <!-- Background -->
     <div class="fixed inset-0 -z-10">
-      <div class="absolute inset-0 bg-gray-50"></div>
-      <div class="absolute top-0 right-0 w-96 h-96 bg-sky-100 rounded-full blur-3xl opacity-60"></div>
-      <div class="absolute bottom-0 left-0 w-96 h-96 bg-blue-100 rounded-full blur-3xl opacity-60"></div>
+      <div class="absolute inset-0 bg-white"></div>
+      <div class="absolute top-0 right-0 w-96 h-96 bg-blue-100 rounded-full blur-3xl opacity-60"></div>
+      <div class="absolute bottom-0 left-0 w-96 h-96 bg-amber-100 rounded-full blur-3xl opacity-60"></div>
     </div>
 
     <div class="w-full max-w-5xl">
       <!-- Header -->
       <div class="text-center mb-8">
-        <h1 class="text-3xl font-bold text-gray-800">ระบบเช็คเวลาเข้างาน</h1>
+        <h1 class="text-3xl font-bold text-blue-900">ระบบเช็คเวลาเข้างาน</h1>
         <p class="text-gray-500 mt-2">ETC1992 Attendance System</p>
       </div>
 
@@ -18,21 +18,21 @@
         <!-- Left: Kiosk -->
         <div class="flex-1">
           <router-link to="/employee" class="block">
-            <div class="bg-blue-600 text-white rounded-3xl h-full hover:shadow-2xl transform hover:scale-[1.02] transition-all duration-300 cursor-pointer overflow-hidden">
+            <div class="bg-gradient-to-br from-blue-900 via-blue-700 to-blue-600 text-white rounded-3xl h-full hover:shadow-2xl transform hover:scale-[1.02] transition-all duration-300 cursor-pointer overflow-hidden">
               <div class="text-center py-10 px-6">
                 <div class="w-24 h-24 mx-auto mb-6 rounded-full bg-white/20 flex items-center justify-center">
-                  <svg class="w-12 h-12 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg class="w-12 h-12 text-amber-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                   </svg>
                 </div>
                 <h2 class="text-3xl font-bold mb-2 text-white">เป็นพนักงาน?</h2>
-                <p class="text-lg text-white mb-6">เช็คเวลาเข้างานที่นี่</p>
+                <p class="text-lg text-blue-100 mb-6">เช็คเวลาเข้างานที่นี่</p>
                 <div class="bg-black/20 rounded-2xl p-4 mb-6 mx-auto max-w-xs">
                   <p class="text-sm text-blue-100 mb-1">เวลาปัจจุบัน</p>
                   <p class="text-4xl font-bold text-white tracking-wider">{{ currentTime }}</p>
                   <p class="text-sm text-blue-100 mt-1">{{ currentDate }}</p>
                 </div>
-                <div class="bg-white text-blue-600 py-4 px-8 rounded-xl font-bold text-lg inline-flex items-center gap-3 shadow-lg">
+                <div class="bg-gradient-to-r from-amber-300 to-yellow-400 text-blue-900 py-4 px-8 rounded-xl font-bold text-lg inline-flex items-center gap-3 shadow-lg">
                   <span>เริ่มสแกนหน้า</span>
                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3" />
@@ -51,13 +51,13 @@
             <div class="flex border-b border-gray-200">
               <button
                 @click="loginMode = 'admin'"
-                :class="['flex-1 py-4 text-center font-semibold text-sm transition-all', loginMode === 'admin' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700']"
+                :class="['flex-1 py-4 text-center font-semibold text-sm transition-all', loginMode === 'admin' ? 'text-blue-700 border-b-2 border-amber-400' : 'text-gray-500 hover:text-gray-700']"
               >
                 ผู้ดูแลระบบ
               </button>
               <button
                 @click="loginMode = 'employee'"
-                :class="['flex-1 py-4 text-center font-semibold text-sm transition-all', loginMode === 'employee' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500 hover:text-gray-700']"
+                :class="['flex-1 py-4 text-center font-semibold text-sm transition-all', loginMode === 'employee' ? 'text-blue-700 border-b-2 border-amber-400' : 'text-gray-500 hover:text-gray-700']"
               >
                 พนักงาน
               </button>
@@ -65,7 +65,7 @@
 
             <div class="p-8">
               <div class="text-center mb-6">
-                <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-blue-600 flex items-center justify-center shadow-lg">
+                <div class="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-blue-700 to-blue-900 flex items-center justify-center shadow-lg">
                   <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                   </svg>
@@ -102,7 +102,7 @@
                     </button>
                   </div>
                 </div>
-                <button type="submit" :disabled="loading" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+                <button type="submit" :disabled="loading" class="w-full py-3 bg-gradient-to-r from-blue-800 to-blue-600 hover:from-blue-900 hover:to-blue-700 text-white font-semibold rounded-xl shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2">
                   <LoadingSpinner v-if="loading" size="sm" />
                   <span>{{ loading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ' }}</span>
                 </button>
@@ -135,7 +135,7 @@
                     </svg>
                   </div>
                 </div>
-                <button type="submit" :disabled="loading" class="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2">
+                <button type="submit" :disabled="loading" class="w-full py-3 bg-gradient-to-r from-blue-800 to-blue-600 hover:from-blue-900 hover:to-blue-700 text-white font-semibold rounded-xl shadow-lg transition-all disabled:opacity-50 flex items-center justify-center gap-2">
                   <LoadingSpinner v-if="loading" size="sm" />
                   <span>{{ loading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ' }}</span>
                 </button>

@@ -16,7 +16,7 @@
           :class="[
             'px-4 py-2 font-medium border-b-2 transition-colors',
             activeTab === tab.key
-              ? 'border-blue-500 text-blue-500'
+              ? 'border-amber-400 text-blue-700'
               : 'border-transparent text-gray-500 hover:text-gray-700'
           ]"
         >
@@ -58,7 +58,7 @@
                 </div>
               </div>
               <div class="text-right">
-                <span class="px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-700">
+                <span class="px-3 py-1 rounded-full text-sm font-medium bg-amber-100 text-amber-700">
                   รออนุมัติผู้จัดการ
                 </span>
                 <p class="text-sm text-gray-500 mt-1">

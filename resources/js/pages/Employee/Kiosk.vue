@@ -362,7 +362,7 @@
             </div>
           </div>
 
-          < Check-in / Check-out toggle -->
+          <!-- Check-in / Check-out toggle -->
           <div class="flex justify-center gap-2 mb-4">
             <button
               @click="scanMode = 'check_in'"
@@ -580,6 +580,7 @@ const companyStyles = {
 const companyOrder = ['ETC1992', 'STC', 'ETECH', 'NTC']
 
 const gpsInRange = computed(() => {
+  if (!officeLocation.value || distanceToOffice.value === null) return false
   return distanceToOffice.value <= officeLocation.value.radius_meters
 })
 
