@@ -30,6 +30,9 @@ class AttendanceLog extends Model
         'adjusted_by',
         'adjusted_at',
         'adjustment_note',
+        'is_verified',
+        'verified_by',
+        'verified_at',
     ];
 
     protected $casts = [
@@ -40,6 +43,8 @@ class AttendanceLog extends Model
         'remote_longitude' => 'decimal:8',
         'remote_accuracy' => 'integer',
         'adjusted_at' => 'datetime',
+        'verified_at' => 'datetime',
+        'is_verified' => 'boolean',
     ];
 
     public function employee(): BelongsTo
@@ -50,6 +55,11 @@ class AttendanceLog extends Model
     public function adjustedBy(): BelongsTo
     {
         return $this->belongsTo(Employee::class, 'adjusted_by');
+    }
+
+    public function verifiedBy(): BelongsTo
+    {
+        return $this->belongsTo(Employee::class, 'verified_by');
     }
 
     public function lateForcedLeave()
@@ -76,9 +86,6 @@ class AttendanceLog extends Model
         return '-';
     }
 
-    /**
-     * ได้สถานะสุดท้าย (ถ้าหัวหน้าปรับแล้วใช้ final_status, ไม่งั้นใช้ original_status)
-     */
     public function getDisplayStatus(): string
     {
         if ($this->final_status) {

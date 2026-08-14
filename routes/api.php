@@ -23,6 +23,8 @@ use App\Http\Controllers\Api\SystemSettingsController;
 use App\Http\Controllers\Api\EmployeeHistoryController;
 use App\Http\Controllers\Api\EmployeeRequestController;
 use App\Http\Controllers\Api\AttendanceAdjustmentController;
+use App\Http\Controllers\Api\AttendanceVerificationController;
+use App\Http\Controllers\Api\AutoOtController;
 
 /*
 |--------------------------------------------------------------------------
@@ -231,4 +233,16 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/attendance-adjustment/forced-leaves', [AttendanceAdjustmentController::class, 'forcedLeaves']);
     Route::put('/attendance-adjustment/forced-leaves/{id}/approve', [AttendanceAdjustmentController::class, 'approveForcedLeave']);
     Route::put('/attendance-adjustment/forced-leaves/{id}/reject', [AttendanceAdjustmentController::class, 'rejectForcedLeave']);
+
+    // Attendance Verification (ยืนยันข้อมูลเข้างาน)
+    Route::get('/attendance-verification', [AttendanceVerificationController::class, 'index']);
+    Route::put('/attendance-verification/{id}/verify', [AttendanceVerificationController::class, 'verify']);
+    Route::put('/attendance-verification/{id}/unverify', [AttendanceVerificationController::class, 'unverify']);
+    Route::post('/attendance-verification/verify-all', [AttendanceVerificationController::class, 'verifyAll']);
+
+    // Auto OT (OT อัตโนมัติ - มาเร็ว/กลับช้า ≥ 1 ชม.)
+    Route::get('/auto-ot', [AutoOtController::class, 'index']);
+    Route::put('/auto-ot/{id}/approve', [AutoOtController::class, 'approve']);
+    Route::put('/auto-ot/{id}/reject', [AutoOtController::class, 'reject']);
+    Route::post('/auto-ot/approve-all', [AutoOtController::class, 'approveAll']);
 });

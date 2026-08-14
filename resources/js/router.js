@@ -145,6 +145,18 @@ const routes = [
     meta: { requiresAuth: true, layout: 'app' }
   },
   {
+    path: '/attendance-verification',
+    name: 'AttendanceVerification',
+    component: () => import('./pages/HR/AttendanceVerification.vue'),
+    meta: { requiresAuth: true, layout: 'app' }
+  },
+  {
+    path: '/auto-ot',
+    name: 'AutoOt',
+    component: () => import('./pages/HR/AutoOt.vue'),
+    meta: { requiresAuth: true, layout: 'app' }
+  },
+  {
     path: '/photos',
     name: 'PhotoHistory',
     component: () => import('./pages/HR/PhotoHistory.vue'),

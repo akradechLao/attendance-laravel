@@ -8,6 +8,7 @@ use App\Models\Employee;
 use App\Models\EmployeeFaceData;
 use App\Models\OfficeLocation;
 use App\Models\LateForcedLeave;
+use App\Models\AutoOtRecord;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
 use App\Helpers\AttendanceCalculator;
@@ -178,6 +179,11 @@ class FaceController extends Controller
                     $this->createForcedLeaveIfApplicable($employee, $log, $shiftStartDate, $lateMinutes);
                 }
 
+                // ─── ตรวจจับ OT ก่อนเวลา (มาเร็ว ≥ 1 ชม.) ───
+                if ($workStartTime && $employee->has_ot) {
+                    $this->detectBeforeShiftOt($employee, $log, $shiftStartDate, $workStartTime, $now);
+                }
+
                 $locationLabel = $isRemote
                     ? ($remoteLocationName ?: 'ตำแหน่งปัจจุบัน')
                     : ($officeLocation->name ?? 'ออฟฟิศ');
@@ -241,6 +247,12 @@ class FaceController extends Controller
                 }
 
                 $log->update($updateData);
+
+                // ─── ตรวจจับ OT หลังเวลา (กลับช้า ≥ 1 ชม.) ───
+                $shiftInfo = $this->getEmployeeShiftInfo($employee, $now);
+                if ($shiftInfo['shift'] && $employee->has_ot) {
+                    $this->detectAfterShiftOt($employee, $log, $shiftStartDate, $shiftInfo['shift'], $now);
+                }
 
                 $roundLabel = $log->round_no > 1 ? ' (รอบที่ ' . $log->round_no . ')' : '';
 
@@ -573,6 +585,82 @@ class FaceController extends Controller
                 'status' => 'pending',
                 'reason' => 'สายเกิน 30 นาที (' . $lateMinutes . ' นาที) → บังคับลากิจ 1 ชม.',
             ]);
+        }
+    }
+
+    /**
+     * ตรวจจับ OT ก่อนเวลา (มาเร็ว ≥ 1 ชม. ก่อนเวลาเริ่มงาน)
+     */
+    private function detectBeforeShiftOt(
+        Employee $employee,
+        AttendanceLog $log,
+        Carbon $shiftStartDate,
+        Carbon $workStartTime,
+        Carbon $checkInTime
+    ): void {
+        // ตรวจสอบว่ามี auto_ot แล้วหรือยัง
+        $existing = AutoOtRecord::where('emp_id', $employee->id)
+            ->where('date', $shiftStartDate)
+            ->where('ot_type', 'before_shift')
+            ->exists();
+        if ($existing) return;
+
+        // ถ้ามาเร็วกว่าเวลาเริ่มงาน ≥ 60 นาที
+        if ($checkInTime->lt($workStartTime)) {
+            $otMinutes = (int) $checkInTime->diffInMinutes($workStartTime);
+            if ($otMinutes >= 60) {
+                AutoOtRecord::create([
+                    'emp_id' => $employee->id,
+                    'attendance_log_id' => $log->id,
+                    'date' => $shiftStartDate,
+                    'ot_type' => 'before_shift',
+                    'actual_time' => $checkInTime->format('H:i:s'),
+                    'shift_time' => $workStartTime->format('H:i:s'),
+                    'ot_minutes' => $otMinutes,
+                    'status' => 'pending',
+                    'reason' => 'มาเร็วก่อนเวลาเริ่มงาน ' . $otMinutes . ' นาที',
+                ]);
+            }
+        }
+    }
+
+    /**
+     * ตรวจจับ OT หลังเวลา (กลับช้า ≥ 1 ชม. หลังเวลาเลิกงาน)
+     */
+    private function detectAfterShiftOt(
+        Employee $employee,
+        AttendanceLog $log,
+        Carbon $shiftStartDate,
+        \App\Models\WorkShift $shift,
+        Carbon $checkOutTime
+    ): void {
+        $existing = AutoOtRecord::where('emp_id', $employee->id)
+            ->where('date', $shiftStartDate)
+            ->where('ot_type', 'after_shift')
+            ->exists();
+        if ($existing) return;
+
+        $endTime = $shift->end_time instanceof Carbon
+            ? $shift->end_time->format('H:i')
+            : $shift->end_time;
+        $shiftEnd = Carbon::parse($shiftStartDate->toDateString() . ' ' . $endTime);
+
+        // ถ้าเลิกงานช้ากว่าเวลาจบทะ ≥ 60 นาที
+        if ($checkOutTime->gt($shiftEnd)) {
+            $otMinutes = (int) $shiftEnd->diffInMinutes($checkOutTime);
+            if ($otMinutes >= 60) {
+                AutoOtRecord::create([
+                    'emp_id' => $employee->id,
+                    'attendance_log_id' => $log->id,
+                    'date' => $shiftStartDate,
+                    'ot_type' => 'after_shift',
+                    'actual_time' => $checkOutTime->format('H:i:s'),
+                    'shift_time' => $shiftEnd->format('H:i:s'),
+                    'ot_minutes' => $otMinutes,
+                    'status' => 'pending',
+                    'reason' => 'กลับช้าหลังเวลาเลิกงาน ' . $otMinutes . ' นาที',
+                ]);
+            }
         }
     }
 
