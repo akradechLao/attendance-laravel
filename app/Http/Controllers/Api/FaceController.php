@@ -147,11 +147,7 @@ class FaceController extends Controller
                     );
 
                     if ($distance > $officeLocation->radius_meters) {
-                        return response()->json([
-                            'success' => false,
-                            'data' => null,
-                            'message' => 'Outside office location radius.',
-                        ], 400);
+                        Log::warning("GPS outside radius for employee {$employee->id}: distance={$distance}m (radius={$officeLocation->radius_meters}m)");
                     }
                 }
 
