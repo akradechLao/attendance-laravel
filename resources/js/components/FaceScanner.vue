@@ -135,7 +135,6 @@ async function startScan() {
 
   scanning.value = true
   failed.value = false
-  retryCount.value = 0
 
   try {
     const imageData = captureImage()
@@ -179,7 +178,10 @@ async function startScan() {
 }
 
 watch(() => props.triggerScan, (val) => {
-  if (val) startScan()
+  if (val) {
+    retryCount.value = 0
+    startScan()
+  }
 })
 
 onMounted(startCamera)

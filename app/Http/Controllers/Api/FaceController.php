@@ -71,6 +71,7 @@ class FaceController extends Controller
             }
 
             $result = $response->json();
+            Log::info("Face verify result for employee {$employee->id}: matched=" . var_export($result['matched'] ?? false, true) . ", distance=" . ($result['distance'] ?? 'N/A'));
 
             if (!$result['matched'] ?? false) {
                 Log::info("Face verification failed for employee {$employee->id}", $result);
@@ -225,6 +226,8 @@ class FaceController extends Controller
                 $shiftInfo = $this->getEmployeeShiftInfo($employee, $now);
                 $shiftStartDate = $shiftInfo['shift_start_date'];
 
+                Log::info("Face check-out for employee {$employee->id}, shift_start_date={$shiftStartDate}");
+
                 $log = AttendanceLog::where('emp_id', $employee->id)
                     ->whereDate('date', $shiftStartDate)
                     ->whereNull('check_out')
@@ -232,6 +235,7 @@ class FaceController extends Controller
                     ->first();
 
                 if (!$log) {
+                    Log::warning("No open attendance log for employee {$employee->id} on {$shiftStartDate}");
                     return response()->json([
                         'success' => false,
                         'data' => null,
