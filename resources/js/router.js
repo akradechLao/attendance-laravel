@@ -283,6 +283,18 @@ const routes = [
     meta: { requiresAuth: true, layout: 'app' }
   },
   {
+    path: '/ot-summary',
+    name: 'OtSummary',
+    component: () => import('./pages/OtSummary.vue'),
+    meta: { requiresAuth: true, layout: 'app' }
+  },
+  {
+    path: '/permission',
+    name: 'Permission',
+    component: () => import('./pages/Permission.vue'),
+    meta: { requiresAuth: true, layout: 'app' }
+  },
+  {
     path: '/admin/company-settings',
     name: 'CompanySettings',
     component: () => import('./pages/Admin/CompanySettings.vue'),
