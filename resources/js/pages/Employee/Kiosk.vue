@@ -586,7 +586,7 @@ const gpsInRange = computed(() => {
 })
 
 const gpsAccuracyOk = computed(() => {
-  return currentAccuracy.value && currentAccuracy.value <= 100
+  return currentAccuracy.value && currentAccuracy.value <= 300
 })
 
 const gpsReady = computed(() => {
