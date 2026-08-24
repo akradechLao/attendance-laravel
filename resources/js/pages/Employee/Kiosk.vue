@@ -340,6 +340,11 @@
                 {{ Math.round(distanceToOffice) }}ม.
               </span>
             </div>
+            <!-- GPS Debug Info -->
+            <div v-if="currentLatitude && officeLocation" class="mt-1.5 pt-1.5 border-t border-gray-200 text-[10px] text-gray-400 space-y-0.5">
+              <div>📱 GPS: {{ currentLatitude?.toFixed(6) }}, {{ currentLongitude?.toFixed(6) }} (±{{ Math.round(currentAccuracy || 0) }}ม.)</div>
+              <div>🏢 OFFICE: {{ officeLocation?.latitude }}, {{ officeLocation?.longitude }} (±{{ officeLocation?.radius_meters }}ม.)</div>
+            </div>
           </div>
 
           <!-- Camera Area (takes most of the screen) -->
