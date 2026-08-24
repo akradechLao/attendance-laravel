@@ -9,7 +9,7 @@ class SystemSettingsController extends Controller
 {
     public function index(Request $request)
     {
-        $companyId = $request->user()->company_id ?? 1;
+        $companyId = $this->resolveCompanyId($request);
 
         $settings = \App\Models\CompanySetting::where('company_id', $companyId)
             ->pluck('value', 'key')
@@ -20,7 +20,7 @@ class SystemSettingsController extends Controller
 
     public function update(Request $request)
     {
-        $companyId = $request->user()->company_id ?? 1;
+        $companyId = $this->resolveCompanyId($request);
 
         foreach ($request->all() as $key => $value) {
             \App\Models\CompanySetting::setValue($companyId, $key, $value);

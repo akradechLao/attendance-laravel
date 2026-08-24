@@ -2,9 +2,18 @@
   <AppLayout>
     <div class="space-y-6">
       <!-- Header -->
-      <div>
-        <h1 class="text-2xl font-bold text-navy">ตั้งค่า</h1>
-        <p class="text-gray-500">จัดการตำแหน่งสำนักงาน, วันหยุด, และตารางเวร</p>
+      <div class="flex flex-wrap items-center justify-between gap-4">
+        <div>
+          <h1 class="text-2xl font-bold text-navy">ตั้งค่า</h1>
+          <p class="text-gray-500">จัดการข้อมูลบริษัท, ตำแหน่งสำนักงาน, วันหยุด และตารางเวร</p>
+        </div>
+        <!-- Company selector (super admin only) -->
+        <div v-if="isSuperAdmin" class="flex items-center gap-2">
+          <label class="text-sm font-medium text-gray-700">บริษัท:</label>
+          <select v-model="selectedCompanyId" @change="onCompanyChange" class="border rounded-lg px-3 py-2 text-sm">
+            <option v-for="c in companies" :key="c.id" :value="c.id">{{ c.name }}</option>
+          </select>
+        </div>
       </div>
 
       <!-- Tabs -->
@@ -45,59 +54,55 @@
                     @dragover.prevent
                     @drop.prevent="handleLogoDrop"
                   >
-                    <img v-if="companyForm.logoPreview" :src="companyForm.logoPreview" class="w-full h-full object-contain p-2" />
-                    <div v-else class="text-center text-gray-400">
-                      <svg class="w-8 h-8 mx-auto mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                      </svg>
-                      <p class="text-xs">คลิกหรือลากไฟล์มาวาง</p>
+                    <template v-if="companyForm.logoPreview">
+                      <img :src="companyForm.logoPreview" class="w-full h-full object-contain p-2" />
+                      <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <span class="text-white text-sm">เปลี่ยนโลโก้</span>
+                      </div>
+                    </template>
+                    <div v-else class="text-center p-4">
+                      <div class="text-3xl mb-1">📷</div>
+                      <span class="text-xs text-gray-500">อัปโหลดโลโก้</span>
                     </div>
-                    <div class="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center rounded-2xl">
-                      <span class="text-white text-sm font-medium">เปลี่ยนโลโก้</span>
-                    </div>
+                    <input ref="logoInput" type="file" accept="image/*" class="hidden" @change="handleLogoSelect" />
                   </div>
-                  <input ref="logoInput" type="file" accept="image/*" class="hidden" @change="handleLogoSelect" />
-                  <p class="text-xs text-gray-400 mt-2">PNG, JPG, SVG<br/>ขนาดไม่เกิน 2MB</p>
                   <button
                     v-if="companyForm.logoPreview && companyForm.logoId"
-                    type="button"
                     @click="removeLogo"
-                    class="mt-2 text-xs text-red-500 hover:text-red-600"
+                    type="button"
+                    class="mt-2 text-xs text-red-600 hover:text-red-800"
                   >
                     ลบโลโก้
                   </button>
                 </div>
 
                 <!-- Company Fields -->
-                <div class="flex-1 space-y-4">
-                  <div>
+                <div class="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div class="sm:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อบริษัท</label>
-                    <input v-model="companyForm.name" type="text" class="input-field" />
-                  </div>
-                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">เบอร์โทรศัพท์</label>
-                      <input v-model="companyForm.phone" type="tel" class="input-field" placeholder="0XX-XXX-XXXX" />
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">อีเมล</label>
-                      <input v-model="companyForm.email" type="email" class="input-field" placeholder="info@company.com" />
-                    </div>
+                    <input v-model="companyForm.name" type="text" class="input-field w-full" />
                   </div>
                   <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">โทรศัพท์</label>
+                    <input v-model="companyForm.phone" type="tel" class="input-field w-full" placeholder="0XX-XXX-XXXX" />
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">อีเมล</label>
+                    <input v-model="companyForm.email" type="email" class="input-field w-full" placeholder="info@company.com" />
+                  </div>
+                  <div class="sm:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 mb-1">ที่อยู่</label>
-                    <textarea v-model="companyForm.address" class="input-field" rows="2" placeholder="ที่อยู่สำนักงาน"></textarea>
+                    <textarea v-model="companyForm.address" class="input-field w-full" rows="2" placeholder="ที่อยู่สำนักงาน"></textarea>
                   </div>
-                  <div>
+                  <div class="sm:col-span-2">
                     <label class="block text-sm font-medium text-gray-700 mb-1">เว็บไซต์</label>
-                    <input v-model="companyForm.website" type="url" class="input-field" placeholder="https://www.company.com" />
+                    <input v-model="companyForm.website" type="url" class="input-field w-full" placeholder="https://www.company.com" />
                   </div>
                 </div>
               </div>
-
-              <div class="flex justify-end pt-4 border-t">
-                <button type="submit" :disabled="saving" class="btn-primary">
-                  {{ saving ? 'กำลังบันทึก...' : 'บันทึกข้อมูลบริษัท' }}
+              <div class="flex justify-end">
+                <button type="submit" :disabled="saving" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50">
+                  {{ saving ? 'กำลังบันทึก...' : 'บันทึก' }}
                 </button>
               </div>
             </form>
@@ -105,225 +110,202 @@
         </div>
 
         <!-- Office Locations -->
-        <div v-if="activeTab === 'locations'" class="space-y-4">
-          <div class="flex justify-end">
-            <button @click="showLocationModal = true" class="btn-primary">
-              เพิ่มตำแหน่ง
-            </button>
+        <div v-if="activeTab === 'locations'" class="space-y-6">
+          <div class="flex justify-between items-center">
+            <h3 class="text-lg font-semibold text-navy">ตำแหน่งสำนักงาน</h3>
+            <button @click="openLocationModal" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">+ เพิ่มตำแหน่ง</button>
           </div>
-
-          <div v-for="location in locations" :key="location.id" class="card">
-            <div class="flex items-center justify-between">
-              <div>
-                <h3 class="font-semibold text-navy">{{ location.name }}</h3>
-                <p class="text-sm text-gray-500">{{ location.address }}</p>
-                <p class="text-sm text-gray-400 mt-1">
-                 ละติจูด: {{ location.latitude }}, ลองจิจูด: {{ location.longitude }} | รัศมี: {{ location.radius }} เมตร
-                </p>
-              </div>
-              <div class="flex items-center gap-2">
-                <button
-                  @click="editLocation(location)"
-                  class="p-2 text-yellow-500 hover:bg-yellow-50 rounded-lg transition-colors"
-                >
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                </button>
-                <button
-                  @click="deleteLocation(location)"
-                  class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                >
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div v-for="location in locations" :key="location.id" class="card">
+              <h4 class="font-semibold text-navy">{{ location.name }}</h4>
+              <p class="text-sm text-gray-500 mt-1">{{ location.address || 'ไม่มีที่อยู่' }}</p>
+              <p class="text-sm text-gray-500 mt-1">รัศมี: {{ location.radius_meters }} ม.</p>
+              <div class="flex gap-3 mt-3">
+                <button @click="openLocationModal(location)" class="text-blue-600 text-sm hover:underline">แก้ไข</button>
+                <button @click="deleteLocation(location)" class="text-red-600 text-sm hover:underline">ลบ</button>
               </div>
             </div>
           </div>
-
-          <!-- Location Modal -->
-          <Modal :show="showLocationModal" @close="closeLocationModal" title="จัดการตำแหน่งสำนักงาน">
-            <form @submit.prevent="saveLocation" class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อตำแหน่ง</label>
-                <input v-model="locationForm.name" type="text" class="input-field" required />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">ที่อยู่</label>
-                <textarea v-model="locationForm.address" class="input-field" rows="2"></textarea>
-              </div>
-              <div class="grid grid-cols-2 gap-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">ละติจูด</label>
-                  <input v-model="locationForm.latitude" type="number" step="any" class="input-field" />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">ลองจิจูด</label>
-                  <input v-model="locationForm.longitude" type="number" step="any" class="input-field" />
-                </div>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">รัศมี (เมตร)</label>
-                <input v-model="locationForm.radius" type="number" class="input-field" value="100" />
-              </div>
-              <div class="flex justify-end gap-3 pt-4">
-                <button type="button" @click="closeLocationModal" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-                  ยกเลิก
-                </button>
-                <button type="submit" :disabled="saving" class="btn-primary">
-                  {{ saving ? 'กำลังบันทึก...' : 'บันทึก' }}
-                </button>
-              </div>
-            </form>
-          </Modal>
+          <p v-if="!locations.length" class="text-gray-500 text-sm py-8 text-center">ไม่พบตำแหน่งสำนักงาน</p>
         </div>
 
         <!-- Holidays -->
-        <div v-if="activeTab === 'holidays'" class="space-y-4">
-          <div class="flex justify-end">
-            <button @click="showHolidayModal = true" class="btn-primary">
-              เพิ่มวันหยุด
-            </button>
-          </div>
-
-          <div class="card overflow-hidden">
-            <div class="overflow-x-auto">
-              <table class="w-full">
-                <thead>
-                  <tr class="bg-gray-50">
-                    <th class="text-left px-6 py-3 text-sm font-semibold text-gray-600">วันที่</th>
-                    <th class="text-left px-6 py-3 text-sm font-semibold text-gray-600">ชื่อวันหยุด</th>
-                    <th class="text-center px-6 py-3 text-sm font-semibold text-gray-600">การดำเนินการ</th>
-                  </tr>
-                </thead>
-                <tbody class="divide-y divide-gray-100">
-                  <tr v-for="holiday in holidays" :key="holiday.id" class="hover:bg-gray-50">
-                    <td class="px-6 py-4 text-gray-600">{{ formatDate(holiday.date) }}</td>
-                    <td class="px-6 py-4 font-medium text-navy">{{ holiday.name }}</td>
-                    <td class="px-6 py-4 text-center">
-                      <button
-                        @click="deleteHoliday(holiday)"
-                        class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                      >
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                        </svg>
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+        <div v-if="activeTab === 'holidays'" class="space-y-6">
+          <div class="flex flex-wrap justify-between items-center gap-3">
+            <div>
+              <h3 class="text-lg font-semibold text-navy">วันหยุด</h3>
+              <p class="text-sm text-gray-500">จัดการวันหยุดราชการสำหรับบริษัทนี้</p>
+            </div>
+            <div class="flex gap-2">
+              <select v-model="holidayYear" @change="fetchHolidays" class="border rounded-lg px-3 py-2 text-sm">
+                <option v-for="y in yearOptions" :key="y" :value="y">{{ y }}</option>
+              </select>
+              <button @click="openHolidayModal" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">+ เพิ่มวันหยุด</button>
             </div>
           </div>
-
-          <!-- Holiday Modal -->
-          <Modal :show="showHolidayModal" @close="showHolidayModal = false" title="เพิ่มวันหยุด">
-            <form @submit.prevent="saveHoliday" class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">วันที่</label>
-                <input v-model="holidayForm.date" type="date" class="input-field" required />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อวันหยุด</label>
-                <input v-model="holidayForm.name" type="text" class="input-field" required />
-              </div>
-              <div class="flex justify-end gap-3 pt-4">
-                <button type="button" @click="showHolidayModal = false" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-                  ยกเลิก
-                </button>
-                <button type="submit" :disabled="saving" class="btn-primary">
-                  {{ saving ? 'กำลังบันทึก...' : 'บันทึก' }}
-                </button>
-              </div>
-            </form>
-          </Modal>
+          <table class="w-full bg-white rounded-xl shadow-sm border text-sm">
+            <thead class="bg-gray-50 text-gray-500 uppercase text-xs">
+              <tr>
+                <th class="px-6 py-3 text-left">วันที่</th>
+                <th class="px-6 py-3 text-left">ชื่อวันหยุด</th>
+                <th class="px-6 py-3 text-left">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+              <tr v-for="h in holidays" :key="h.id">
+                <td class="px-6 py-3">{{ formatDate(h.date) }}</td>
+                <td class="px-6 py-3">{{ h.name }}</td>
+                <td class="px-6 py-3">
+                  <button @click="deleteHoliday(h)" class="text-red-600 text-sm hover:underline">ลบ</button>
+                </td>
+              </tr>
+              <tr v-if="!holidays.length"><td colspan="3" class="px-6 py-8 text-center text-gray-500">ไม่พบวันหยุด</td></tr>
+            </tbody>
+          </table>
         </div>
 
         <!-- Shifts -->
-        <div v-if="activeTab === 'shifts'" class="space-y-4">
-          <div class="flex justify-end">
-            <button @click="showShiftModal = true" class="btn-primary">
-              เพิ่มตารางเวร
-            </button>
-          </div>
-
-          <div v-for="shift in shifts" :key="shift.id" class="card">
-            <div class="flex items-center justify-between">
-              <div>
-                <h3 class="font-semibold text-navy">{{ shift.name }}</h3>
-                <p class="text-sm text-gray-500">
-                  {{ shift.start_time }} - {{ shift.end_time }} | หยุด: {{ shift.days_off }}
-                </p>
-              </div>
-              <div class="flex items-center gap-2">
-                <button
-                  @click="editShift(shift)"
-                  class="p-2 text-yellow-500 hover:bg-yellow-50 rounded-lg transition-colors"
-                >
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                </button>
-                <button
-                  @click="deleteShift(shift)"
-                  class="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                >
-                  <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                  </svg>
-                </button>
-              </div>
+        <div v-if="activeTab === 'shifts'" class="space-y-6">
+          <div class="flex flex-wrap justify-between items-center gap-3">
+            <div>
+              <h3 class="text-lg font-semibold text-navy">ตารางเวร</h3>
+              <p class="text-sm text-gray-500">กำหนดกะรายวันให้พนักงาน (หัวหน้าดำเนินการมอบหมาย)</p>
+            </div>
+            <div class="flex gap-2">
+              <input type="month" v-model="shiftMonth" @change="fetchShifts" class="border rounded-lg px-3 py-2 text-sm" />
+              <button @click="openShiftModal" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">+ เพิ่มกะ</button>
             </div>
           </div>
-
-          <!-- Shift Modal -->
-          <Modal :show="showShiftModal" @close="closeShiftModal" title="จัดการตารางเวร">
-            <form @submit.prevent="saveShift" class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อเวร</label>
-                <input v-model="shiftForm.name" type="text" class="input-field" required />
-              </div>
-              <div class="grid grid-cols-2 gap-4">
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">เวลาเข้า</label>
-                  <input v-model="shiftForm.start_time" type="time" class="input-field" required />
-                </div>
-                <div>
-                  <label class="block text-sm font-medium text-gray-700 mb-1">เวลาออก</label>
-                  <input v-model="shiftForm.end_time" type="time" class="input-field" required />
-                </div>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">วันหยุด</label>
-                <input v-model="shiftForm.days_off" type="text" class="input-field" placeholder="เช่น เสาร์-อาทิตย์" />
-              </div>
-              <div class="flex justify-end gap-3 pt-4">
-                <button type="button" @click="closeShiftModal" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
-                  ยกเลิก
-                </button>
-                <button type="submit" :disabled="saving" class="btn-primary">
-                  {{ saving ? 'กำลังบันทึก...' : 'บันทึก' }}
-                </button>
-              </div>
-            </form>
-          </Modal>
+          <table class="w-full bg-white rounded-xl shadow-sm border text-sm">
+            <thead class="bg-gray-50 text-gray-500 uppercase text-xs">
+              <tr>
+                <th class="px-6 py-3 text-left">พนักงาน</th>
+                <th class="px-6 py-3 text-left">วันที่</th>
+                <th class="px-6 py-3 text-left">เวลา</th>
+                <th class="px-6 py-3 text-left">รหัสกะ</th>
+                <th class="px-6 py-3 text-left">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+              <tr v-for="s in shifts" :key="s.id">
+                <td class="px-6 py-3">{{ s.employee?.name || '-' }}</td>
+                <td class="px-6 py-3">{{ formatDate(s.date) }}</td>
+                <td class="px-6 py-3">{{ s.start_time }} - {{ s.end_time }}</td>
+                <td class="px-6 py-3">{{ s.shift_code }}</td>
+                <td class="px-6 py-3">
+                  <button @click="deleteShift(s)" class="text-red-600 text-sm hover:underline">ลบ</button>
+                </td>
+              </tr>
+              <tr v-if="!shifts.length"><td colspan="5" class="px-6 py-8 text-center text-gray-500">ไม่พบตารางเวร</td></tr>
+            </tbody>
+          </table>
         </div>
       </template>
     </div>
+
+    <!-- Location Modal -->
+    <Modal :show="showLocationModal" :title="editLocationId ? 'แก้ไขตำแหน่งสำนักงาน' : 'เพิ่มตำแหน่งสำนักงาน'" @close="closeLocationModal">
+      <form @submit.prevent="saveLocation" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อ</label>
+          <input v-model="locationForm.name" required class="input-field w-full" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">ที่อยู่</label>
+          <textarea v-model="locationForm.address" class="input-field w-full" rows="2"></textarea>
+        </div>
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">ละติจูด</label>
+            <input v-model="locationForm.latitude" type="number" step="any" class="input-field w-full" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">ลองจิจูด</label>
+            <input v-model="locationForm.longitude" type="number" step="any" class="input-field w-full" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">รัศมี (ม.)</label>
+            <input v-model="locationForm.radius" type="number" class="input-field w-full" />
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" @click="closeLocationModal" class="px-4 py-2 border rounded-lg">ยกเลิก</button>
+          <button type="submit" :disabled="saving" class="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50">{{ saving ? 'กำลังบันทึก...' : 'บันทึก' }}</button>
+        </div>
+      </form>
+    </Modal>
+
+    <!-- Holiday Modal -->
+    <Modal :show="showHolidayModal" title="เพิ่มวันหยุด" @close="closeHolidayModal">
+      <form @submit.prevent="saveHoliday" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อวันหยุด</label>
+          <input v-model="holidayForm.name" required class="input-field w-full" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">วันที่</label>
+          <input v-model="holidayForm.date" type="date" required class="input-field w-full" />
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" @click="closeHolidayModal" class="px-4 py-2 border rounded-lg">ยกเลิก</button>
+          <button type="submit" :disabled="saving" class="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50">{{ saving ? 'กำลังบันทึก...' : 'บันทึก' }}</button>
+        </div>
+      </form>
+    </Modal>
+
+    <!-- Shift Modal -->
+    <Modal :show="showShiftModal" title="เพิ่มกะ" @close="closeShiftModal">
+      <form @submit.prevent="saveShift" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">พนักงาน</label>
+          <select v-model="shiftForm.emp_id" required class="input-field w-full">
+            <option value="" disabled>เลือกพนักงาน</option>
+            <option v-for="e in employees" :key="e.id" :value="e.id">{{ e.name }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">วันที่</label>
+          <input v-model="shiftForm.date" type="date" required class="input-field w-full" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">เวลาเริ่ม</label>
+            <input v-model="shiftForm.start_time" type="time" required class="input-field w-full" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">เวลาจบ</label>
+            <input v-model="shiftForm.end_time" type="time" required class="input-field w-full" />
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">รหัสกะ</label>
+          <select v-model="shiftForm.shift_code" required class="input-field w-full">
+            <option value="Full Day">Full Day</option>
+            <option value="Morning">Morning</option>
+            <option value="Afternoon">Afternoon</option>
+            <option value="Night">Night</option>
+          </select>
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" @click="closeShiftModal" class="px-4 py-2 border rounded-lg">ยกเลิก</button>
+          <button type="submit" :disabled="saving" class="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50">{{ saving ? 'กำลังบันทึก...' : 'บันทึก' }}</button>
+        </div>
+      </form>
+    </Modal>
   </AppLayout>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import api from '../../services/api'
+import store from '../../store'
 import AppLayout from '../../layouts/AppLayout.vue'
 import LoadingSpinner from '../../components/LoadingSpinner.vue'
 import Modal from '../../components/Modal.vue'
 
 const loading = ref(true)
 const saving = ref(false)
-const activeTab = ref('locations')
+const activeTab = ref('company')
 
 const tabs = [
   { key: 'company', label: 'ข้อมูลบริษัท' },
@@ -335,56 +317,63 @@ const tabs = [
 const locations = ref([])
 const holidays = ref([])
 const shifts = ref([])
+const employees = ref([])
+const companies = ref([])
+const selectedCompanyId = ref(null)
+const holidayYear = ref(new Date().getFullYear())
+const shiftMonth = ref(new Date().toISOString().slice(0, 7))
+const isSuperAdmin = computed(() => {
+  const uid = storeUser.value.company_id ?? 0
+  return !uid
+})
+
+const storeUser = computed(() => store.user || {})
 
 const showLocationModal = ref(false)
 const showHolidayModal = ref(false)
 const showShiftModal = ref(false)
 
 const editLocationId = ref(null)
-const editShiftId = ref(null)
 
-const locationForm = reactive({
-  name: '',
-  address: '',
-  latitude: '',
-  longitude: '',
-  radius: 100
+const locationForm = reactive({ name: '', address: '', latitude: '', longitude: '', radius: 100 })
+const companyForm = reactive({ name: '', phone: '', email: '', address: '', website: '', logoPreview: null, logoFile: null, logoId: null })
+const holidayForm = reactive({ date: '', name: '' })
+const shiftForm = reactive({ emp_id: '', date: '', start_time: '08:00', end_time: '17:00', shift_code: 'Full Day' })
+
+const yearOptions = computed(() => {
+  const y = new Date().getFullYear()
+  return [y - 1, y, y + 1, y + 2]
 })
 
-const companyForm = reactive({
-  name: '',
-  phone: '',
-  email: '',
-  address: '',
-  website: '',
-  logoPreview: null,
-  logoFile: null,
-  logoId: null,
-})
+function formatDate(d) {
+  if (!d) return ''
+  const parts = String(d).split('-')
+  return parts.length === 3 ? parts[2] + '/' + parts[1] + '/' + parts[0] : d
+}
 
-const holidayForm = reactive({
-  date: '',
-  name: ''
-})
+function companyParams(extra = {}) {
+  const params = { ...extra }
+  if (isSuperAdmin.value && selectedCompanyId.value) params.company_id = selectedCompanyId.value
+  return params
+}
 
-const shiftForm = reactive({
-  name: '',
-  start_time: '',
-  end_time: '',
-  days_off: ''
-})
-
-function formatDate(dateStr) {
-  return new Date(dateStr).toLocaleDateString('th-TH', {
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric'
-  })
+async function loadCompanies() {
+  try {
+    const res = await api.get('/api/companies')
+    companies.value = res.data.data?.data || res.data.data || []
+    if (isSuperAdmin.value) {
+      if (companies.value.length) selectedCompanyId.value = companies.value[0].id
+    } else {
+      selectedCompanyId.value = storeUser.value.company_id || companies.value[0]?.id || null
+    }
+  } catch (e) {
+    console.error('Error loading companies:', e)
+  }
 }
 
 async function fetchLocations() {
   try {
-    const response = await api.get('/api/settings/locations')
+    const response = await api.get('/api/office-locations', { params: companyParams() })
     locations.value = response.data.data?.data || response.data.data || []
   } catch (error) {
     console.error('Error fetching locations:', error)
@@ -393,7 +382,7 @@ async function fetchLocations() {
 
 async function fetchCompany() {
   try {
-    const response = await api.get('/api/company-settings')
+    const response = await api.get('/api/company-settings', { params: companyParams() })
     const company = response.data.company || {}
     companyForm.name = company.name || ''
     companyForm.phone = company.phone || ''
@@ -405,6 +394,39 @@ async function fetchCompany() {
   } catch (error) {
     console.error('Error fetching company:', error)
   }
+}
+
+async function fetchHolidays() {
+  try {
+    const response = await api.get('/api/holidays', { params: companyParams({ year: holidayYear.value }) })
+    holidays.value = response.data.data?.data || response.data.data || []
+  } catch (error) {
+    console.error('Error fetching holidays:', error)
+  }
+}
+
+async function fetchShifts() {
+  try {
+    const response = await api.get('/api/shift-schedules', { params: companyParams({ month: shiftMonth.value }) })
+    shifts.value = response.data.data?.data || response.data.data || []
+  } catch (error) {
+    console.error('Error fetching shifts:', error)
+  }
+}
+
+async function fetchEmployees() {
+  try {
+    const response = await api.get('/api/employees', { params: companyParams({ per_page: 500 }) })
+    employees.value = response.data.data?.data || response.data.data || []
+  } catch (error) {
+    console.error('Error fetching employees:', error)
+  }
+}
+
+async function onCompanyChange() {
+  loading.value = true
+  await Promise.all([fetchCompany(), fetchLocations(), fetchHolidays(), fetchShifts(), fetchEmployees()])
+  loading.value = false
 }
 
 function handleLogoSelect(event) {
@@ -428,7 +450,7 @@ function processLogoFile(file) {
 
 async function removeLogo() {
   try {
-    await api.delete('/api/company-settings/logo')
+    await api.delete('/api/company-settings/logo', { params: companyParams() })
     companyForm.logoPreview = null
     companyForm.logoFile = null
     companyForm.logoId = null
@@ -440,18 +462,19 @@ async function removeLogo() {
 async function saveCompanyInfo() {
   saving.value = true
   try {
-    await api.put('/api/company-settings', {
+    await api.put('/api/company-settings', companyParams({
       name: companyForm.name,
       phone: companyForm.phone,
       email: companyForm.email,
       address: companyForm.address,
       website: companyForm.website,
-    })
+    }))
 
     if (companyForm.logoFile) {
       const formData = new FormData()
       formData.append('logo', companyForm.logoFile)
       const logoRes = await api.post('/api/company-settings/logo', formData, {
+        params: companyParams(),
         headers: { 'Content-Type': 'multipart/form-data' }
       })
       companyForm.logoPreview = logoRes.data.logo_url
@@ -467,32 +490,14 @@ async function saveCompanyInfo() {
   }
 }
 
-async function fetchHolidays() {
-  try {
-    const response = await api.get('/api/settings/holidays')
-    holidays.value = response.data.data?.data || response.data.data || []
-  } catch (error) {
-    console.error('Error fetching holidays:', error)
-  }
-}
-
-async function fetchShifts() {
-  try {
-    const response = await api.get('/api/settings/shifts')
-    shifts.value = response.data.data?.data || response.data.data || []
-  } catch (error) {
-    console.error('Error fetching shifts:', error)
-  }
-}
-
-function editLocation(location) {
-  editLocationId.value = location.id
+function openLocationModal(location) {
+  editLocationId.value = location?.id || null
   Object.assign(locationForm, {
-    name: location.name,
-    address: location.address,
-    latitude: location.latitude,
-    longitude: location.longitude,
-    radius: location.radius
+    name: location?.name || '',
+    address: location?.address || '',
+    latitude: location?.latitude || '',
+    longitude: location?.longitude || '',
+    radius: location?.radius_meters ?? 100
   })
   showLocationModal.value = true
 }
@@ -506,10 +511,17 @@ function closeLocationModal() {
 async function saveLocation() {
   saving.value = true
   try {
+    const payload = companyParams({
+      name: locationForm.name,
+      address: locationForm.address,
+      latitude: locationForm.latitude,
+      longitude: locationForm.longitude,
+      radius_meters: locationForm.radius,
+    })
     if (editLocationId.value) {
-      await api.put(`/api/settings/locations/${editLocationId.value}`, locationForm)
+      await api.put(`/api/office-locations/${editLocationId.value}`, payload)
     } else {
-      await api.post('/api/settings/locations', locationForm)
+      await api.post('/api/office-locations', payload)
     }
     closeLocationModal()
     fetchLocations()
@@ -524,19 +536,31 @@ async function saveLocation() {
 async function deleteLocation(location) {
   if (!confirm(`ยืนยันการลบ "${location.name}"?`)) return
   try {
-    await api.delete(`/api/settings/locations/${location.id}`)
+    await api.delete(`/api/office-locations/${location.id}`)
     fetchLocations()
   } catch (error) {
     console.error('Error deleting location:', error)
   }
 }
 
+function openHolidayModal() {
+  Object.assign(holidayForm, { date: '', name: '' })
+  showHolidayModal.value = true
+}
+
+function closeHolidayModal() {
+  showHolidayModal.value = false
+  Object.assign(holidayForm, { date: '', name: '' })
+}
+
 async function saveHoliday() {
   saving.value = true
   try {
-    await api.post('/api/settings/holidays', holidayForm)
-    showHolidayModal.value = false
-    Object.assign(holidayForm, { date: '', name: '' })
+    await api.post('/api/holidays', companyParams({
+      name: holidayForm.name,
+      date: holidayForm.date,
+    }))
+    closeHolidayModal()
     fetchHolidays()
   } catch (error) {
     console.error('Error saving holiday:', error)
@@ -549,38 +573,33 @@ async function saveHoliday() {
 async function deleteHoliday(holiday) {
   if (!confirm(`ยืนยันการลบ "${holiday.name}"?`)) return
   try {
-    await api.delete(`/api/settings/holidays/${holiday.id}`)
+    await api.delete(`/api/holidays/${holiday.id}`)
     fetchHolidays()
   } catch (error) {
     console.error('Error deleting holiday:', error)
   }
 }
 
-function editShift(shift) {
-  editShiftId.value = shift.id
-  Object.assign(shiftForm, {
-    name: shift.name,
-    start_time: shift.start_time,
-    end_time: shift.end_time,
-    days_off: shift.days_off
-  })
+function openShiftModal() {
+  Object.assign(shiftForm, { emp_id: '', date: '', start_time: '08:00', end_time: '17:00', shift_code: 'Full Day' })
   showShiftModal.value = true
 }
 
 function closeShiftModal() {
   showShiftModal.value = false
-  editShiftId.value = null
-  Object.assign(shiftForm, { name: '', start_time: '', end_time: '', days_off: '' })
+  Object.assign(shiftForm, { emp_id: '', date: '', start_time: '08:00', end_time: '17:00', shift_code: 'Full Day' })
 }
 
 async function saveShift() {
   saving.value = true
   try {
-    if (editShiftId.value) {
-      await api.put(`/api/settings/shifts/${editShiftId.value}`, shiftForm)
-    } else {
-      await api.post('/api/settings/shifts', shiftForm)
-    }
+    await api.post('/api/shift-schedules', companyParams({
+      emp_id: shiftForm.emp_id,
+      date: shiftForm.date,
+      start_time: shiftForm.start_time,
+      end_time: shiftForm.end_time,
+      shift_code: shiftForm.shift_code,
+    }))
     closeShiftModal()
     fetchShifts()
   } catch (error) {
@@ -592,9 +611,9 @@ async function saveShift() {
 }
 
 async function deleteShift(shift) {
-  if (!confirm(`ยืนยันการลบ "${shift.name}"?`)) return
+  if (!confirm(`ยืนยันการลบกะวันที่ ${formatDate(shift.date)}?`)) return
   try {
-    await api.delete(`/api/settings/shifts/${shift.id}`)
+    await api.delete(`/api/shift-schedules/${shift.id}`)
     fetchShifts()
   } catch (error) {
     console.error('Error deleting shift:', error)
@@ -602,7 +621,8 @@ async function deleteShift(shift) {
 }
 
 onMounted(async () => {
-  await Promise.all([fetchCompany(), fetchLocations(), fetchHolidays(), fetchShifts()])
+  await loadCompanies()
+  await Promise.all([fetchCompany(), fetchLocations(), fetchHolidays(), fetchShifts(), fetchEmployees()])
   loading.value = false
 })
 </script>

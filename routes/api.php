@@ -182,6 +182,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/holidays', [HolidayController::class, 'index']);
     Route::post('/holidays', [HolidayController::class, 'store']);
     Route::delete('/holidays/{id}', [HolidayController::class, 'destroy']);
+    Route::put('/holidays/{id}', [HolidayController::class, 'update']);
+    Route::post('/holidays/import-official', [HolidayController::class, 'importOfficial']);
 
     // Shift Management
     Route::get('/shift-schedules', [ShiftController::class, 'index']);

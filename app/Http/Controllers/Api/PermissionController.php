@@ -12,7 +12,7 @@ class PermissionController extends Controller
 {
     public function index(Request $request)
     {
-        $employees = Employee::where('company_id', $request->user()->company_id ?? 1)
+        $employees = Employee::where('company_id', $this->resolveCompanyId($request))
             ->select('id', 'employee_code', 'name', 'nickname', 'position', 'role', 'is_active', 'department', 'division')
             ->orderBy('employee_code')
             ->get();

@@ -13,7 +13,7 @@ class CompanySettingsController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $companyId = $request->user()->company_id ?? 1;
+        $companyId = $this->resolveCompanyId($request);
         $company = Company::findOrFail($companyId);
 
         $settings = CompanySetting::where('company_id', $companyId)
@@ -28,7 +28,7 @@ class CompanySettingsController extends Controller
 
     public function update(Request $request): JsonResponse
     {
-        $companyId = $request->user()->company_id ?? 1;
+        $companyId = $this->resolveCompanyId($request);
         $company = Company::findOrFail($companyId);
 
         $companyFields = ['name', 'phone', 'email', 'address', 'website'];
@@ -50,7 +50,7 @@ class CompanySettingsController extends Controller
             'logo' => 'required|image|mimes:jpeg,png,jpg,svg,webp|max:2048',
         ]);
 
-        $companyId = $request->user()->company_id ?? 1;
+        $companyId = $this->resolveCompanyId($request);
         $company = Company::findOrFail($companyId);
 
         if ($company->logo) {
@@ -71,7 +71,7 @@ class CompanySettingsController extends Controller
 
     public function destroyLogo(Request $request): JsonResponse
     {
-        $companyId = $request->user()->company_id ?? 1;
+        $companyId = $this->resolveCompanyId($request);
         $company = Company::findOrFail($companyId);
 
         if ($company->logo) {

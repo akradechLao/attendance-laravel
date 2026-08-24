@@ -16,7 +16,7 @@ class CompanyHoliday extends Model
     ];
 
     protected $casts = [
-        'date' => 'date',
+        'date' => 'date:Y-m-d',
         'year' => 'integer',
     ];
 
