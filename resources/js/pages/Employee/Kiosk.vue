@@ -323,6 +323,31 @@
             <input v-model="customLocationName" type="text" inputmode="text" class="input-field text-base" placeholder="เช่น โรงแรมABC, สำนักงานลูกค้า" />
           </div>
 
+          <!-- Map + GPS Status for office scan -->
+          <div v-if="scanType === 'office_scan' && officeLocation" class="mb-3">
+            <!-- GPS Status Bar -->
+            <div class="flex items-center justify-between bg-white rounded-xl p-2.5 shadow-sm border border-gray-100 mb-2">
+              <div class="flex items-center gap-2">
+                <div v-if="gpsStatus === 'acquiring'" class="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse"></div>
+                <div v-else-if="gpsStatus === 'found' && gpsReady" class="w-2.5 h-2.5 rounded-full bg-green-500"></div>
+                <div v-else-if="gpsStatus === 'found' && !gpsReady" class="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></div>
+                <div v-else class="w-2.5 h-2.5 rounded-full bg-gray-400"></div>
+                <span class="text-xs font-medium text-gray-600">
+                  <template v-if="gpsStatus === 'acquiring'">กำลังระบุตำแหน่ง...</template>
+                  <template v-else-if="gpsStatus === 'found' && distanceToOffice !== null">
+                    ห่าง {{ Math.round(distanceToOffice) }} เมตร
+                    <span v-if="gpsReady" class="text-green-600 ml-1">(อยู่ในรัศมี)</span>
+                    <span v-else class="text-red-600 ml-1">(เกินรัศมี)</span>
+                  </template>
+                  <template v-else-if="gpsStatus === 'error'">ไม่สามารถระบุตำแหน่งได้</template>
+                </span>
+              </div>
+              <span class="text-[10px] text-gray-400">รัศมี {{ officeLocation.radius_meters }}ม.</span>
+            </div>
+            <!-- Map -->
+            <div ref="mapContainer" class="w-full h-36 rounded-xl overflow-hidden shadow-sm border border-gray-200"></div>
+          </div>
+
           <!-- Camera Area (takes most of the screen) -->
           <div class="relative mb-4">
             <FaceScanner
@@ -330,6 +355,8 @@
               :scan-type="scanType"
               :scan-mode="scanMode"
               :trigger-scan="triggerScan"
+              :current-latitude="currentLatitude"
+              :current-longitude="currentLongitude"
               @verified="handleVerified"
               @failed="handleFailed"
               @error="handleError"
@@ -339,6 +366,20 @@
           <!-- Scan Button -->
           <div v-if="!triggerScan" class="mb-3">
             <button
+              v-if="scanType === 'office_scan' && officeLocation"
+              @click="triggerScan = true"
+              :disabled="!gpsReady"
+              :class="gpsReady
+                ? 'from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-lg cursor-pointer'
+                : 'from-gray-300 to-gray-400 cursor-not-allowed shadow-none'"
+              class="w-full py-4 rounded-xl bg-gradient-to-r text-white font-bold text-lg active:scale-95 transition-all touch-target"
+            >
+              {{ gpsReady
+                ? (scanMode === 'check_in' ? 'สแกนใบหน้าเช็คอิน' : 'สแกนใบหน้าเช็คเอาท์')
+                : 'กรุณาเข้าใกล้สถานที่เช็คอิน' }}
+            </button>
+            <button
+              v-else
               @click="triggerScan = true"
               class="w-full py-4 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold text-lg shadow-lg active:scale-95 transition-all touch-target"
             >
@@ -460,13 +501,25 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import axios from 'axios'
 import { useRouter } from 'vue-router'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
+import markerIcon from 'leaflet/dist/images/marker-icon.png'
+import markerShadow from 'leaflet/dist/images/marker-shadow.png'
 import LoadingSpinner from '../../components/LoadingSpinner.vue'
 import FaceScanner from '../../components/FaceScanner.vue'
 import Camera from '../../components/Camera.vue'
 import { setCurrentUser, setToken } from '../../store'
+
+delete L.Icon.Default.prototype._getIconUrl
+L.Icon.Default.mergeOptions({
+  iconUrl: markerIcon,
+  iconRetinaUrl: markerIcon2x,
+  shadowUrl: markerShadow,
+})
 
 const router = useRouter()
 
@@ -486,6 +539,22 @@ const currentTime = ref('--:--:--')
 const currentDate = ref('')
 const serverTimeStr = ref(null)
 const fetchTimeLocal = ref(Date.now())
+
+const mapContainer = ref(null)
+let map = null
+let officeMarker = null
+let userMarker = null
+let radiusCircle = null
+const officeLocation = ref(null)
+const currentLatitude = ref(null)
+const currentLongitude = ref(null)
+const currentAccuracy = ref(null)
+const distanceToOffice = ref(null)
+const gpsStatus = ref('acquiring')
+const gpsReady = computed(() => {
+  if (!officeLocation.value || distanceToOffice.value === null) return false
+  return distanceToOffice.value <= officeLocation.value.radius_meters
+})
 
 const faceRegCameraRef = ref(null)
 const faceRegCapturing = ref(false)
@@ -565,6 +634,14 @@ onMounted(async () => {
   await fetchCompanies()
 })
 
+onUnmounted(() => {
+  if (gpsWatchId !== null) {
+    navigator.geolocation.clearWatch(gpsWatchId)
+    gpsWatchId = null
+  }
+  if (map) { map.remove(); map = null }
+})
+
 async function fetchCompanies() {
   try {
     const response = await axios.get('/api/companies')
@@ -581,6 +658,112 @@ async function fetchCompanies() {
       { id: 1, name: 'NTC', code_prefix: 'NTC' }
     ]
   }
+}
+
+function calculateDistance(lat1, lon1, lat2, lon2) {
+  const R = 6371000
+  const dLat = (lat2 - lat1) * Math.PI / 180
+  const dLon = (lon2 - lon1) * Math.PI / 180
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon/2) * Math.sin(dLon/2)
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+}
+
+async function fetchOfficeLocation(employeeId) {
+  try {
+    const res = await axios.get('/api/employee/' + employeeId + '/office-location')
+    officeLocation.value = res.data.data
+  } catch { officeLocation.value = null }
+}
+
+function initMap() {
+  if (!mapContainer.value) return
+  if (map) { map.remove(); map = null; officeMarker = null; userMarker = null; radiusCircle = null }
+
+  const lat = officeLocation.value?.latitude || 13.7563
+  const lng = officeLocation.value?.longitude || 100.5018
+  map = L.map(mapContainer.value, { zoomControl: false, attributionControl: false }).setView([lat, lng], 16)
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap',
+  }).addTo(map)
+
+  if (officeLocation.value) {
+    officeMarker = L.marker([officeLocation.value.latitude, officeLocation.value.longitude]).addTo(map)
+      .bindPopup('🏢 ' + officeLocation.value.name)
+    radiusCircle = L.circle([officeLocation.value.latitude, officeLocation.value.longitude], {
+      radius: officeLocation.value.radius_meters,
+      color: '#3b82f6',
+      fillColor: '#3b82f6',
+      fillOpacity: 0.1,
+      weight: 2,
+    }).addTo(map)
+  }
+
+  if (currentLatitude.value && currentLongitude.value) {
+    updateUserMarker()
+    map.fitBounds([[currentLatitude.value, currentLongitude.value], [officeLocation.value.latitude, officeLocation.value.longitude]])
+  }
+}
+
+function updateUserMarker() {
+  if (!map || !currentLatitude.value || !currentLongitude.value) return
+  if (userMarker) { map.removeLayer(userMarker) }
+  userMarker = L.circleMarker([currentLatitude.value, currentLongitude.value], {
+    radius: 8,
+    color: '#2563eb',
+    fillColor: '#3b82f6',
+    fillOpacity: 1,
+    weight: 3,
+  }).addTo(map).bindPopup('📱 คุณอยู่ที่นี่')
+}
+
+function getCurrentPosition() {
+  if (!navigator.geolocation) { gpsStatus.value = 'error'; return }
+  gpsStatus.value = 'acquiring'
+  navigator.geolocation.getCurrentPosition(
+    (pos) => {
+      currentLatitude.value = pos.coords.latitude
+      currentLongitude.value = pos.coords.longitude
+      currentAccuracy.value = pos.coords.accuracy
+      gpsStatus.value = 'found'
+      if (officeLocation.value) {
+        distanceToOffice.value = calculateDistance(
+          pos.coords.latitude, pos.coords.longitude,
+          officeLocation.value.latitude, officeLocation.value.longitude
+        )
+      }
+      updateUserMarker()
+      if (map && officeLocation.value) {
+        map.fitBounds([[pos.coords.latitude, pos.coords.longitude], [officeLocation.value.latitude, officeLocation.value.longitude]])
+      }
+    },
+    (err) => { gpsStatus.value = 'error'; console.error('GPS error:', err) },
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
+  )
+}
+
+let gpsWatchId = null
+function startGpsWatch() {
+  if (!navigator.geolocation) return
+  gpsWatchId = navigator.geolocation.watchPosition(
+    (pos) => {
+      currentLatitude.value = pos.coords.latitude
+      currentLongitude.value = pos.coords.longitude
+      currentAccuracy.value = pos.coords.accuracy
+      gpsStatus.value = 'found'
+      if (officeLocation.value) {
+        distanceToOffice.value = calculateDistance(
+          pos.coords.latitude, pos.coords.longitude,
+          officeLocation.value.latitude, officeLocation.value.longitude
+        )
+      }
+      updateUserMarker()
+    },
+    () => {},
+    { enableHighAccuracy: true, timeout: 10000, maximumAge: 5000 }
+  )
 }
 
 function selectCompany(company) {
@@ -709,16 +892,33 @@ async function selectEmployee(employee) {
     } else {
       scanType.value = 'office_scan'
       step.value = 3
+      await fetchOfficeLocation(employee.id)
+      await nextTick()
+      initMap()
+      getCurrentPosition()
+      startGpsWatch()
     }
   } catch {
     scanType.value = 'office_scan'
     step.value = 3
+    await fetchOfficeLocation(employee.id)
+    await nextTick()
+    initMap()
+    getCurrentPosition()
+    startGpsWatch()
   }
 }
 
 function startOfficeScan() {
   scanType.value = 'office_scan'
   step.value = 3
+  fetchOfficeLocation(selectedEmployee.value?.id).then(() => {
+    nextTick(() => {
+      initMap()
+      getCurrentPosition()
+      startGpsWatch()
+    })
+  })
 }
 
 function startRemoteScan() {
@@ -860,5 +1060,16 @@ function reset() {
   faceRegAllDone.value = false
   faceRegEncodings.value = []
   faceRegCurrentPosition.value = 0
+  currentLatitude.value = null
+  currentLongitude.value = null
+  currentAccuracy.value = null
+  distanceToOffice.value = null
+  gpsStatus.value = 'acquiring'
+  officeLocation.value = null
+  if (gpsWatchId !== null) {
+    navigator.geolocation.clearWatch(gpsWatchId)
+    gpsWatchId = null
+  }
+  if (map) { map.remove(); map = null; officeMarker = null; userMarker = null; radiusCircle = null }
 }
 </script>

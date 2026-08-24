@@ -147,7 +147,10 @@ class FaceController extends Controller
                     );
 
                     if ($distance > $officeLocation->radius_meters) {
-                        Log::warning("GPS outside radius for employee {$employee->id}: distance={$distance}m (radius={$officeLocation->radius_meters}m)");
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'คุณอยู่นอกพื้นที่เช็คอิน (ห่าง ' . round($distance) . ' เมตร กรุณาเข้าใกล้สถานที่เช็คอินให้อยู่ในรัศมี ' . $officeLocation->radius_meters . ' เมตร)',
+                        ], 400);
                     }
                 }
 
