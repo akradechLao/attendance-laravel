@@ -32,4 +32,30 @@ class EmployeeHistoryController extends Controller
             ]
         ]);
     }
+
+    public function myHistory(Request $request)
+    {
+        $employee = $request->user()->employee;
+        if (!$employee) {
+            return response()->json(['success' => false, 'message' => 'Employee not found'], 404);
+        }
+
+        $attendance = AttendanceLog::where('emp_id', $employee->id)
+            ->orderBy('date', 'desc')
+            ->limit($request->get('limit', 30))
+            ->get()
+            ->map(fn($log) => [
+                'id' => $log->id,
+                'date' => $log->date,
+                'check_in' => $log->check_in,
+                'check_out' => $log->check_out,
+                'status' => $log->check_in_status,
+                'note' => $log->note,
+            ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $attendance,
+        ]);
+    }
 }

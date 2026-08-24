@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\Leave;
+use App\Models\LeaveRequest;
 use App\Models\LeaveType;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -13,7 +13,7 @@ class LeaveController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            $leaves = Leave::with(['employee', 'type'])
+            $leaves = LeaveRequest::with(['employee', 'leaveType'])
                 ->orderBy('created_at', 'desc')
                 ->paginate($request->get('per_page', 15));
 
@@ -44,11 +44,11 @@ class LeaveController extends Controller
 
             $validated['status'] = 'pending';
 
-            $leave = Leave::create($validated);
+            $leave = LeaveRequest::create($validated);
 
             return response()->json([
                 'success' => true,
-                'data' => $leave->load(['employee', 'type']),
+                'data' => $leave->load(['employee', 'leaveType']),
                 'message' => 'Leave request created successfully.',
             ], 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -70,7 +70,7 @@ class LeaveController extends Controller
     public function approve(Request $request, $id): JsonResponse
     {
         try {
-            $leave = Leave::findOrFail($id);
+            $leave = LeaveRequest::findOrFail($id);
 
             if ($leave->status !== 'pending') {
                 return response()->json([
@@ -88,7 +88,7 @@ class LeaveController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $leave->load(['employee', 'type']),
+                'data' => $leave->load(['employee', 'leaveType']),
                 'message' => 'Leave request approved successfully.',
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
@@ -109,7 +109,7 @@ class LeaveController extends Controller
     public function reject(Request $request, $id): JsonResponse
     {
         try {
-            $leave = Leave::findOrFail($id);
+            $leave = LeaveRequest::findOrFail($id);
 
             if ($leave->status !== 'pending') {
                 return response()->json([
@@ -132,7 +132,7 @@ class LeaveController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $leave->load(['employee', 'type']),
+                'data' => $leave->load(['employee', 'leaveType']),
                 'message' => 'Leave request rejected successfully.',
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {

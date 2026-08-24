@@ -219,6 +219,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Employee Requests (พนักงานทั่วไป)
     Route::get('/employee/requests/pending-count', [EmployeeRequestController::class, 'pendingCount']);
+    Route::get('/employee/attendance/history', [EmployeeHistoryController::class, 'myHistory']);
     Route::post('/employee/leave-requests', [EmployeeRequestController::class, 'storeLeave']);
     Route::post('/employee/ot-requests', [EmployeeRequestController::class, 'storeOt']);
     Route::post('/employee/wfh-requests', [EmployeeRequestController::class, 'storeWfh']);
@@ -321,14 +322,17 @@ Route::prefix('shift-swaps')->middleware('auth:sanctum')->group(function () {
 });
 
 // Telegram Routes
-Route::post('/telegram/test', [TelegramController::class, 'test']);
-Route::get('/telegram/bot-info', fn() => response()->json(['data' => App\Services\TelegramService::getBotInfo()]));
-Route::get('/telegram/groups', [TelegramController::class, 'groups']);
-Route::post('/telegram/groups', [TelegramController::class, 'storeGroup']);
-Route::put('/telegram/groups/{id}', [TelegramController::class, 'updateGroup']);
-Route::delete('/telegram/groups/{id}', [TelegramController::class, 'deleteGroup']);
-Route::post('/telegram/test-group', [TelegramController::class, 'testGroup']);
-Route::get('/employee-stats', [EmployeeStatsController::class, 'index']);
+// Telegram Routes (auth required)
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/telegram/test', [TelegramController::class, 'test']);
+    Route::get('/telegram/bot-info', fn() => response()->json(['data' => App\Services\TelegramService::getBotInfo()]));
+    Route::get('/telegram/groups', [TelegramController::class, 'groups']);
+    Route::post('/telegram/groups', [TelegramController::class, 'storeGroup']);
+    Route::put('/telegram/groups/{id}', [TelegramController::class, 'updateGroup']);
+    Route::delete('/telegram/groups/{id}', [TelegramController::class, 'deleteGroup']);
+    Route::post('/telegram/test-group', [TelegramController::class, 'testGroup']);
+    Route::get('/employee-stats', [EmployeeStatsController::class, 'index']);
+});
 // Leave Request Routes
 Route::prefix('leave')->middleware('auth:sanctum')->group(function () {
     Route::get('/balance', [LeaveRequestController::class, 'balance']);

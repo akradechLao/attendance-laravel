@@ -127,6 +127,24 @@ const routes = [
     meta: { requiresAuth: true, layout: 'app' }
   },
   {
+    path: '/leave-approval',
+    name: 'HrLeaveApproval',
+    component: () => import('./pages/HR/LeaveApproval.vue'),
+    meta: { requiresAuth: true, layout: 'app' }
+  },
+  {
+    path: '/wfh-approval',
+    name: 'HrWfhApproval',
+    component: () => import('./pages/HR/WfhApproval.vue'),
+    meta: { requiresAuth: true, layout: 'app' }
+  },
+  {
+    path: '/shift-swap-approval',
+    name: 'HrShiftSwapApproval',
+    component: () => import('./pages/HR/ShiftSwapApproval.vue'),
+    meta: { requiresAuth: true, layout: 'app' }
+  },
+  {
     path: '/remote-assignments',
     name: 'RemoteAssignment',
     component: () => import('./pages/HR/RemoteAssignment.vue'),

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\AttendanceLog;
+use App\Models\Employee;
 use App\Models\LeaveRequest;
 use App\Models\OtRequest;
 use Illuminate\Http\Request;
