@@ -12,6 +12,7 @@ class CompanyHoliday extends Model
         'company_id',
         'date',
         'name',
+        'type',
         'year',
     ];
 

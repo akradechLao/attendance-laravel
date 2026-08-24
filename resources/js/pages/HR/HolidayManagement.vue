@@ -12,9 +12,16 @@ const importYear = ref(new Date().getFullYear())
 const newHoliday = ref({
   name: '',
   date: '',
+  type: 'company',
 })
 
 const months = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม']
+
+const typeOptions = [
+  { value: 'government', label: 'วันหยุดราชการ', color: 'bg-blue-100 text-blue-700' },
+  { value: 'company', label: 'วันหยุดบริษัท', color: 'bg-emerald-100 text-emerald-700' },
+  { value: 'special', label: 'วันหยุดพิเศษ', color: 'bg-amber-100 text-amber-700' },
+]
 
 const formatDate = (d) => {
   if (!d) return ''
@@ -47,13 +54,13 @@ const loadHolidays = async () => {
 
 const openAdd = () => {
   editingId.value = null
-  newHoliday.value = { name: '', date: '' }
+  newHoliday.value = { name: '', date: '', type: 'company' }
   showForm.value = true
 }
 
 const openEdit = (holiday) => {
   editingId.value = holiday.id
-  newHoliday.value = { name: holiday.name, date: holiday.date }
+  newHoliday.value = { name: holiday.name, date: holiday.date, type: holiday.type || 'company' }
   showForm.value = true
 }
 
@@ -72,7 +79,7 @@ const saveHoliday = async () => {
       alert('เพิ่มวันหยุดสำเร็จ')
     }
     showForm.value = false
-    newHoliday.value = { name: '', date: '' }
+    newHoliday.value = { name: '', date: '', type: 'company' }
     await loadHolidays()
   } catch (error) {
     alert('เกิดข้อผิดพลาดในการบันทึกวันหยุด')
@@ -110,7 +117,16 @@ const deleteHoliday = async (id) => {
 <template>
   <div class="space-y-6">
     <!-- Header -->
-    <div class="flex items-center justify-between">
+    <div class="flex items-center justify-between flex-wrap gap-4">
+      <div>
+        <h1 class="text-2xl font-bold text-gray-900">Holiday Management</h1>
+        <p class="text-gray-500">จัดการวันหยุดราชการ</p>
+        <div class="flex items-center gap-3 mt-2 text-[10px]">
+          <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-500"></span> ราชการ</span>
+          <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> บริษัท</span>
+          <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-500"></span> พิเศษ</span>
+        </div>
+      </div>
       <div>
         <h1 class="text-2xl font-bold text-gray-900">Holiday Management</h1>
         <p class="text-gray-500">จัดการวันหยุดราชการ</p>
@@ -155,7 +171,18 @@ const deleteHoliday = async (id) => {
           <tr v-for="holiday in holidays" :key="holiday.id">
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ formatDate(holiday.date) }}</td>
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ months[new Date(holiday.date).getMonth()] }}</td>
-            <td class="px-6 py-4 text-sm text-gray-900">{{ holiday.name }}</td>
+            <td class="px-6 py-4 text-sm text-gray-900">
+              <div class="flex items-center gap-2">
+                {{ holiday.name }}
+                <span :class="{
+                  'bg-blue-100 text-blue-700': holiday.type === 'government',
+                  'bg-emerald-100 text-emerald-700': holiday.type === 'company' || !holiday.type,
+                  'bg-amber-100 text-amber-700': holiday.type === 'special',
+                }" class="text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+                  {{ { government: 'ราชการ', company: 'บริษัท', special: 'พิเศษ' }[holiday.type] || 'บริษัท' }}
+                </span>
+              </div>
+            </td>
             <td class="px-6 py-4 whitespace-nowrap space-x-3">
               <button @click="openEdit(holiday)" class="text-blue-600 hover:text-blue-800">แก้ไข</button>
               <button @click="deleteHoliday(holiday.id)" class="text-red-600 hover:text-red-800">ลบ</button>
@@ -173,6 +200,12 @@ const deleteHoliday = async (id) => {
           <div>
             <label class="block text-sm font-medium text-gray-700">ชื่อวันหยุด</label>
             <input v-model="newHoliday.name" type="text" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="เช่น วันขึ้นปีใหม่" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">ประเภท</label>
+            <select v-model="newHoliday.type" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+              <option v-for="opt in typeOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+            </select>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700">วันที่</label>

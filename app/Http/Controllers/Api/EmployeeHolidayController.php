@@ -37,6 +37,7 @@ class EmployeeHolidayController extends Controller
             ->map(fn($h) => [
                 'date' => $h->date,
                 'name' => $h->name,
+                'type' => $h->type ?? 'company',
             ]);
 
         // Leave balance

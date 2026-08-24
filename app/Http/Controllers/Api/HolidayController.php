@@ -15,7 +15,14 @@ class HolidayController extends Controller
         $holidays = CompanyHoliday::where('company_id', $this->resolveCompanyId($request))
             ->whereYear('date', $request->year ?? date('Y'))
             ->orderBy('date')
-            ->get();
+            ->get()
+            ->map(fn($h) => [
+                'id' => $h->id,
+                'date' => $h->date,
+                'name' => $h->name,
+                'type' => $h->type ?? 'company',
+                'year' => $h->year,
+            ]);
 
         return response()->json(['data' => $holidays]);
     }
@@ -25,10 +32,12 @@ class HolidayController extends Controller
         $validated = $request->validate([
             'name' => 'required|string',
             'date' => 'required|date',
+            'type' => 'nullable|string|in:government,company,special',
         ]);
 
         $validated['company_id'] = $this->resolveCompanyId($request);
         $validated['year'] = date('Y', strtotime($validated['date']));
+        $validated['type'] = $validated['type'] ?? 'company';
 
         $holiday = CompanyHoliday::create($validated);
 
@@ -40,6 +49,7 @@ class HolidayController extends Controller
         $validated = $request->validate([
             'name' => 'required|string',
             'date' => 'required|date',
+            'type' => 'nullable|string|in:government,company,special',
         ]);
 
         $holiday = CompanyHoliday::where('company_id', $this->resolveCompanyId($request))
@@ -48,6 +58,7 @@ class HolidayController extends Controller
         $holiday->update([
             'name' => $validated['name'],
             'date' => $validated['date'],
+            'type' => $validated['type'] ?? $holiday->type,
             'year' => date('Y', strtotime($validated['date'])),
         ]);
 
@@ -89,6 +100,7 @@ class HolidayController extends Controller
                 ['company_id' => $companyId, 'date' => $date],
                 [
                     'name' => $item['title'] ?? 'วันหยุดราชการ',
+                    'type' => 'government',
                     'year' => $year,
                 ]
             );
