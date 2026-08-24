@@ -221,7 +221,8 @@ async def verify_face(request: VerifyRequest):
         except Exception:
             continue
 
-    verified = best_distance < 0.65
+    verified = best_distance < 0.75
+    logger.info(f"Face verify: distance={round(best_distance, 4)}, matched={verified}")
     return {
         "matched": verified,
         "score": round(1.0 - best_distance, 4),
