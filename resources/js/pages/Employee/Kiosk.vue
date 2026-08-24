@@ -51,7 +51,7 @@
         <div class="bg-white/80 backdrop-blur-sm rounded-2xl shadow-lg shadow-blue-500/10 px-6 py-3 sm:px-8 sm:py-4 mb-3 sm:mb-4 inline-block">
           <p class="text-xl sm:text-2xl font-bold text-navy tabular-nums">{{ currentTime }}</p>
         </div>
-        <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-navy mb-1 sm:mb-2">ระบบเช็คเวลาเข้างาน</h1>
+        <h1 class="text-2xl sm:text-3xl md:text-4xl font-bold text-navy mb-1 sm:mb-2">ระบบเช็คเวลาเข้า-ออกงาน</h1>
         <p class="text-sm sm:text-base text-blue-600 font-medium">ETC Group</p>
       </div>
 
@@ -404,7 +404,7 @@
 
           <h2
             :class="[
-              'text-xl sm:text-2xl font-bold mb-2',
+              'text-xl sm:text-2xl font-bold mb-2 whitespace-pre-line',
               result.success ? 'text-green-600' : 'text-red-600'
             ]"
           >

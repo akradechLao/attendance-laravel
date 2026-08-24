@@ -211,8 +211,8 @@ class FaceController extends Controller
                         'attendance_log' => $log,
                         'face_match' => $result,
                     ],
-                    'message' => 'เช็คอินสำเร็จ' . $roundLabel . ' (' . $locationLabel . ') '
-                        . $statusMessage . $lateForceMsg . $overnightMsg
+                    'message' => 'เช็คอินสำเร็จ' . $roundLabel . ' (' . $locationLabel . ')'
+                        . "\n" . $statusMessage . $lateForceMsg . $overnightMsg
                         . ($isRemote ? ' [นอกสถานที่]' : ''),
                 ], 201);
             }
