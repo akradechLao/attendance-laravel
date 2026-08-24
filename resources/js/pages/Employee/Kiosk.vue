@@ -171,9 +171,6 @@
           </div>
 
           <div class="text-center mb-4 sm:mb-6">
-            <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-3 sm:mb-4 rounded-full bg-blue-100 flex items-center justify-center">
-              <span class="text-blue-600 text-2xl sm:text-3xl font-bold">{{ selectedEmployee?.name?.charAt(0) }}</span>
-            </div>
             <p class="text-base sm:text-lg font-semibold text-navy">{{ selectedEmployee?.name }}</p>
             <p class="text-sm text-gray-500">{{ selectedEmployee?.employee_code }}</p>
           </div>
@@ -202,30 +199,23 @@
       <!-- Step 2.7: Face Registration (self-service) -->
       <div v-if="step === 2.7" class="animate-fadeIn">
         <div class="card p-4 sm:p-6">
-          <div class="flex items-center justify-between mb-4 sm:mb-6">
+          <!-- Top bar -->
+          <div class="flex items-center justify-between mb-3">
             <button @click="step = 2" class="text-blue-500 active:text-blue-600 flex items-center gap-1 touch-target">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
               </svg>
               <span class="text-sm sm:text-base">กลับ</span>
             </button>
-            <h2 class="text-lg sm:text-xl font-semibold text-navy">ลงทะเบียนใบหน้า</h2>
-          </div>
-
-          <div class="text-center mb-4">
-            <div class="w-14 h-14 sm:w-16 sm:h-16 mx-auto mb-2 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center">
-              <span class="text-white text-xl sm:text-2xl font-bold">{{ selectedEmployee?.name?.charAt(0) }}</span>
+            <div class="text-center">
+              <p class="text-sm sm:text-base font-semibold text-navy">{{ selectedEmployee?.name }}</p>
+              <p class="text-xs text-gray-500">{{ selectedEmployee?.employee_code }}</p>
             </div>
-            <p class="font-semibold text-navy text-sm sm:text-base">{{ selectedEmployee?.name }}</p>
-            <p class="text-xs text-gray-500">{{ selectedEmployee?.employee_code }}</p>
-          </div>
-
-          <div class="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4 text-center">
-            <p class="text-amber-700 text-xs sm:text-sm font-medium">📸 ถ่ายรูป 5 ตำแหน่ง เพื่อลงทะเบียนใบหน้าครั้งแรก</p>
+            <div class="w-16"></div>
           </div>
 
           <!-- Progress dots (clickable to re-take) -->
-          <div class="flex gap-1.5 mb-4">
+          <div class="flex gap-1.5 mb-3">
             <button v-for="(pos, i) in 5" :key="i"
               @click="clickFaceRegDot(i)"
               :class="[
@@ -259,8 +249,8 @@
             </template>
           </p>
 
-          <!-- Camera / Captured preview -->
-          <div v-if="!faceRegAllDone" class="relative max-w-sm mx-auto">
+          <!-- Camera / Captured preview (full width) -->
+          <div v-if="!faceRegAllDone" class="relative mb-4">
             <Camera v-if="!faceRegCapturing" ref="faceRegCameraRef" hide-controls @captured="handleFaceRegCaptured" />
 
             <div v-if="faceRegCapturing" class="aspect-video bg-gray-900 rounded-lg flex items-center justify-center">
@@ -312,90 +302,83 @@
       <!-- Step 3: Face Recognition -->
       <div v-if="step === 3" class="animate-fadeIn">
         <div class="card p-4 sm:p-6">
-          <div class="flex items-center justify-between mb-4 sm:mb-6">
+          <!-- Top bar: back + title + employee name -->
+          <div class="flex items-center justify-between mb-3">
             <button @click="step = 2" class="text-blue-500 active:text-blue-600 flex items-center gap-1 touch-target">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
               </svg>
               <span class="text-sm sm:text-base">กลับ</span>
             </button>
-            <h2 class="text-lg sm:text-xl font-semibold text-navy">ยืนยันตัวตน</h2>
-          </div>
-
-          <div class="text-center mb-4 sm:mb-6">
-            <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-3 sm:mb-4 rounded-full bg-blue-100 flex items-center justify-center">
-              <span class="text-blue-600 text-2xl sm:text-3xl font-bold">{{ selectedEmployee?.name?.charAt(0) }}</span>
+            <div class="text-center">
+              <p class="text-sm sm:text-base font-semibold text-navy">{{ selectedEmployee?.name }}</p>
+              <p class="text-xs text-gray-500">{{ selectedEmployee?.employee_code }}</p>
             </div>
-            <p class="text-base sm:text-lg font-semibold text-navy">{{ selectedEmployee?.name }}</p>
-            <p class="text-sm text-gray-500">{{ selectedEmployee?.employee_code }}</p>
-            <p v-if="scanType === 'remote_scan'" class="text-xs sm:text-sm text-blue-500 mt-1">📍 นอกสถานที่</p>
+            <div class="w-16"></div>
           </div>
 
           <!-- Location input for remote scan -->
-          <div v-if="scanType === 'remote_scan'" class="mb-3 sm:mb-4">
+          <div v-if="scanType === 'remote_scan'" class="mb-3">
             <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อสถานที่ (ไม่บังคับ)</label>
             <input v-model="customLocationName" type="text" inputmode="text" class="input-field text-base" placeholder="เช่น โรงแรมABC, สำนักงานลูกค้า" />
           </div>
 
-          <!-- GPS Status Indicator -->
-          <div v-if="scanType === 'office_scan'" class="mb-4 p-3 rounded-xl border-2 transition-all duration-300"
+          <!-- GPS Status Indicator (compact) -->
+          <div v-if="scanType === 'office_scan'" class="mb-3 p-2 rounded-lg border transition-all duration-300 text-xs"
             :class="gpsInRange ? 'border-green-400 bg-green-50' : gpsStatus === 'found' ? 'border-red-400 bg-red-50' : 'border-yellow-300 bg-yellow-50'">
             <div class="flex items-center justify-between">
-              <div class="flex items-center gap-2">
-                <div class="w-4 h-4 rounded-full animate-pulse"
+              <div class="flex items-center gap-1.5">
+                <div class="w-3 h-3 rounded-full animate-pulse"
                   :class="gpsStatus === 'found' ? (gpsInRange ? 'bg-green-500' : 'bg-red-500') : 'bg-yellow-400'"></div>
-                <span class="text-sm font-medium"
+                <span class="font-medium"
                   :class="gpsStatus === 'found' ? (gpsInRange ? 'text-green-700' : 'text-red-700') : 'text-yellow-700'">
                   {{ gpsStatusText }}
                 </span>
               </div>
-              <span v-if="distanceToOffice !== null" class="text-sm font-bold"
+              <span v-if="distanceToOffice !== null" class="font-bold"
                 :class="gpsInRange ? 'text-green-600' : 'text-red-600'">
-                {{ Math.round(distanceToOffice) }} ม.
+                {{ Math.round(distanceToOffice) }}ม.
               </span>
-            </div>
-            <div v-if="officeLocation" class="text-xs text-gray-500 mt-1">
-              📍 {{ officeLocation.name }} (รัศมี {{ officeLocation.radius_meters }}ม.)
-            </div>
-            <div v-if="currentAccuracy" class="text-xs text-gray-400 mt-1">
-              ความแม่นยำ GPS: {{ Math.round(currentAccuracy) }}ม.
             </div>
           </div>
 
-          <!-- Check-in / Check-out toggle -->
-          <div class="flex justify-center gap-2 mb-4">
+          <!-- Camera Area (takes most of the screen) -->
+          <div class="relative mb-4">
+            <FaceScanner
+              :employee-id="selectedEmployee?.id"
+              :scan-type="scanType"
+              :scan-mode="scanMode"
+              :latitude="currentLatitude"
+              :longitude="currentLongitude"
+              :accuracy="currentAccuracy"
+              :custom-location-name="customLocationName"
+              @verified="handleVerified"
+              @failed="handleFailed"
+              @error="handleError"
+            />
+          </div>
+
+          <!-- Check-in / Check-out toggle (bottom, always visible) -->
+          <div class="flex justify-center gap-3 mb-3">
             <button
               @click="scanMode = 'check_in'"
-              :class="scanMode === 'check_in' ? 'bg-green-500 hover:bg-green-600' : 'bg-gray-200 hover:bg-gray-300'"
-              class="px-4 py-2 rounded-lg font-medium text-sm touch-target transition-colors"
+              :class="scanMode === 'check_in' ? 'bg-green-500 hover:bg-green-600 shadow-lg' : 'bg-gray-200 hover:bg-gray-300'"
+              class="px-6 py-3 rounded-xl font-bold text-base touch-target transition-all"
             >
               เช็คอิน
             </button>
             <button
               @click="scanMode = 'check_out'"
-              :class="scanMode === 'check_out' ? 'bg-red-500 hover:bg-red-600' : 'bg-gray-200 hover:bg-gray-300'"
-              class="px-4 py-2 rounded-lg font-medium text-sm touch-target transition-colors"
+              :class="scanMode === 'check_out' ? 'bg-red-500 hover:bg-red-600 shadow-lg' : 'bg-gray-200 hover:bg-gray-300'"
+              class="px-6 py-3 rounded-xl font-bold text-base touch-target transition-all"
             >
               เช็คเอาท์
             </button>
           </div>
 
-          <FaceScanner
-            :employee-id="selectedEmployee?.id"
-            :scan-type="scanType"
-            :scan-mode="scanMode"
-            :latitude="currentLatitude"
-            :longitude="currentLongitude"
-            :accuracy="currentAccuracy"
-            :custom-location-name="customLocationName"
-            @verified="handleVerified"
-            @failed="handleFailed"
-            @error="handleError"
-          />
-
-          <div v-if="scanningError" class="mt-3 sm:mt-4 p-3 sm:p-4 bg-red-50 rounded-lg text-center">
-            <p class="text-red-600 text-sm sm:text-base">{{ scanningError }}</p>
-            <button @click="retryScan" class="mt-2 text-blue-500 active:text-blue-600 font-medium text-sm sm:text-base touch-target">
+          <div v-if="scanningError" class="p-3 bg-red-50 rounded-lg text-center">
+            <p class="text-red-600 text-sm">{{ scanningError }}</p>
+            <button @click="retryScan" class="mt-2 text-blue-500 active:text-blue-600 font-medium text-sm touch-target">
               ลองใหม่
             </button>
           </div>

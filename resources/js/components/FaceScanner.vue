@@ -1,12 +1,13 @@
 <template>
   <div class="space-y-4">
     <!-- Camera -->
-    <div class="relative max-w-md mx-auto">
+    <div class="relative mx-auto">
       <video
         ref="videoRef"
         autoplay
         playsinline
-        class="w-full aspect-video rounded-lg bg-gray-900 object-cover"
+        class="w-full aspect-video rounded-xl bg-gray-900 object-cover"
+        style="transform: scaleX(-1)"
       ></video>
 
       <!-- Scanning overlay -->
@@ -43,16 +44,7 @@
       </p>
     </div>
 
-    <!-- Scan button -->
-    <div v-if="!scanning && !verified" class="text-center">
-      <button
-        @click="startScan"
-        :disabled="noCamera"
-        class="btn-primary text-lg px-8 py-3"
-      >
-        เริ่มสแกน
-      </button>
-    </div>
+    <!-- Auto scan on mount -->
   </div>
 </template>
 
@@ -178,6 +170,12 @@ async function startScan() {
   }
 }
 
-onMounted(startCamera)
+onMounted(async () => {
+  await startCamera()
+  // Auto-start scan after camera is ready
+  setTimeout(() => {
+    if (!noCamera.value) startScan()
+  }, 1000)
+})
 onUnmounted(stopCamera)
 </script>

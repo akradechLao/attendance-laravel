@@ -4,13 +4,15 @@
       ref="videoRef"
       autoplay
       playsinline
-      :class="['w-full aspect-video rounded-lg bg-gray-900 object-cover', { 'hidden': photoTaken }]"
+      :class="['w-full aspect-video rounded-xl bg-gray-900 object-cover', { 'hidden': photoTaken }]"
+      style="transform: scaleX(-1)"
     ></video>
 
     <img
       v-if="photoTaken"
       :src="capturedImage"
-      class="w-full aspect-video rounded-lg object-cover"
+      class="w-full aspect-video rounded-xl object-cover"
+      style="transform: scaleX(-1)"
       alt="Captured photo"
     />
 
