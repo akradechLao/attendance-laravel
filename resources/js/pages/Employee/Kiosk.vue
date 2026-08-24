@@ -301,9 +301,9 @@
 
       <!-- Step 3: Face Recognition -->
       <div v-if="step === 3" class="animate-fadeIn">
-        <div class="card p-4 sm:p-6">
+        <div class="card p-3 sm:p-5">
           <!-- Top bar: back + title + employee name -->
-          <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center justify-between mb-2 sm:mb-3">
             <button @click="step = 2" class="text-blue-500 active:text-blue-600 flex items-center gap-1 touch-target">
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -318,15 +318,15 @@
           </div>
 
           <!-- Location input for remote scan -->
-          <div v-if="scanType === 'remote_scan'" class="mb-3">
+          <div v-if="scanType === 'remote_scan'" class="mb-2">
             <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อสถานที่ (ไม่บังคับ)</label>
             <input v-model="customLocationName" type="text" inputmode="text" class="input-field text-base" placeholder="เช่น โรงแรมABC, สำนักงานลูกค้า" />
           </div>
 
           <!-- Map + GPS Status for office scan -->
-          <div v-if="scanType === 'office_scan' && officeLocation" class="mb-3">
+          <div v-if="scanType === 'office_scan' && officeLocation" class="mb-2">
             <!-- GPS Status Bar -->
-            <div class="flex items-center justify-between bg-white rounded-xl p-2.5 shadow-sm border border-gray-100 mb-2">
+            <div class="flex items-center justify-between bg-white rounded-xl p-2 shadow-sm border border-gray-100 mb-1.5">
               <div class="flex items-center gap-2">
                 <div v-if="gpsStatus === 'acquiring'" class="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse"></div>
                 <div v-else-if="gpsStatus === 'found' && gpsReady" class="w-2.5 h-2.5 rounded-full bg-green-500"></div>
@@ -335,9 +335,9 @@
                 <span class="text-xs font-medium text-gray-600">
                   <template v-if="gpsStatus === 'acquiring'">กำลังระบุตำแหน่ง...</template>
                   <template v-else-if="gpsStatus === 'found' && distanceToOffice !== null">
-                    ห่าง {{ Math.round(distanceToOffice) }} เมตร
-                    <span v-if="gpsReady" class="text-green-600 ml-1">(อยู่ในรัศมี)</span>
-                    <span v-else class="text-red-600 ml-1">(เกินรัศมี)</span>
+                    ห่าง {{ Math.round(distanceToOffice) }} ม.
+                    <span v-if="gpsReady" class="text-green-600">(ในรัศมี)</span>
+                    <span v-else class="text-red-600">(เกินรัศมี)</span>
                   </template>
                   <template v-else-if="gpsStatus === 'error'">ไม่สามารถระบุตำแหน่งได้</template>
                 </span>
@@ -345,11 +345,11 @@
               <span class="text-[10px] text-gray-400">รัศมี {{ officeLocation.radius_meters }}ม.</span>
             </div>
             <!-- Map -->
-            <div ref="mapContainer" class="w-full h-36 rounded-xl overflow-hidden shadow-sm border border-gray-200"></div>
+            <div ref="mapContainer" class="w-full h-28 sm:h-36 rounded-xl overflow-hidden shadow-sm border border-gray-200"></div>
           </div>
 
-          <!-- Camera Area (takes most of the screen) -->
-          <div class="relative mb-4">
+          <!-- Camera Area -->
+          <div class="relative mb-2 sm:mb-3">
             <FaceScanner
               :employee-id="selectedEmployee?.id"
               :scan-type="scanType"
@@ -364,7 +364,7 @@
           </div>
 
           <!-- Scan Button -->
-          <div v-if="!triggerScan" class="mb-3">
+          <div v-if="!triggerScan" class="mb-2">
             <button
               v-if="scanType === 'office_scan' && officeLocation"
               @click="triggerScan = true"
@@ -372,7 +372,7 @@
               :class="gpsReady
                 ? 'from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-lg cursor-pointer'
                 : 'from-gray-300 to-gray-400 cursor-not-allowed shadow-none'"
-              class="w-full py-4 rounded-xl bg-gradient-to-r text-white font-bold text-lg active:scale-95 transition-all touch-target"
+              class="w-full py-3 sm:py-4 rounded-xl bg-gradient-to-r text-white font-bold text-base sm:text-lg active:scale-95 transition-all touch-target"
             >
               {{ gpsReady
                 ? (scanMode === 'check_in' ? 'สแกนใบหน้าเช็คอิน' : 'สแกนใบหน้าเช็คเอาท์')
@@ -381,32 +381,32 @@
             <button
               v-else
               @click="triggerScan = true"
-              class="w-full py-4 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold text-lg shadow-lg active:scale-95 transition-all touch-target"
+              class="w-full py-3 sm:py-4 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold text-base sm:text-lg shadow-lg active:scale-95 transition-all touch-target"
             >
               {{ scanMode === 'check_in' ? 'สแกนใบหน้าเช็คอิน' : 'สแกนใบหน้าเช็คเอาท์' }}
             </button>
           </div>
 
-          <!-- Check-in / Check-out toggle (bottom, always visible) -->
-          <div class="flex justify-center gap-3 mb-3">
+          <!-- Check-in / Check-out toggle -->
+          <div class="flex justify-center gap-2 sm:gap-3 mb-2">
             <button
               @click="scanMode = 'check_in'; triggerScan = false"
               :class="scanMode === 'check_in' ? 'bg-green-500 hover:bg-green-600 shadow-lg' : 'bg-gray-200 hover:bg-gray-300'"
-              class="px-6 py-3 rounded-xl font-bold text-base touch-target transition-all"
+              class="px-5 py-2.5 sm:px-6 sm:py-3 rounded-xl font-bold text-sm sm:text-base touch-target transition-all"
             >
               เช็คอิน
             </button>
             <button
               @click="scanMode = 'check_out'; triggerScan = false"
               :class="scanMode === 'check_out' ? 'bg-red-500 hover:bg-red-600 shadow-lg' : 'bg-gray-200 hover:bg-gray-300'"
-              class="px-6 py-3 rounded-xl font-bold text-base touch-target transition-all"
+              class="px-5 py-2.5 sm:px-6 sm:py-3 rounded-xl font-bold text-sm sm:text-base touch-target transition-all"
             >
               เช็คเอาท์
             </button>
           </div>
 
-          <div v-if="scanningError" class="p-3 bg-red-50 rounded-lg text-center">
-            <p class="text-red-600 text-sm">{{ scanningError }}</p>
+          <div v-if="scanningError" class="p-2 sm:p-3 bg-red-50 rounded-lg text-center">
+            <p class="text-red-600 text-xs sm:text-sm">{{ scanningError }}</p>
             <button @click="retryScan" class="mt-2 text-blue-500 active:text-blue-600 font-medium text-sm touch-target">
               ลองใหม่
             </button>

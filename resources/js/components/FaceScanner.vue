@@ -1,12 +1,12 @@
 <template>
-  <div class="space-y-4">
+  <div class="space-y-2 sm:space-y-4">
     <!-- Camera -->
     <div class="relative mx-auto">
       <video
         ref="videoRef"
         autoplay
         playsinline
-        class="w-full aspect-video rounded-xl bg-gray-900 object-cover"
+        class="w-full aspect-[4/3] sm:aspect-video rounded-xl bg-gray-900 object-cover max-h-48 sm:max-h-none"
         style="transform: scaleX(-1)"
       ></video>
 
