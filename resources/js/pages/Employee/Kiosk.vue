@@ -359,15 +359,9 @@
             />
           </div>
 
-          <!-- Scan Button (only when GPS ready or office_scan disabled) -->
-          <div v-if="scanType === 'office_scan' && !gpsReady" class="mb-3 text-center">
-            <button disabled class="w-full py-4 rounded-xl bg-gray-300 text-gray-500 font-bold text-base cursor-not-allowed">
-              กรุณาระบุตำแหน่งให้ถูกต้อง
-            </button>
-          </div>
-          <div v-else-if="scanType !== 'office_scan' || gpsReady" class="mb-3">
+          <!-- Scan Button -->
+          <div v-if="!triggerScan" class="mb-3">
             <button
-              v-if="!triggerScan"
               @click="triggerScan = true"
               class="w-full py-4 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold text-lg shadow-lg active:scale-95 transition-all touch-target"
             >
