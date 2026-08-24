@@ -69,22 +69,6 @@ const props = defineProps({
   triggerScan: {
     type: Boolean,
     default: false
-  },
-  latitude: {
-    type: Number,
-    default: null
-  },
-  longitude: {
-    type: Number,
-    default: null
-  },
-  accuracy: {
-    type: Number,
-    default: null
-  },
-  customLocationName: {
-    type: String,
-    default: ''
   }
 })
 
@@ -155,10 +139,6 @@ async function startScan() {
       employee_id: props.employeeId,
       image: imageData,
       type: props.scanMode,
-      latitude: props.latitude,
-      longitude: props.longitude,
-      accuracy: props.accuracy,
-      custom_location_name: props.customLocationName,
     })
 
     if (response.data.success) {

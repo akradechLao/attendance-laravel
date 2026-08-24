@@ -323,25 +323,6 @@
             <input v-model="customLocationName" type="text" inputmode="text" class="input-field text-base" placeholder="เช่น โรงแรมABC, สำนักงานลูกค้า" />
           </div>
 
-          <!-- GPS Status Indicator (compact) -->
-          <div v-if="scanType === 'office_scan'" class="mb-3 p-2 rounded-lg border transition-all duration-300 text-xs"
-            :class="gpsReady ? 'border-green-400 bg-green-50' : gpsStatus === 'found' ? 'border-red-400 bg-red-50' : 'border-yellow-300 bg-yellow-50'">
-            <div class="flex items-center justify-between">
-              <div class="flex items-center gap-1.5">
-                <div class="w-3 h-3 rounded-full animate-pulse"
-                  :class="gpsStatus === 'found' ? (gpsReady ? 'bg-green-500' : 'bg-red-500') : 'bg-yellow-400'"></div>
-                <span class="font-medium"
-                  :class="gpsStatus === 'found' ? (gpsReady ? 'text-green-700' : 'text-red-700') : 'text-yellow-700'">
-                  {{ gpsStatusText }}
-                </span>
-              </div>
-              <span v-if="distanceToOffice !== null" class="font-bold"
-                :class="gpsReady ? 'text-green-600' : 'text-red-600'">
-                {{ Math.round(distanceToOffice) }}ม.
-              </span>
-            </div>
-          </div>
-
           <!-- Camera Area (takes most of the screen) -->
           <div class="relative mb-4">
             <FaceScanner
@@ -349,10 +330,6 @@
               :scan-type="scanType"
               :scan-mode="scanMode"
               :trigger-scan="triggerScan"
-              :latitude="currentLatitude"
-              :longitude="currentLongitude"
-              :accuracy="currentAccuracy"
-              :custom-location-name="customLocationName"
               @verified="handleVerified"
               @failed="handleFailed"
               @error="handleError"
@@ -504,9 +481,6 @@ const scanningError = ref('')
 const result = ref({ success: false, message: '', time: '', location: '' })
 const scanType = ref('office_scan')
 const customLocationName = ref('')
-const currentLatitude = ref(null)
-const currentLongitude = ref(null)
-const currentAccuracy = ref(null)
 const triggerScan = ref(false)
 const currentTime = ref('--:--:--')
 const currentDate = ref('')
@@ -530,9 +504,6 @@ const reregisterEmployee = ref(null)
 const reregisterLoading = ref(false)
 
 const scanMode = ref('check_in')  // 'check_in' or 'check_out'
-const officeLocation = ref(null)
-const distanceToOffice = ref(null)
-const gpsStatus = ref('acquiring')  // 'acquiring' | 'found' | 'error' | 'no_device'
 
 // Admin/HR Login
 const showAdminLogin = ref(false)
@@ -574,28 +545,6 @@ const companyStyles = {
 
 const companyOrder = ['ETC', 'STC', 'ETE', 'NTC']
 
-const gpsInRange = computed(() => {
-  if (!officeLocation.value || distanceToOffice.value === null) return false
-  return distanceToOffice.value <= officeLocation.value.radius_meters
-})
-
-const gpsAccuracyOk = computed(() => {
-  return currentAccuracy.value && currentAccuracy.value <= 300
-})
-
-const gpsReady = computed(() => {
-  return gpsStatus.value === 'found' && gpsAccuracyOk.value && gpsInRange.value
-})
-
-const gpsStatusText = computed(() => {
-  if (gpsStatus.value === 'no_device') return 'อุปกรณ์ไม่รองรับ GPS'
-  if (gpsStatus.value === 'error') return 'ไม่สามารถระบุตำแหน่งได้'
-  if (gpsStatus.value === 'acquiring') return 'กำลังระบุตำแหน่ง...'
-  if (gpsStatus.value === 'found' && !gpsAccuracyOk.value) return 'GPS ไม่แม่นยำ (±' + Math.round(currentAccuracy.value) + 'ม.)'
-  if (gpsInRange.value) return 'อยู่ในระยะเช็คอินได้'
-  return 'อยู่นอกระยะเช็คอิน'
-})
-
 const filteredEmployees = computed(() => {
   if (!searchQuery.value) return []
   const q = searchQuery.value.toLowerCase()
@@ -613,7 +562,6 @@ onMounted(async () => {
     fetchTimeLocal.value = Date.now()
     await fetchServerTime()
   }, 300000)
-  getCurrentPosition()
   await fetchCompanies()
 })
 
@@ -633,69 +581,6 @@ async function fetchCompanies() {
       { id: 1, name: 'NTC', code_prefix: 'NTC' }
     ]
   }
-}
-
-function calculateDistance(lat1, lon1, lat2, lon2) {
-  const R = 6371000
-  const dLat = (lat2 - lat1) * Math.PI / 180
-  const dLon = (lon2 - lon1) * Math.PI / 180
-  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-    Math.sin(dLon/2) * Math.sin(dLon/2)
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
-}
-
-async function fetchOfficeLocation(employeeId) {
-  try {
-    const res = await axios.get('/api/employee/' + employeeId + '/office-location')
-    officeLocation.value = res.data.data
-  } catch { officeLocation.value = null }
-}
-
-function updateDistance() {
-  if (currentLatitude.value && currentLongitude.value && officeLocation.value) {
-    distanceToOffice.value = calculateDistance(
-      currentLatitude.value, currentLongitude.value,
-      officeLocation.value.latitude, officeLocation.value.longitude
-    )
-  }
-}
-
-function getCurrentPosition() {
-  if (!navigator.geolocation) {
-    gpsStatus.value = 'no_device'
-    return
-  }
-  gpsStatus.value = 'acquiring'
-  navigator.geolocation.getCurrentPosition(
-    (pos) => {
-      currentLatitude.value = pos.coords.latitude
-      currentLongitude.value = pos.coords.longitude
-      currentAccuracy.value = pos.coords.accuracy
-      gpsStatus.value = 'found'
-      updateDistance()
-    },
-    (err) => {
-      gpsStatus.value = 'error'
-      console.error('Geolocation error:', err)
-    },
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 30000 }
-  )
-}
-
-// ติดตาม GPS เปลี่ยนแปลง
-if (navigator.geolocation) {
-  navigator.geolocation.watchPosition(
-    (pos) => {
-      currentLatitude.value = pos.coords.latitude
-      currentLongitude.value = pos.coords.longitude
-      currentAccuracy.value = pos.coords.accuracy
-      gpsStatus.value = 'found'
-      updateDistance()
-    },
-    () => {},
-    { enableHighAccuracy: true, timeout: 10000, maximumAge: 10000 }
-  )
 }
 
 function selectCompany(company) {
@@ -782,8 +667,6 @@ async function doReregister() {
 async function selectEmployee(employee) {
   selectedEmployee.value = employee
   scanningError.value = ''
-  await fetchOfficeLocation(employee.id)
-  updateDistance()
 
   try {
     const faceRes = await axios.get(`/api/employees/${employee.id}/face-data`)
