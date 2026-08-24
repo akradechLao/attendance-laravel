@@ -46,7 +46,7 @@ class DashboardController extends Controller
             $presentToday = (clone $attendanceQuery)->pluck('emp_id')->unique()->count();
             $lateToday = (clone $attendanceQuery)->where('check_in_status', 'late')->count();
             $onTimeToday = (clone $attendanceQuery)->where('check_in_status', 'on_time')->count();
-            $checkedOut = (clone $attendanceQuery)->whereNotNull('check_out')->count();
+            $checkedOut = (clone $attendanceQuery)->whereNotNull('check_out')->pluck('emp_id')->unique()->count();
             $absentToday = max(0, $totalEmployees - $presentToday);
 
             // นับลากิจบังคับวันนี้ + กะข้ามคืน
