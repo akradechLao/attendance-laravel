@@ -31,7 +31,7 @@
     <!-- Status -->
     <div class="text-center">
       <p v-if="scanning" class="text-blue-500 font-medium animate-pulse">
-        กำลังสแกนใบหน้า...
+        กำลังสแกนใบหน้า...{{ retryCount > 0 ? ' (ครั้งที่ ' + (retryCount + 1) + ')' : '' }}
       </p>
       <p v-else-if="verified" class="text-green-500 font-medium">
         ✓ ยืนยันตัวตนสำเร็จ
@@ -90,6 +90,8 @@ const scanning = ref(false)
 const verified = ref(false)
 const failed = ref(false)
 const noCamera = ref(false)
+const retryCount = ref(0)
+const maxRetries = 3
 
 let stream = null
 
@@ -156,15 +158,25 @@ async function startScan() {
     if (response.data.success) {
       verified.value = true
       emit('verified', response.data)
+    } else if (retryCount.value < maxRetries) {
+      retryCount.value++
+      scanning.value = false
+      setTimeout(() => startScan(), 1500)
     } else {
       failed.value = true
       emit('failed', response.data?.message)
     }
   } catch (error) {
     console.error('Error verifying face:', error)
-    const msg = error.response?.data?.message || 'เกิดข้อผิดพลาดในการสแกน'
-    failed.value = true
-    emit('error', msg)
+    if (retryCount.value < maxRetries) {
+      retryCount.value++
+      scanning.value = false
+      setTimeout(() => startScan(), 1500)
+    } else {
+      const msg = error.response?.data?.message || 'เกิดข้อผิดพลาดในการสแกน'
+      failed.value = true
+      emit('error', msg)
+    }
   } finally {
     scanning.value = false
   }
