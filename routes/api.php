@@ -18,6 +18,8 @@ use App\Http\Controllers\Api\HolidayController;
 use App\Http\Controllers\Api\ShiftController;
 use App\Http\Controllers\Api\SupervisorController;
 use App\Http\Controllers\Api\ManagerController;
+use App\Http\Controllers\Api\EmployeeHolidayController;
+use App\Http\Controllers\Api\SupervisorLeaveCalendarController;
 use App\Http\Controllers\Api\CompanySettingsController;
 use App\Http\Controllers\Api\SystemSettingsController;
 use App\Http\Controllers\Api\EmployeeHistoryController;
@@ -233,6 +235,12 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/announcements', [\App\Http\Controllers\Api\AnnouncementController::class, 'index']);
     Route::post('/announcements', [\App\Http\Controllers\Api\AnnouncementController::class, 'store']);
     Route::delete('/announcements/{announcement}', [\App\Http\Controllers\Api\AnnouncementController::class, 'destroy']);
+
+    // Employee Holiday Calendar
+    Route::get('/employee/holidays', [EmployeeHolidayController::class, 'index']);
+
+    // Supervisor Leave Calendar
+    Route::get('/supervisor/leave-calendar', [SupervisorLeaveCalendarController::class, 'index']);
 
     // Shift Assignments (จัดการกะรายเดือน)
     Route::get('/shift-assignments', [\App\Http\Controllers\Api\ShiftAssignmentController::class, 'index']);

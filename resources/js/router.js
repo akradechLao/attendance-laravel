@@ -85,6 +85,18 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/employee/holidays',
+    name: 'EmployeeHolidays',
+    component: () => import('./pages/Employee/HolidayCalendar.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/employee/team-leave',
+    name: 'SupervisorLeaveCalendar',
+    component: () => import('./pages/Employee/SupervisorLeaveCalendar.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/dashboard',
     name: 'Dashboard',
     component: () => import('./pages/HR/Dashboard.vue'),
