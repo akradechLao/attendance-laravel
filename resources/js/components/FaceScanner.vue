@@ -39,17 +39,18 @@
       <p v-else-if="failed" class="text-red-500 font-medium">
         ✗ ไม่สามารถยืนยันตัวตนได้
       </p>
-      <p v-else class="text-gray-500">
-        กรุณาหันหน้าเข้าหากล้อง
+      <p v-else-if="noCamera" class="text-red-500 font-medium">
+        ไม่พบกล้อง
+      </p>
+      <p v-else class="text-green-500 font-medium">
+        ✓ กล้องพร้อม
       </p>
     </div>
-
-    <!-- Auto scan on mount -->
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import axios from 'axios'
 
 const props = defineProps({
@@ -64,6 +65,10 @@ const props = defineProps({
   scanMode: {
     type: String,
     default: 'check_in'
+  },
+  triggerScan: {
+    type: Boolean,
+    default: false
   },
   latitude: {
     type: Number,
@@ -134,10 +139,11 @@ function captureImage() {
 }
 
 async function startScan() {
-  if (scanning.value) return
+  if (scanning.value || verified.value) return
 
   scanning.value = true
   failed.value = false
+  retryCount.value = 0
 
   try {
     const imageData = captureImage()
@@ -182,12 +188,10 @@ async function startScan() {
   }
 }
 
-onMounted(async () => {
-  await startCamera()
-  // Auto-start scan after camera is ready
-  setTimeout(() => {
-    if (!noCamera.value) startScan()
-  }, 1000)
+watch(() => props.triggerScan, (val) => {
+  if (val) startScan()
 })
+
+onMounted(startCamera)
 onUnmounted(stopCamera)
 </script>

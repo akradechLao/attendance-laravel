@@ -325,25 +325,20 @@
 
           <!-- GPS Status Indicator (compact) -->
           <div v-if="scanType === 'office_scan'" class="mb-3 p-2 rounded-lg border transition-all duration-300 text-xs"
-            :class="gpsInRange ? 'border-green-400 bg-green-50' : gpsStatus === 'found' ? 'border-red-400 bg-red-50' : 'border-yellow-300 bg-yellow-50'">
+            :class="gpsReady ? 'border-green-400 bg-green-50' : gpsStatus === 'found' ? 'border-red-400 bg-red-50' : 'border-yellow-300 bg-yellow-50'">
             <div class="flex items-center justify-between">
               <div class="flex items-center gap-1.5">
                 <div class="w-3 h-3 rounded-full animate-pulse"
-                  :class="gpsStatus === 'found' ? (gpsInRange ? 'bg-green-500' : 'bg-red-500') : 'bg-yellow-400'"></div>
+                  :class="gpsStatus === 'found' ? (gpsReady ? 'bg-green-500' : 'bg-red-500') : 'bg-yellow-400'"></div>
                 <span class="font-medium"
-                  :class="gpsStatus === 'found' ? (gpsInRange ? 'text-green-700' : 'text-red-700') : 'text-yellow-700'">
+                  :class="gpsStatus === 'found' ? (gpsReady ? 'text-green-700' : 'text-red-700') : 'text-yellow-700'">
                   {{ gpsStatusText }}
                 </span>
               </div>
               <span v-if="distanceToOffice !== null" class="font-bold"
-                :class="gpsInRange ? 'text-green-600' : 'text-red-600'">
+                :class="gpsReady ? 'text-green-600' : 'text-red-600'">
                 {{ Math.round(distanceToOffice) }}ม.
               </span>
-            </div>
-            <!-- GPS Debug Info -->
-            <div v-if="currentLatitude && officeLocation" class="mt-1.5 pt-1.5 border-t border-gray-200 text-[10px] text-gray-400 space-y-0.5">
-              <div>📱 GPS: {{ currentLatitude?.toFixed(6) }}, {{ currentLongitude?.toFixed(6) }} (±{{ Math.round(currentAccuracy || 0) }}ม.)</div>
-              <div>🏢 OFFICE: {{ officeLocation?.latitude }}, {{ officeLocation?.longitude }} (±{{ officeLocation?.radius_meters }}ม.)</div>
             </div>
           </div>
 
@@ -353,6 +348,7 @@
               :employee-id="selectedEmployee?.id"
               :scan-type="scanType"
               :scan-mode="scanMode"
+              :trigger-scan="triggerScan"
               :latitude="currentLatitude"
               :longitude="currentLongitude"
               :accuracy="currentAccuracy"
@@ -363,17 +359,33 @@
             />
           </div>
 
+          <!-- Scan Button (only when GPS ready or office_scan disabled) -->
+          <div v-if="scanType === 'office_scan' && !gpsReady" class="mb-3 text-center">
+            <button disabled class="w-full py-4 rounded-xl bg-gray-300 text-gray-500 font-bold text-base cursor-not-allowed">
+              กรุณาระบุตำแหน่งให้ถูกต้อง
+            </button>
+          </div>
+          <div v-else-if="scanType !== 'office_scan' || gpsReady" class="mb-3">
+            <button
+              v-if="!triggerScan"
+              @click="triggerScan = true"
+              class="w-full py-4 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold text-lg shadow-lg active:scale-95 transition-all touch-target"
+            >
+              {{ scanMode === 'check_in' ? 'สแกนใบหน้าเช็คอิน' : 'สแกนใบหน้าเช็คเอาท์' }}
+            </button>
+          </div>
+
           <!-- Check-in / Check-out toggle (bottom, always visible) -->
           <div class="flex justify-center gap-3 mb-3">
             <button
-              @click="scanMode = 'check_in'"
+              @click="scanMode = 'check_in'; triggerScan = false"
               :class="scanMode === 'check_in' ? 'bg-green-500 hover:bg-green-600 shadow-lg' : 'bg-gray-200 hover:bg-gray-300'"
               class="px-6 py-3 rounded-xl font-bold text-base touch-target transition-all"
             >
               เช็คอิน
             </button>
             <button
-              @click="scanMode = 'check_out'"
+              @click="scanMode = 'check_out'; triggerScan = false"
               :class="scanMode === 'check_out' ? 'bg-red-500 hover:bg-red-600 shadow-lg' : 'bg-gray-200 hover:bg-gray-300'"
               class="px-6 py-3 rounded-xl font-bold text-base touch-target transition-all"
             >
@@ -501,6 +513,7 @@ const customLocationName = ref('')
 const currentLatitude = ref(null)
 const currentLongitude = ref(null)
 const currentAccuracy = ref(null)
+const triggerScan = ref(false)
 const currentTime = ref('--:--:--')
 const currentDate = ref('')
 const serverTimeStr = ref(null)
@@ -572,10 +585,19 @@ const gpsInRange = computed(() => {
   return distanceToOffice.value <= officeLocation.value.radius_meters
 })
 
+const gpsAccuracyOk = computed(() => {
+  return currentAccuracy.value && currentAccuracy.value <= 100
+})
+
+const gpsReady = computed(() => {
+  return gpsStatus.value === 'found' && gpsAccuracyOk.value && gpsInRange.value
+})
+
 const gpsStatusText = computed(() => {
   if (gpsStatus.value === 'no_device') return 'อุปกรณ์ไม่รองรับ GPS'
   if (gpsStatus.value === 'error') return 'ไม่สามารถระบุตำแหน่งได้'
   if (gpsStatus.value === 'acquiring') return 'กำลังระบุตำแหน่ง...'
+  if (gpsStatus.value === 'found' && !gpsAccuracyOk.value) return 'GPS ไม่แม่นยำ (±' + Math.round(currentAccuracy.value) + 'ม.)'
   if (gpsInRange.value) return 'อยู่ในระยะเช็คอินได้'
   return 'อยู่นอกระยะเช็คอิน'
 })
@@ -927,15 +949,18 @@ function handleVerified(data) {
 }
 
 function handleFailed() {
+  triggerScan.value = false
   scanningError.value = 'ไม่สามารถยืนยันตัวตนได้ กรุณาลองใหม่'
 }
 
 function handleError(message) {
+  triggerScan.value = false
   scanningError.value = message || 'เกิดข้อผิดพลาด กรุณาลองใหม่'
 }
 
 function retryScan() {
   scanningError.value = ''
+  triggerScan.value = false
   step.value = 3
 }
 
