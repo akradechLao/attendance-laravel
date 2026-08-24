@@ -26,6 +26,10 @@ use App\Http\Controllers\Api\AttendanceAdjustmentController;
 use App\Http\Controllers\Api\AttendanceVerificationController;
 use App\Http\Controllers\Api\AutoOtController;
 use App\Http\Controllers\Api\TelegramController;
+use App\Http\Controllers\Api\EmployeeProfileController;
+use App\Http\Controllers\Api\EmployeeScheduleController;
+use App\Http\Controllers\Api\EmployeeWarningController;
+use App\Http\Controllers\Api\AnnouncementController;
 
 /*
 |--------------------------------------------------------------------------
@@ -220,6 +224,15 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/employee/wfh-requests', [EmployeeRequestController::class, 'storeWfh']);
     Route::post('/employee/change-password', [EmployeeRequestController::class, 'changePassword']);
 
+    // Employee Self-Service
+    Route::get('/employee/profile', [\App\Http\Controllers\Api\EmployeeProfileController::class, 'show']);
+    Route::put('/employee/profile', [\App\Http\Controllers\Api\EmployeeProfileController::class, 'update']);
+    Route::get('/employee/schedule', [\App\Http\Controllers\Api\EmployeeScheduleController::class, 'index']);
+    Route::get('/employee/warnings', [\App\Http\Controllers\Api\EmployeeWarningController::class, 'index']);
+    Route::get('/announcements', [\App\Http\Controllers\Api\AnnouncementController::class, 'index']);
+    Route::post('/announcements', [\App\Http\Controllers\Api\AnnouncementController::class, 'store']);
+    Route::delete('/announcements/{announcement}', [\App\Http\Controllers\Api\AnnouncementController::class, 'destroy']);
+
     // Shift Assignments (จัดการกะรายเดือน)
     Route::get('/shift-assignments', [\App\Http\Controllers\Api\ShiftAssignmentController::class, 'index']);
     Route::post('/shift-assignments', [\App\Http\Controllers\Api\ShiftAssignmentController::class, 'assign']);
@@ -301,6 +314,7 @@ Route::prefix('shift-swaps')->middleware('auth:sanctum')->group(function () {
     Route::get('/', [ShiftSwapController::class, 'index']);
     Route::get('/my-requests', [ShiftSwapController::class, 'myRequests']);
     Route::get('/team-swaps', [ShiftSwapController::class, 'teamSwaps']);
+    Route::get('/available-employees', [ShiftSwapController::class, 'availableEmployees']);
     Route::post('/', [ShiftSwapController::class, 'store']);
     Route::put('/{id}/approve', [ShiftSwapController::class, 'approve']);
     Route::put('/{id}/reject', [ShiftSwapController::class, 'reject']);

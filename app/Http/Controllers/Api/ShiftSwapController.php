@@ -4,7 +4,9 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
+use App\Models\ShiftSchedule;
 use App\Models\ShiftSwap;
+use App\Models\WorkShift;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -61,6 +63,27 @@ class ShiftSwapController extends Controller
             return response()->json(['success' => false, 'message' => 'รายการนี้ดำเนินการแล้ว'], 400);
         }
 
+        // Actually swap the shift_schedules
+        $requesterSchedule = ShiftSchedule::where('emp_id', $swap->requester_id)
+            ->where('work_date', $swap->swap_date)
+            ->first();
+        $targetSchedule = ShiftSchedule::where('emp_id', $swap->target_id)
+            ->where('work_date', $swap->swap_date)
+            ->first();
+
+        if ($requesterSchedule && $targetSchedule) {
+            $tmpCode = $requesterSchedule->shift_code;
+            $tmpType = $requesterSchedule->day_type;
+            $requesterSchedule->update([
+                'shift_code' => $targetSchedule->shift_code,
+                'day_type' => $targetSchedule->day_type,
+            ]);
+            $targetSchedule->update([
+                'shift_code' => $tmpCode,
+                'day_type' => $tmpType,
+            ]);
+        }
+
         $swap->update([
             'supervisor_id' => $request->get('supervisor_id'),
             'supervisor_note' => $request->get('supervisor_note', ''),
@@ -93,9 +116,14 @@ class ShiftSwapController extends Controller
 
     public function myRequests(Request $request): JsonResponse
     {
-        $empId = $request->get('emp_id');
-        $swaps = ShiftSwap::where('requester_id', $empId)
-            ->with(['target', 'supervisor'])
+        $employee = $request->user()->employee;
+        if (!$employee) {
+            return response()->json(['success' => false, 'message' => 'Employee not found'], 404);
+        }
+
+        $swaps = ShiftSwap::where('requester_id', $employee->id)
+            ->orWhere('target_id', $employee->id)
+            ->with(['requester', 'target', 'supervisor'])
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -114,5 +142,77 @@ class ShiftSwapController extends Controller
             ->get();
 
         return response()->json(['success' => true, 'data' => $swaps]);
+    }
+
+    public function availableEmployees(Request $request): JsonResponse
+    {
+        $employee = $request->user()->employee;
+        if (!$employee) {
+            return response()->json(['success' => false, 'message' => 'Employee not found'], 404);
+        }
+
+        $date = $request->get('date');
+        if (!$date) {
+            return response()->json(['success' => false, 'message' => 'กรุณาระบุวันที่'], 400);
+        }
+
+        // Get employee's own schedule for this date
+        $mySchedule = ShiftSchedule::where('emp_id', $employee->id)
+            ->where('work_date', $date)
+            ->first();
+
+        $myShiftCode = $mySchedule ? $mySchedule->shift_code : null;
+
+        // Get all employees in same company who have a schedule on this date (exclude self)
+        $schedules = ShiftSchedule::where('company_id', $employee->company_id)
+            ->where('work_date', $date)
+            ->where('emp_id', '!=', $employee->id)
+            ->with('employee:id,name,employee_code,nickname')
+            ->get()
+            ->filter(fn($s) => $s->employee);
+
+        $available = $schedules->map(fn($s) => [
+            'id' => $s->employee->id,
+            'name' => $s->employee->name,
+            'nickname' => $s->employee->nickname,
+            'employee_code' => $s->employee->employee_code,
+            'shift_code' => $s->shift_code,
+            'shift_label' => $this->getShiftLabel($s->shift_code),
+        ])->values();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'my_schedule' => $mySchedule ? [
+                    'shift_code' => $mySchedule->shift_code,
+                    'shift_label' => $this->getShiftLabel($mySchedule->shift_code),
+                    'day_type' => $mySchedule->day_type,
+                ] : null,
+                'available_employees' => $available,
+            ],
+        ]);
+    }
+
+    private function getShiftLabel(string $code): string
+    {
+        $labels = [
+            'WC0001' => '07:30-16:30',
+            'WC0002' => '08:00-17:00',
+            'WC0003' => '16:00-01:00',
+            'WC0004' => '00:00-09:00',
+            'WC0005' => '09:00-18:00',
+            'WC0006' => '20:00-05:00',
+            'WC007'  => '21:00-06:00',
+            'WC008'  => '08:00-16:30',
+            'WC009'  => '16:00-00:30',
+            'WC010'  => '00:00-08:30',
+            'WC011'  => '08:00-20:00',
+            'WC012'  => '20:00-08:00',
+            'WC013'  => '16:00-00:00',
+            'WC014'  => '00:00-08:00',
+            'WC015'  => '07:00-16:00',
+            'WC016'  => '19:00-04:00',
+        ];
+        return $labels[$code] ?? $code;
     }
 }

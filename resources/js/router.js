@@ -55,6 +55,36 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/employee/profile',
+    name: 'EmployeeProfile',
+    component: () => import('./pages/Employee/EmployeeProfile.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/employee/schedule',
+    name: 'EmployeeSchedule',
+    component: () => import('./pages/Employee/EmployeeSchedule.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/employee/announcements',
+    name: 'EmployeeAnnouncements',
+    component: () => import('./pages/Employee/Announcement.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/employee/stats',
+    name: 'EmployeeStats',
+    component: () => import('./pages/Employee/LateWarning.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/employee/shift-swap',
+    name: 'EmployeeShiftSwap',
+    component: () => import('./pages/Employee/ShiftSwap.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/dashboard',
     name: 'Dashboard',
     component: () => import('./pages/HR/Dashboard.vue'),

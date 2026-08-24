@@ -1,124 +1,255 @@
 <template>
-  <div class="p-4 space-y-6">
-    <h1 class="text-2xl font-bold text-[#0f172a]">ขอสลับกะทำงาน</h1>
-
-    <!-- Form -->
-    <div class="bg-white rounded-xl shadow p-4">
-      <h2 class="font-semibold text-[#0f172a] mb-3">สร้างคำขอสลับกะ</h2>
-      <div class="space-y-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700">พนักงานที่ต้องการสลับ</label>
-          <select v-model="form.target_id" class="w-full border rounded-lg p-2">
-            <option value="">เลือกพนักงาน</option>
-            <option v-for="emp in employees" :key="emp.id" :value="emp.id">
-              {{ emp.name }} ({{ emp.employee_code }})
-            </option>
-          </select>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">วันที่ต้องการสลับ</label>
-          <input type="date" v-model="form.swap_date" class="w-full border rounded-lg p-2" />
-        </div>
-        <div class="grid grid-cols-2 gap-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700">กะของฉัน</label>
-            <select v-model="form.requester_shift" class="w-full border rounded-lg p-2">
-              <option value="">เลือกกะ</option>
-              <option value="เช้า">เช้า (06:00-14:00)</option>
-              <option value="กลางวัน">กลางวัน (09:00-17:00)</option>
-              <option value="เย็น">เย็น (14:00-22:00)</option>
-              <option value="ดึก">ดึก (22:00-06:00)</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">กะของพนักงานอีกคน</label>
-            <select v-model="form.target_shift" class="w-full border rounded-lg p-2">
-              <option value="">เลือกกะ</option>
-              <option value="เช้า">เช้า (06:00-14:00)</option>
-              <option value="กลางวัน">กลางวัน (09:00-17:00)</option>
-              <option value="เย็น">เย็น (14:00-22:00)</option>
-              <option value="ดึก">ดึก (22:00-06:00)</option>
-            </select>
-          </div>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700">เหตุผล (ไม่บังคับ)</label>
-          <textarea v-model="form.reason" rows="2" class="w-full border rounded-lg p-2" placeholder="เหตุผลการสลับกะ..." />
-        </div>
-        <button @click="submitSwap" :disabled="submitting"
-                class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50">
-          {{ submitting ? 'กำลังส่ง...' : 'ส่งคำขอสลับกะ' }}
-        </button>
+  <div class="min-h-screen bg-gray-50">
+    <header class="bg-white border-b border-gray-200 shadow-sm">
+      <div class="max-w-4xl mx-auto px-4 py-3 flex items-center gap-3">
+        <router-link to="/employee/menu" class="text-blue-500 active:text-blue-600">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+        </router-link>
+        <h1 class="text-lg font-bold text-gray-800">ขอย้ายเวร</h1>
       </div>
-    </div>
+    </header>
 
-    <!-- My Requests -->
-    <div class="bg-white rounded-xl shadow p-4">
-      <h2 class="font-semibold text-[#0f172a] mb-3">คำขอของฉัน</h2>
-      <div v-if="mySwaps.length === 0" class="text-center py-4 text-gray-500">ยังไม่มีคำขอ</div>
-      <div v-else class="space-y-3">
-        <div v-for="swap in mySwaps" :key="swap.id"
-             class="p-3 rounded-lg flex justify-between items-center"
-             :class="{'bg-yellow-50': swap.status==='pending', 'bg-green-50': swap.status==='approved', 'bg-red-50': swap.status==='rejected'}">
-          <div>
-            <div class="font-semibold">{{ swap.requester?.name }} ⇄ {{ swap.target?.name }}</div>
-            <div class="text-xs text-gray-500">
-              {{ formatDate(swap.swap_date) }} | {{ swap.requester_shift }} → {{ swap.target_shift }}
+    <main class="max-w-4xl mx-auto px-4 py-6 space-y-4">
+      <!-- Step 1: Pick Date -->
+      <div class="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm">
+        <div class="flex items-center gap-2 mb-4">
+          <div :class="step >= 1 ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-500'"
+            class="w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold">1</div>
+          <h2 class="font-bold text-gray-800">เลือกวันที่ต้องการสลับ</h2>
+        </div>
+        <input type="date" v-model="swapDate" :min="minDate"
+          class="w-full border border-gray-300 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+          @change="onDateChange" />
+      </div>
+
+      <!-- Step 2: Pick Colleague -->
+      <div v-if="step >= 2" class="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm">
+        <div class="flex items-center gap-2 mb-4">
+          <div :class="step >= 2 ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-500'"
+            class="w-7 h-7 rounded-full flex items-center justify-center text-sm font-bold">2</div>
+          <h2 class="font-bold text-gray-800">เลือกคนที่ต้องการสลับด้วย</h2>
+        </div>
+
+        <!-- My shift info -->
+        <div v-if="mySchedule" class="mb-4 p-3 bg-blue-50 rounded-xl border border-blue-200">
+          <p class="text-blue-700 text-sm font-medium">กะของฉัน: {{ mySchedule.shift_code }} ({{ mySchedule.shift_label }})</p>
+        </div>
+        <div v-else class="mb-4 p-3 bg-amber-50 rounded-xl border border-amber-200">
+          <p class="text-amber-700 text-sm font-medium">ไม่มีเวรวันที่เลือก</p>
+        </div>
+
+        <div v-if="loadingEmployees" class="text-center py-6">
+          <div class="w-6 h-6 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+        </div>
+        <div v-else-if="availableEmployees.length === 0" class="text-center py-6 text-gray-400 text-sm">
+          ไม่มีพนักงานที่มีเวรวันนี้
+        </div>
+        <div v-else class="space-y-2 max-h-64 overflow-y-auto">
+          <button v-for="emp in availableEmployees" :key="emp.id"
+            @click="selectEmployee(emp)"
+            :class="form.target_id === emp.id ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:bg-gray-50'"
+            class="w-full flex items-center justify-between p-3 rounded-xl border border-gray-200 text-left transition-all">
+            <div>
+              <p class="font-medium text-gray-800 text-sm">{{ emp.name }}</p>
+              <p class="text-gray-400 text-xs">{{ emp.employee_code }}</p>
+            </div>
+            <div class="text-right">
+              <span class="bg-gray-100 text-gray-700 text-[10px] font-medium px-2 py-1 rounded-full">
+                {{ emp.shift_code }}
+              </span>
+              <p class="text-gray-400 text-[10px] mt-0.5">{{ emp.shift_label }}</p>
+            </div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Step 3: Confirm & Submit -->
+      <div v-if="step >= 3" class="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm">
+        <div class="flex items-center gap-2 mb-4">
+          <div class="w-7 h-7 rounded-full bg-blue-500 text-white flex items-center justify-center text-sm font-bold">3</div>
+          <h2 class="font-bold text-gray-800">ยืนยันการสลับเวร</h2>
+        </div>
+
+        <!-- Swap Summary -->
+        <div class="bg-gray-50 rounded-xl p-4 mb-4 border border-gray-200">
+          <div class="flex items-center justify-center gap-3">
+            <div class="text-center flex-1">
+              <p class="text-xs text-gray-400 mb-1">ฉัน</p>
+              <p class="font-bold text-gray-800 text-sm">{{ store.user?.name }}</p>
+              <span class="inline-block mt-1 bg-blue-100 text-blue-700 text-[10px] font-medium px-2 py-0.5 rounded-full">
+                {{ mySchedule?.shift_code }} ({{ mySchedule?.shift_label }})
+              </span>
+            </div>
+            <div class="text-2xl text-gray-300">⇄</div>
+            <div class="text-center flex-1">
+              <p class="text-xs text-gray-400 mb-1">สลับกับ</p>
+              <p class="font-bold text-gray-800 text-sm">{{ form.target_name }}</p>
+              <span class="inline-block mt-1 bg-amber-100 text-amber-700 text-[10px] font-medium px-2 py-0.5 rounded-full">
+                {{ form.target_shift_code }} ({{ form.target_shift_label }})
+              </span>
             </div>
           </div>
-          <span class="px-3 py-1 rounded-full text-xs font-semibold"
-                :class="{'bg-yellow-100 text-yellow-700': swap.status==='pending', 'bg-green-100 text-green-700': swap.status==='approved', 'bg-red-100 text-red-700': swap.status==='rejected'}">
-            {{ statusText(swap.status) }}
-          </span>
+          <p class="text-center text-gray-500 text-xs mt-3">วันที่ {{ formatDate(swapDate) }}</p>
+        </div>
+
+        <!-- Reason -->
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">เหตุผล (ไม่บังคับ)</label>
+          <textarea v-model="form.reason" rows="2"
+            class="w-full border border-gray-300 rounded-xl p-3 text-sm focus:ring-2 focus:ring-blue-400 focus:border-blue-400"
+            placeholder="เช่น ต้องการสลับเวรเพื่อทำธุระส่วนตัว..." />
+        </div>
+
+        <button @click="submitSwap" :disabled="submitting || !mySchedule"
+          class="w-full bg-blue-500 text-white py-3 rounded-xl font-bold hover:bg-blue-600 disabled:opacity-50 transition-colors">
+          {{ submitting ? 'กำลังส่ง...' : 'ส่งคำขอสลับเวร' }}
+        </button>
+      </div>
+
+      <!-- My Requests -->
+      <div class="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm">
+        <h2 class="font-bold text-gray-800 mb-4">คำขอของฉัน</h2>
+        <div v-if="loadingSwaps" class="text-center py-4">
+          <div class="w-6 h-6 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+        </div>
+        <div v-else-if="mySwaps.length === 0" class="text-center py-4 text-gray-400 text-sm">ยังไม่มีคำขอ</div>
+        <div v-else class="space-y-2">
+          <div v-for="swap in mySwaps" :key="swap.id"
+            :class="swap.status === 'pending' ? 'border-amber-300 bg-amber-50' : swap.status === 'approved' ? 'border-emerald-300 bg-emerald-50' : 'border-red-300 bg-red-50'"
+            class="p-4 rounded-xl border">
+            <div class="flex items-center justify-between">
+              <div>
+                <div class="flex items-center gap-2">
+                  <p class="font-medium text-gray-800 text-sm">{{ swap.requester?.name }}</p>
+                  <span class="text-gray-300">⇄</span>
+                  <p class="font-medium text-gray-800 text-sm">{{ swap.target?.name }}</p>
+                </div>
+                <p class="text-gray-400 text-xs mt-1">
+                  {{ formatDate(swap.swap_date) }} | {{ swap.requester_shift }} → {{ swap.target_shift }}
+                </p>
+                <p v-if="swap.reason" class="text-gray-400 text-xs mt-0.5 italic">เหตุผล: {{ swap.reason }}</p>
+              </div>
+              <span :class="swap.status === 'pending' ? 'bg-amber-100 text-amber-700' : swap.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'"
+                class="text-[10px] font-bold px-2 py-1 rounded-full shrink-0 ml-3">
+                {{ statusLabel(swap.status) }}
+              </span>
+            </div>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div v-if="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-lg text-white text-sm"
-         :class="toast.type==='success' ? 'bg-green-600' : 'bg-red-600'">{{ toast.message }}</div>
+      <!-- Toast -->
+      <div v-if="toast"
+        :class="toast.type === 'success' ? 'bg-emerald-500' : 'bg-red-500'"
+        class="fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-xl text-white text-sm font-medium shadow-lg z-50">
+        {{ toast.message }}
+      </div>
+    </main>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
-import api from '@/services/api'
-import state from '@/store'
+import { ref, computed, onMounted } from 'vue'
+import axios from 'axios'
+import store from '../../store'
+import dayjs from 'dayjs'
 
-const employees = ref([])
-const mySwaps = ref([])
+const swapDate = ref(dayjs().format('YYYY-MM-DD'))
+const minDate = dayjs().format('YYYY-MM-DD')
+const step = ref(1)
+const loadingEmployees = ref(false)
+const loadingSwaps = ref(true)
 const submitting = ref(false)
+const mySchedule = ref(null)
+const availableEmployees = ref([])
+const mySwaps = ref([])
 const toast = ref(null)
-const employeeId = computed(() => state.user?.id)
 
-const form = ref({ target_id: '', swap_date: '', requester_shift: '', target_shift: '', reason: '' })
+const form = ref({
+  target_id: '',
+  target_name: '',
+  target_shift_code: '',
+  target_shift_label: '',
+  reason: '',
+})
 
-const loadData = async () => {
-  try {
-    const [empRes, swapRes] = await Promise.all([
-      api.get('/api/employees', { params: { per_page: 200 } }),
-      api.get('/api/shift-swaps/my-requests', { params: { emp_id: employeeId.value } })
-    ])
-    employees.value = (empRes.data.data?.data || empRes.data.data || []).filter(e => e.id !== employeeId.value)
-    mySwaps.value = swapRes.data.data || []
-  } catch (err) { console.error(err) }
+function formatDate(d) {
+  return dayjs(d).format('D MMMM YYYY')
 }
 
-const submitSwap = async () => {
+function statusLabel(s) {
+  return { pending: 'รอหัวหน้าอนุมัติ', approved: 'อนุมัติแล้ว', rejected: 'ปฏิเสธ' }[s] || s
+}
+
+function showToast(type, message) {
+  toast.value = { type, message }
+  setTimeout(() => toast.value = null, 3000)
+}
+
+async function onDateChange() {
+  step.value = 2
+  form.value = { target_id: '', target_name: '', target_shift_code: '', target_shift_label: '', reason: '' }
+  loadingEmployees.value = true
+  try {
+    const res = await axios.get('/api/shift-swaps/available-employees', { params: { date: swapDate.value } })
+    if (res.data.success) {
+      mySchedule.value = res.data.data.my_schedule
+      availableEmployees.value = res.data.data.available_employees
+    }
+  } catch (e) {
+    showToast('error', 'ไม่สามารถโหลดข้อมูลได้')
+  } finally {
+    loadingEmployees.value = false
+  }
+}
+
+function selectEmployee(emp) {
+  form.value.target_id = emp.id
+  form.value.target_name = emp.name
+  form.value.target_shift_code = emp.shift_code
+  form.value.target_shift_label = emp.shift_label
+  step.value = 3
+}
+
+async function submitSwap() {
+  if (!form.value.target_id || !mySchedule.value) return
   submitting.value = true
   try {
-    await api.post('/api/shift-swaps', { ...form.value, requester_id: employeeId.value })
-    showToast('success', 'ส่งคำขอสลับกะสำเร็จ')
-    form.value = { target_id: '', swap_date: '', requester_shift: '', target_shift: '', reason: '' }
-    loadData()
-  } catch (err) {
-    showToast('error', err.response?.data?.message || 'เกิดข้อผิดพลาด')
+    await axios.post('/api/shift-swaps', {
+      requester_id: store.user?.id,
+      target_id: form.value.target_id,
+      swap_date: swapDate.value,
+      requester_shift: mySchedule.value.shift_code,
+      target_shift: form.value.target_shift_code,
+      reason: form.value.reason || null,
+    })
+    showToast('success', 'ส่งคำขอสลับเวรสำเร็จ')
+    step.value = 1
+    swapDate.value = dayjs().format('YYYY-MM-DD')
+    form.value = { target_id: '', target_name: '', target_shift_code: '', target_shift_label: '', reason: '' }
+    loadMyRequests()
+  } catch (e) {
+    showToast('error', e.response?.data?.message || 'เกิดข้อผิดพลาด')
+  } finally {
+    submitting.value = false
   }
-  submitting.value = false
 }
 
-const formatDate = (d) => new Date(d).toLocaleDateString('th-TH', { year:'numeric', month:'long', day:'numeric' })
-const statusText = (s) => ({ pending:'รอหัวหน้าอนุมัติ', approved:'อนุมัติแล้ว', rejected:'ปฏิเสธ' })[s] || s
-const showToast = (type, message) => { toast.value = {type, message}; setTimeout(() => toast.value = null, 3000) }
+async function loadMyRequests() {
+  loadingSwaps.value = true
+  try {
+    const res = await axios.get('/api/shift-swaps/my-requests')
+    if (res.data.success) {
+      mySwaps.value = res.data.data
+    }
+  } catch (e) {
+    console.error(e)
+  } finally {
+    loadingSwaps.value = false
+  }
+}
 
-onMounted(loadData)
+onMounted(loadMyRequests)
 </script>
