@@ -160,6 +160,9 @@ class Employee extends Authenticatable
         if ($assigned) {
             return $assigned;
         }
+        if (!$this->company) {
+            return null;
+        }
         return $this->company->officeLocations()->where('is_active', true)->first();
     }
 
