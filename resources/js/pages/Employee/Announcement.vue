@@ -51,17 +51,16 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
-import dayjs from 'dayjs'
-import 'dayjs/locale/th'
-
-dayjs.locale('th')
 
 const loading = ref(true)
 const announcements = ref([])
 const selected = ref(null)
 
+const thMonths = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม']
+
 function formatDate(d) {
-  return dayjs(d).format('D MMMM YYYY HH:mm')
+  const dt = new Date(d)
+  return `${dt.getDate()} ${thMonths[dt.getMonth()]} ${dt.getFullYear() + 543} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`
 }
 
 onMounted(async () => {

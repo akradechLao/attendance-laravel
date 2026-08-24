@@ -108,10 +108,8 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import axios from 'axios'
-import dayjs from 'dayjs'
-import 'dayjs/locale/th'
 
-dayjs.locale('th')
+const thMonths = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม']
 
 const tab = ref('history')
 const loadingHistory = ref(true)
@@ -125,7 +123,8 @@ function statusLabel(s) {
 }
 
 function formatDate(d) {
-  return dayjs(d).format('D MMMM YYYY')
+  const dt = new Date(d)
+  return `${dt.getDate()} ${thMonths[dt.getMonth()]} ${dt.getFullYear() + 543}`
 }
 
 onMounted(async () => {

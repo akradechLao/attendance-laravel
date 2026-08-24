@@ -154,10 +154,13 @@
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
 import store from '../../store'
-import dayjs from 'dayjs'
 
-const swapDate = ref(dayjs().format('YYYY-MM-DD'))
-const minDate = dayjs().format('YYYY-MM-DD')
+const today = new Date()
+const todayStr = today.toISOString().split('T')[0]
+const thMonths = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม']
+
+const swapDate = ref(todayStr)
+const minDate = todayStr
 const step = ref(1)
 const loadingEmployees = ref(false)
 const loadingSwaps = ref(true)
@@ -176,7 +179,8 @@ const form = ref({
 })
 
 function formatDate(d) {
-  return dayjs(d).format('D MMMM YYYY')
+  const dt = new Date(d)
+  return `${dt.getDate()} ${thMonths[dt.getMonth()]} ${dt.getFullYear() + 543}`
 }
 
 function statusLabel(s) {
@@ -227,7 +231,7 @@ async function submitSwap() {
     })
     showToast('success', 'ส่งคำขอสลับเวรสำเร็จ')
     step.value = 1
-    swapDate.value = dayjs().format('YYYY-MM-DD')
+    swapDate.value = todayStr
     form.value = { target_id: '', target_name: '', target_shift_code: '', target_shift_label: '', reason: '' }
     loadMyRequests()
   } catch (e) {

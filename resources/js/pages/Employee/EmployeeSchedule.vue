@@ -76,35 +76,50 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
-import dayjs from 'dayjs'
-import 'dayjs/locale/th'
 
-dayjs.locale('th')
+const thDays = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์']
+const thMonths = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม']
+
+function toDateStr(d) { return d.toISOString().split('T')[0] }
+function fmtNum(n) { return String(n).padStart(2, '0') }
+
+function startOfWeek(d) {
+  const r = new Date(d)
+  r.setDate(r.getDate() - r.getDay())
+  r.setHours(0,0,0,0)
+  return r
+}
+function addDays(d, n) { const r = new Date(d); r.setDate(r.getDate() + n); return r }
+function fmtFull(d) { return `${thDays[d.getDay()]} ${d.getDate()} ${thMonths[d.getMonth()]} ${d.getFullYear() + 543}` }
+function fmtShort(d) { return `${fmtNum(d.getDate())} ${thMonths[d.getMonth()]}` }
 
 const loading = ref(true)
 const schedules = ref([])
-const currentWeekStart = ref(dayjs().startOf('week'))
+const currentWeekStart = ref(startOfWeek(new Date()))
 
-const startDate = computed(() => currentWeekStart.value.format('DD MMM'))
-const endDate = computed(() => currentWeekStart.value.add(6, 'day').format('DD MMM YYYY'))
+const startDate = computed(() => fmtShort(currentWeekStart.value))
+const endDate = computed(() => fmtShort(addDays(currentWeekStart.value, 6)))
 const weekLabel = computed(() => {
-  const start = currentWeekStart.value
-  const end = start.add(6, 'day')
-  return `สัปดาห์ที่ ${start.format('W')} / ${end.year() + 543}`
+  const y = currentWeekStart.value.getFullYear() + 543
+  const start = new Date(currentWeekStart.value)
+  const endOfYear = new Date(start.getFullYear(), 11, 31)
+  const dayOfYear = Math.ceil((endOfYear - start) / 86400000)
+  const weekNum = 52 - Math.floor(dayOfYear / 7)
+  return `สัปดาห์ที่ ${Math.max(1, weekNum)} / ${y}`
 })
 
 const weekDays = computed(() => {
   const days = []
-  const today = dayjs().format('YYYY-MM-DD')
+  const today = toDateStr(new Date())
   for (let i = 0; i < 7; i++) {
-    const date = currentWeekStart.value.add(i, 'day')
-    const dateStr = date.format('YYYY-MM-DD')
+    const date = addDays(currentWeekStart.value, i)
+    const dateStr = toDateStr(date)
     const schedule = schedules.value.find(s => s.date === dateStr)
     days.push({
       date: dateStr,
-      dayNum: date.format('D'),
-      dayName: date.format('ddd'),
-      fullDate: date.format('dddd D MMMM YYYY'),
+      dayNum: date.getDate(),
+      dayName: thDays[date.getDay()].substring(0, 3),
+      fullDate: fmtFull(date),
       isToday: dateStr === today,
       schedule: schedule || null,
     })
@@ -113,17 +128,17 @@ const weekDays = computed(() => {
 })
 
 function prevWeek() {
-  currentWeekStart.value = currentWeekStart.value.subtract(7, 'day')
+  currentWeekStart.value = addDays(currentWeekStart.value, -7)
   loadSchedule()
 }
 
 function nextWeek() {
-  currentWeekStart.value = currentWeekStart.value.add(7, 'day')
+  currentWeekStart.value = addDays(currentWeekStart.value, 7)
   loadSchedule()
 }
 
 function goToday() {
-  currentWeekStart.value = dayjs().startOf('week')
+  currentWeekStart.value = startOfWeek(new Date())
   loadSchedule()
 }
 
@@ -132,8 +147,8 @@ async function loadSchedule() {
   try {
     const res = await axios.get('/api/employee/schedule', {
       params: {
-        start_date: currentWeekStart.value.format('YYYY-MM-DD'),
-        end_date: currentWeekStart.value.add(6, 'day').format('YYYY-MM-DD'),
+        start_date: toDateStr(currentWeekStart.value),
+        end_date: toDateStr(addDays(currentWeekStart.value, 6)),
       }
     })
     if (res.data.success) {
