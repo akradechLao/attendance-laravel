@@ -97,6 +97,24 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/employee/dashboard',
+    name: 'EmployeeDashboard',
+    component: () => import('./pages/Employee/EmployeeDashboard.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/employee/payslip',
+    name: 'EmployeePayslip',
+    component: () => import('./pages/Employee/Payslip.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/payslip-entry',
+    name: 'PayslipEntry',
+    component: () => import('./pages/HR/PayslipEntry.vue'),
+    meta: { requiresAuth: true, layout: 'app' }
+  },
+  {
     path: '/dashboard',
     name: 'Dashboard',
     component: () => import('./pages/HR/Dashboard.vue'),

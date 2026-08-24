@@ -60,6 +60,19 @@
 
       <!-- Primary Menu Grid -->
       <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-8">
+        <!-- สรุปวันนี้ -->
+        <router-link to="/employee/dashboard" class="block group">
+          <div class="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-center">
+            <div class="w-12 h-12 sm:w-14 sm:h-14 mx-auto rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center mb-3 shadow-lg group-hover:scale-110 transition-transform">
+              <svg class="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+              </svg>
+            </div>
+            <h2 class="font-bold text-gray-800 text-sm sm:text-base">สรุปวันนี้</h2>
+            <p class="text-gray-400 text-xs mt-1">สถานะ & สถิติ</p>
+          </div>
+        </router-link>
+
         <!-- สแกนเข้า/ออกงาน -->
         <router-link to="/employee" class="block group">
           <div class="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-center">
@@ -225,6 +238,19 @@
             </div>
             <h2 class="font-bold text-gray-800 text-sm sm:text-base">ข้อมูลส่วนตัว</h2>
             <p class="text-gray-400 text-xs mt-1">ดูข้อมูลพนักงาน</p>
+          </div>
+        </router-link>
+
+        <!-- สลิปเงินเดือน -->
+        <router-link to="/employee/payslip" class="block group">
+          <div class="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-center">
+            <div class="w-12 h-12 sm:w-14 sm:h-14 mx-auto rounded-2xl bg-green-500 flex items-center justify-center mb-3 shadow-lg group-hover:scale-110 transition-transform">
+              <svg class="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2z" />
+              </svg>
+            </div>
+            <h2 class="font-bold text-gray-800 text-sm sm:text-base">สลิปเงินเดือน</h2>
+            <p class="text-gray-400 text-xs mt-1">ดูสลิปเงินเดือน</p>
           </div>
         </router-link>
 

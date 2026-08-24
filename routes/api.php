@@ -20,6 +20,8 @@ use App\Http\Controllers\Api\SupervisorController;
 use App\Http\Controllers\Api\ManagerController;
 use App\Http\Controllers\Api\EmployeeHolidayController;
 use App\Http\Controllers\Api\SupervisorLeaveCalendarController;
+use App\Http\Controllers\Api\EmployeeDashboardController;
+use App\Http\Controllers\Api\PayslipController;
 use App\Http\Controllers\Api\CompanySettingsController;
 use App\Http\Controllers\Api\SystemSettingsController;
 use App\Http\Controllers\Api\EmployeeHistoryController;
@@ -241,6 +243,18 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Supervisor Leave Calendar
     Route::get('/supervisor/leave-calendar', [SupervisorLeaveCalendarController::class, 'index']);
+
+    // Employee Dashboard
+    Route::get('/employee/dashboard', [EmployeeDashboardController::class, 'index']);
+
+    // Employee Payslip
+    Route::get('/employee/payslip', [PayslipController::class, 'myPayslip']);
+    Route::get('/employee/payslip/history', [PayslipController::class, 'myHistory']);
+
+    // HR Payslip Management
+    Route::get('/hr/payslips', [PayslipController::class, 'hrList']);
+    Route::get('/hr/payslips/{empId}', [PayslipController::class, 'hrGet']);
+    Route::post('/hr/payslips/{empId}', [PayslipController::class, 'hrSave']);
 
     // Shift Assignments (จัดการกะรายเดือน)
     Route::get('/shift-assignments', [\App\Http\Controllers\Api\ShiftAssignmentController::class, 'index']);
