@@ -81,7 +81,7 @@ class AttendanceVerificationController extends Controller
                     'shift_start' => $shiftStart,
                     'shift_end' => $shiftEnd,
                     'is_verified' => $log->is_verified,
-                    'verified_by' => $log->verifiedBy->name ?? null,
+                    'verified_by' => $log->verifiedBy->username ?? null,
                     'verified_at' => $log->verified_at ? $log->verified_at->format('Y-m-d H:i') : null,
                 ];
             });
@@ -138,7 +138,7 @@ class AttendanceVerificationController extends Controller
                 'data' => [
                     'id' => $log->id,
                     'is_verified' => true,
-                    'verified_by' => $admin->name ?? 'Admin',
+                    'verified_by' => $admin->username ?? 'Admin',
                     'verified_at' => $log->verified_at->format('Y-m-d H:i'),
                 ],
                 'message' => 'ยืนยันรายการสำเร็จ',

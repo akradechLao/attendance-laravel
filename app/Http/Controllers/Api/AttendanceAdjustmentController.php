@@ -40,7 +40,7 @@ class AttendanceAdjustmentController extends Controller
                     'original_status' => $log->original_status ?? $log->check_in_status,
                     'final_status' => $log->final_status ?? $log->original_status ?? $log->check_in_status,
                     'late_minutes' => $log->late_minutes,
-                    'adjusted_by' => $log->adjustedBy->name ?? null,
+                    'adjusted_by' => $log->adjustedBy->username ?? null,
                     'adjusted_at' => $log->adjusted_at ? $log->adjusted_at->format('Y-m-d H:i') : null,
                     'adjustment_note' => $log->adjustment_note,
                 ];
@@ -78,7 +78,7 @@ class AttendanceAdjustmentController extends Controller
                 'data' => [
                     'id' => $log->id,
                     'final_status' => $log->final_status,
-                    'adjusted_by' => $admin->name ?? 'Admin',
+                    'adjusted_by' => $admin->username ?? 'Admin',
                     'adjusted_at' => $log->adjusted_at->format('Y-m-d H:i'),
                 ],
                 'message' => 'ปรับแก้สถานะสำเร็จ',
@@ -125,7 +125,7 @@ class AttendanceAdjustmentController extends Controller
                     'status' => $leave->status,
                     'status_label' => $leave->status === 'pending' ? 'รออนุมัติ' : ($leave->status === 'approved' ? 'อนุมัติ' : 'ไม่อนุมัติ'),
                     'reason' => $leave->reason,
-                    'approved_by' => $leave->approvedBy->name ?? null,
+                    'approved_by' => $leave->approvedBy->username ?? null,
                     'approved_at' => $leave->approved_at ? $leave->approved_at->format('Y-m-d H:i') : null,
                     'rejection_reason' => $leave->rejection_reason,
                 ];

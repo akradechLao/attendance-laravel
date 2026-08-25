@@ -50,7 +50,7 @@ class MandatoryOtController extends Controller
 
             $employee = Employee::findOrFail($validated['emp_id']);
             $validated['company_id'] = $employee->company_id;
-            $validated['assigned_by'] = $request->user()->name ?? 'Admin';
+            $validated['assigned_by'] = $request->user()->username ?? 'Admin';
 
             $existing = MandatoryOtAssignment::where('emp_id', $validated['emp_id'])
                 ->where('ot_date', $validated['ot_date'])

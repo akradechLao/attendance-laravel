@@ -36,7 +36,7 @@ class RemoteAssignment extends Model
 
     public function approver(): BelongsTo
     {
-        return $this->belongsTo(Employee::class, 'approved_by');
+        return $this->belongsTo(AdminUser::class, 'approved_by');
     }
 
     public function isActive(): bool

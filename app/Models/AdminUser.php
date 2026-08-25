@@ -27,6 +27,11 @@ class AdminUser extends Authenticatable
         'password' => 'hashed',
     ];
 
+    public function getNameAttribute(): string
+    {
+        return $this->username;
+    }
+
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);

@@ -54,12 +54,12 @@ class AttendanceLog extends Model
 
     public function adjustedBy(): BelongsTo
     {
-        return $this->belongsTo(Employee::class, 'adjusted_by');
+        return $this->belongsTo(AdminUser::class, 'adjusted_by');
     }
 
     public function verifiedBy(): BelongsTo
     {
-        return $this->belongsTo(Employee::class, 'verified_by');
+        return $this->belongsTo(AdminUser::class, 'verified_by');
     }
 
     public function lateForcedLeave()

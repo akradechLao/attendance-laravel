@@ -53,7 +53,7 @@ class AutoOtController extends Controller
                     'status' => $ot->status,
                     'status_label' => $ot->status === 'pending' ? 'รออนุมัติ' : ($ot->status === 'approved' ? 'อนุมัติ' : 'ไม่อนุมัติ'),
                     'reason' => $ot->reason,
-                    'approved_by' => $ot->approvedBy->name ?? null,
+                    'approved_by' => $ot->approvedBy->username ?? null,
                     'approved_at' => $ot->approved_at ? $ot->approved_at->format('Y-m-d H:i') : null,
                     'rejection_reason' => $ot->rejection_reason,
                 ];

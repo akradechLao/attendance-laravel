@@ -35,6 +35,6 @@ class ShiftSwap extends Model
 
     public function supervisor(): BelongsTo
     {
-        return $this->belongsTo(Employee::class, 'supervisor_id');
+        return $this->belongsTo(AdminUser::class, 'supervisor_id');
     }
 }

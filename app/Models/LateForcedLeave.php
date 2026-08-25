@@ -42,7 +42,7 @@ class LateForcedLeave extends Model
 
     public function approvedBy(): BelongsTo
     {
-        return $this->belongsTo(Employee::class, 'approved_by');
+        return $this->belongsTo(AdminUser::class, 'approved_by');
     }
 
     public function leaveRequest(): BelongsTo
