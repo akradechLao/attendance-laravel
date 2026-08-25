@@ -25,8 +25,20 @@ const typeOptions = [
 
 const formatDate = (d) => {
   if (!d) return ''
-  const parts = String(d).split('-')
-  return parts.length === 3 ? parts[2] + '/' + parts[1] + '/' + parts[0] : d
+  // Handle ISO datetime strings like "2025-12-31T17:00:00.000000Z"
+  const datePart = String(d).split('T')[0]
+  const parts = datePart.split('-')
+  if (parts.length === 3) {
+    return `${parts[2]}/${parts[1]}/${parts[0]}`
+  }
+  return d
+}
+
+function parseDate(d) {
+  if (!d) return new Date()
+  const datePart = String(d).split('T')[0]
+  const dt = new Date(datePart + 'T12:00:00')
+  return isNaN(dt.getTime()) ? new Date() : dt
 }
 
 const yearOptions = computed(() => {
@@ -170,7 +182,7 @@ const deleteHoliday = async (id) => {
           </tr>
           <tr v-for="holiday in holidays" :key="holiday.id">
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ formatDate(holiday.date) }}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ months[new Date(holiday.date).getMonth()] }}</td>
+            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ months[parseDate(holiday.date).getMonth()] }}</td>
             <td class="px-6 py-4 text-sm text-gray-900">
               <div class="flex items-center gap-2">
                 {{ holiday.name }}
