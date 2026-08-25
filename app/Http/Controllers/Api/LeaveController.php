@@ -93,8 +93,7 @@ class LeaveController extends Controller
             $user = $request->user();
             $userRole = $user->role ?? 'employee';
             if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
-                $approver = $user->employee ?? Employee::find($user->id);
-                if (!$approver || !$approver->isSubordinateOf($leave->emp_id)) {
+                if (!$user->isSubordinateOf($leave->emp_id)) {
                     return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
                 }
             }
@@ -161,8 +160,7 @@ class LeaveController extends Controller
             $user = $request->user();
             $userRole = $user->role ?? 'employee';
             if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
-                $approver = $user->employee ?? Employee::find($user->id);
-                if (!$approver || !$approver->isSubordinateOf($leave->emp_id)) {
+                if (!$user->isSubordinateOf($leave->emp_id)) {
                     return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
                 }
             }

@@ -23,7 +23,7 @@ class PositionMiddleware
             return $next($request);
         }
 
-        $employee = $user->employee ?? Employee::find($user->id);
+        $employee = $user instanceof \App\Models\Employee ? $user : null;
 
         if (!$employee) {
             return response()->json(['message' => 'Employee not found'], 404);

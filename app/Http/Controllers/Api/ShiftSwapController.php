@@ -40,7 +40,6 @@ class ShiftSwapController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'requester_id' => 'required|exists:employees,id',
             'target_id' => 'required|exists:employees,id',
             'swap_date' => 'required|date',
             'requester_shift' => 'required|string',
@@ -48,6 +47,9 @@ class ShiftSwapController extends Controller
             'reason' => 'nullable|string',
             'request_replacement_day' => 'nullable|boolean',
         ]);
+
+        $employee = $request->user();
+        $validated['requester_id'] = $employee->id;
 
         if ($validated['requester_id'] == $validated['target_id']) {
             return response()->json(['success' => false, 'message' => 'ไม่สามารถสลับกับตัวเองได้'], 400);
@@ -74,8 +76,7 @@ class ShiftSwapController extends Controller
         $user = $request->user();
         $userRole = $user->role ?? 'employee';
         if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
-            $approver = $user->employee ?? Employee::find($user->id);
-            if (!$approver || (!$approver->isSubordinateOf($swap->requester_id) && !$approver->isSubordinateOf($swap->target_id))) {
+            if (!$user->isSubordinateOf($swap->requester_id) && !$user->isSubordinateOf($swap->target_id)) {
                 return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
             }
         }
@@ -142,8 +143,7 @@ class ShiftSwapController extends Controller
         $user = $request->user();
         $userRole = $user->role ?? 'employee';
         if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
-            $approver = $user->employee ?? Employee::find($user->id);
-            if (!$approver || (!$approver->isSubordinateOf($swap->requester_id) && !$approver->isSubordinateOf($swap->target_id))) {
+            if (!$user->isSubordinateOf($swap->requester_id) && !$user->isSubordinateOf($swap->target_id)) {
                 return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
             }
         }
@@ -179,8 +179,7 @@ class ShiftSwapController extends Controller
 
     public function teamSwaps(Request $request): JsonResponse
     {
-        $user = $request->user();
-        $employee = $user->employee ?? Employee::find($user->id);
+        $employee = $request->user();
 
         if (!$employee) {
             return response()->json(['success' => false, 'message' => 'Employee not found'], 404);

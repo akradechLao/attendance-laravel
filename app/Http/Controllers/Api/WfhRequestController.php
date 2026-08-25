@@ -73,10 +73,11 @@ class WfhRequestController extends Controller
     public function store(Request $request): JsonResponse
     {
         $request->validate([
-            'emp_id' => 'required|exists:employees,id',
             'date' => 'required|date',
+            'reason' => 'nullable|string',
         ]);
 
+        $employee = $request->user();
         $date = Carbon::parse($request->date);
 
         // Allow weekdays only (Mon-Fri)
@@ -88,7 +89,7 @@ class WfhRequestController extends Controller
         }
 
         $month = $date->format('Y-m');
-        $existing = WfhRecord::where('emp_id', $request->emp_id)
+        $existing = WfhRecord::where('emp_id', $employee->id)
             ->whereYear('date', $date->year)
             ->whereMonth('date', $date->month)
             ->where('status', '!=', 'rejected')
@@ -103,7 +104,7 @@ class WfhRequestController extends Controller
 
         $occupied = WfhRecord::where('date', $date->format('Y-m-d'))
             ->whereIn('status', ['pending', 'approved'])
-            ->where('emp_id', '!=', $request->emp_id)
+            ->where('emp_id', '!=', $employee->id)
             ->count();
 
         if ($occupied > 0) {
@@ -114,7 +115,7 @@ class WfhRequestController extends Controller
         }
 
         $record = WfhRecord::create([
-            'emp_id' => $request->emp_id,
+            'emp_id' => $employee->id,
             'date' => $date->format('Y-m-d'),
             'reason' => $request->get('reason', ''),
             'status' => 'pending',
@@ -142,8 +143,7 @@ class WfhRequestController extends Controller
         $user = $request->user();
         $userRole = $user->role ?? 'employee';
         if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
-            $approver = $user->employee ?? Employee::find($user->id);
-            if (!$approver || !$approver->isSubordinateOf($record->emp_id)) {
+            if (!$user->isSubordinateOf($record->emp_id)) {
                 return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
             }
         }
@@ -193,8 +193,7 @@ class WfhRequestController extends Controller
         $user = $request->user();
         $userRole = $user->role ?? 'employee';
         if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
-            $approver = $user->employee ?? Employee::find($user->id);
-            if (!$approver || !$approver->isSubordinateOf($record->emp_id)) {
+            if (!$user->isSubordinateOf($record->emp_id)) {
                 return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
             }
         }
@@ -225,13 +224,12 @@ class WfhRequestController extends Controller
 
     public function myRequests(Request $request): JsonResponse
     {
-        $empId = $request->get('emp_id');
+        $employee = $request->user();
         $month = $request->get('month', Carbon::now()->format('Y-m'));
 
-        $employee = Employee::find($empId);
         $quota = $employee->wfh_quota ?? 1;
 
-        $records = WfhRecord::where('emp_id', $empId)
+        $records = WfhRecord::where('emp_id', $employee->id)
             ->whereYear('date', Carbon::parse($month)->year)
             ->whereMonth('date', Carbon::parse($month)->month)
             ->with('supervisor')
@@ -251,8 +249,7 @@ class WfhRequestController extends Controller
 
     public function teamRequests(Request $request): JsonResponse
     {
-        $user = $request->user();
-        $employee = $user->employee ?? Employee::find($user->id);
+        $employee = $request->user();
 
         if (!$employee) {
             return response()->json(['success' => false, 'message' => 'Employee not found'], 404);

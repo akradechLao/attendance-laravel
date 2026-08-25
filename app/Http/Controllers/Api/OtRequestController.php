@@ -87,8 +87,7 @@ class OtRequestController extends Controller
             $user = $request->user();
             $userRole = $user->role ?? 'employee';
             if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
-                $approver = $user->employee ?? Employee::find($user->id);
-                if (!$approver || !$approver->isSubordinateOf($otRequest->employee_id)) {
+                if (!$user->isSubordinateOf($otRequest->employee_id)) {
                     return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
                 }
             }
@@ -177,8 +176,7 @@ class OtRequestController extends Controller
             $user = $request->user();
             $userRole = $user->role ?? 'employee';
             if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
-                $approver = $user->employee ?? Employee::find($user->id);
-                if (!$approver || !$approver->isSubordinateOf($otRequest->employee_id)) {
+                if (!$user->isSubordinateOf($otRequest->employee_id)) {
                     return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
                 }
             }

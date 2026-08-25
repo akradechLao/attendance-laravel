@@ -15,9 +15,9 @@ onMounted(async () => {
 const loadHistory = async () => {
   loading.value = true
   try {
-    const response = await api.get(`/api/employees/${store.user?.emp_id}/history`)
-    attendanceHistory.value = response.data.data?.data?.attendance || response.data.data?.attendance || []
-    leaveHistory.value = response.data.data?.data?.leave || response.data.data?.leave || []
+    const response = await api.get('/employee/attendance/history')
+    attendanceHistory.value = response.data.data?.attendance || []
+    leaveHistory.value = response.data.data?.leave || []
   } catch (error) {
     console.error('Failed to load history:', error)
   } finally {

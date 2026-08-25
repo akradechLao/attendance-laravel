@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\AuditLog;
+use App\Models\Employee;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 
@@ -26,10 +27,10 @@ class AuditLogService
             $user = $request->user();
 
             if ($user) {
-                if (method_exists($user, 'employee') && $user->employee) {
+                if ($user instanceof Employee) {
                     $userType = 'employee';
-                    $userId = $user->employee->id;
-                    $userName = $user->employee->name;
+                    $userId = $user->id;
+                    $userName = $user->name;
                 } elseif (property_exists($user, 'name')) {
                     $userType = 'admin';
                     $userId = $user->id;

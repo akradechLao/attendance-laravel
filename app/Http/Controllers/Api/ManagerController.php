@@ -14,7 +14,7 @@ class ManagerController extends Controller
     public function leaveApproval(Request $request)
     {
         $user = $request->user();
-        $employee = $user->employee ?? Employee::find($user->id);
+        $employee = $request->user();
 
         if (!$employee) {
             return response()->json(['success' => false, 'message' => 'Employee not found'], 404);
@@ -42,7 +42,7 @@ class ManagerController extends Controller
     public function otApproval(Request $request)
     {
         $user = $request->user();
-        $employee = $user->employee ?? Employee::find($user->id);
+        $employee = $request->user();
 
         if (!$employee) {
             return response()->json(['success' => false, 'message' => 'Employee not found'], 404);
@@ -70,7 +70,7 @@ class ManagerController extends Controller
     public function teamReport(Request $request)
     {
         $user = $request->user();
-        $manager = $user->employee ?? Employee::find($user->id);
+        $manager = $request->user();
 
         if (!$manager) {
             return response()->json(['success' => false, 'message' => 'Employee not found'], 404);

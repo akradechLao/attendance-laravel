@@ -23,7 +23,7 @@ class LeaveRequestController extends Controller
 
     public function balance(Request $request): JsonResponse
     {
-        $employee = Employee::find($request->get('emp_id'));
+        $employee = $request->user();
         if (!$employee) {
             return response()->json(['success' => false, 'message' => 'No employee found'], 404);
         }
@@ -37,14 +37,14 @@ class LeaveRequestController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'emp_id' => 'required|exists:employees,id',
             'leave_type_id' => 'required|exists:leave_types,id',
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',
             'reason' => 'nullable|string|max:1000',
         ]);
 
-        $employee = Employee::find($validated['emp_id']);
+        $employee = $request->user();
+        $validated['emp_id'] = $employee->id;
         $leaveType = LeaveType::find($validated['leave_type_id']);
         $start = Carbon::parse($validated['start_date']);
         $end = Carbon::parse($validated['end_date']);
@@ -85,12 +85,10 @@ class LeaveRequestController extends Controller
         $user = $request->user();
         $userRole = $user->role ?? 'employee';
         if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
-            $approver = $user->employee ?? Employee::find($user->id);
-            if (!$approver || !$approver->isSubordinateOf($leave->emp_id)) {
+            if (!$user->isSubordinateOf($leave->emp_id)) {
                 return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
             }
         }
-
         $employee = Employee::find($leave->emp_id);
         $leaveType = LeaveType::find($leave->leave_type_id);
         $year = Carbon::parse($leave->start_date)->year;
@@ -114,8 +112,7 @@ class LeaveRequestController extends Controller
         $user = $request->user();
         $userRole = $user->role ?? 'employee';
         if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
-            $approver = $user->employee ?? Employee::find($user->id);
-            if (!$approver || !$approver->isSubordinateOf($leave->emp_id)) {
+            if (!$user->isSubordinateOf($leave->emp_id)) {
                 return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
             }
         }
@@ -131,7 +128,8 @@ class LeaveRequestController extends Controller
 
     public function myRequests(Request $request): JsonResponse
     {
-        $leaves = LeaveRequest::where('emp_id', $request->get('emp_id'))
+        $employee = $request->user();
+        $leaves = LeaveRequest::where('emp_id', $employee->id)
             ->with('leaveType')
             ->orderBy('created_at', 'desc')
             ->get();
@@ -141,8 +139,7 @@ class LeaveRequestController extends Controller
 
     public function teamLeaves(Request $request): JsonResponse
     {
-        $user = $request->user();
-        $employee = $user->employee ?? Employee::find($user->id);
+        $employee = $request->user();
 
         if (!$employee) {
             return response()->json(['success' => false, 'message' => 'Employee not found'], 404);

@@ -12,12 +12,11 @@ class AnnouncementController extends Controller
     public function index(Request $request): JsonResponse
     {
         $user = $request->user();
-        $employee = $user->employee ?? null;
 
         $query = Announcement::where('is_active', true)
-            ->where(function ($q) use ($employee) {
-                if ($employee) {
-                    $q->where('company_id', $employee->company_id);
+            ->where(function ($q) use ($user) {
+                if ($user && property_exists($user, 'company_id') && $user->company_id) {
+                    $q->where('company_id', $user->company_id);
                 }
             })
             ->where(function ($q) {

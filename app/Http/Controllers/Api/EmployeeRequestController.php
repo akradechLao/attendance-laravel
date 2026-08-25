@@ -22,7 +22,7 @@ class EmployeeRequestController extends Controller
                 ->count();
 
             $otCount = OtRequest::where('emp_id', $employee->id)
-                ->where('status', 'pending')
+                ->where('status', 'pending_manager')
                 ->count();
 
             $wfhCount = WfhRecord::where('emp_id', $employee->id)
