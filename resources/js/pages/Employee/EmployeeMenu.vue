@@ -12,12 +12,20 @@
             <p class="text-blue-600 text-sm">{{ store.user?.company?.name }}</p>
           </div>
         </div>
-        <button
-          @click="handleLogout"
-          class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-red-50 text-gray-500 hover:text-red-500 text-sm font-medium transition-colors"
-        >
-          ออกจากระบบ
-        </button>
+        <div class="flex items-center gap-2">
+          <router-link
+            to="/login"
+            class="px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium transition-colors shadow-sm"
+          >
+            เข้าสู่ระบบ
+          </router-link>
+          <button
+            @click="handleLogout"
+            class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-red-50 text-gray-500 hover:text-red-500 text-sm font-medium transition-colors"
+          >
+            ออกจากระบบ
+          </button>
+        </div>
       </div>
     </header>
 
