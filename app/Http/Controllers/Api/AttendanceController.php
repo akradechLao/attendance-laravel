@@ -125,6 +125,7 @@ class AttendanceController extends Controller
                 'remote_longitude' => $isRemoteScan ? $request->longitude : null,
                 'remote_location_name' => $locationName,
                 'remote_custom_name' => $request->get('custom_location_name'),
+                'is_verified' => true,
             ]);
 
             return response()->json([

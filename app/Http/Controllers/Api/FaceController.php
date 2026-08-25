@@ -174,6 +174,7 @@ class FaceController extends Controller
                     'remote_longitude' => $remoteLongitude,
                     'remote_accuracy' => $remoteAccuracy,
                     'remote_location_name' => $remoteLocationName,
+                    'is_verified' => true,
                 ]);
 
                 // ─── สายเกิน 30 นาที → บังคับลากิจ 1 ชม. ───

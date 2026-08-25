@@ -154,7 +154,6 @@ const navItems = [
   { path: '/wfh', label: 'ปฏิบัติงานนอกสถานที่', icon: '🏠', minRole: 'admin' },
   { path: '/holidays', label: 'วันหยุด', icon: '🎌', minRole: 'admin' },
   { path: '/attendance-adjustment', label: 'ปรับแก้สถานะเข้างาน', icon: '✏️', minRole: 'admin' },
-  { path: '/attendance-verification', label: 'ยืนยันสถานะเข้างาน', icon: '✅', minRole: 'admin' },
   { path: '/manual-entry', label: 'บันทึกข้อมูลด้วยมือ', icon: '📝', minRole: 'admin' },
   { section: 'จัดกะ & OT', minRole: 'admin' },
   { path: '/shifts', label: 'กะทำงาน', icon: '🔄', minRole: 'admin' },

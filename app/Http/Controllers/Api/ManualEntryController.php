@@ -76,6 +76,7 @@ class ManualEntryController extends Controller
             'adjusted_by' => $request->user()->id,
             'adjusted_at' => now(),
             'adjustment_note' => $validated['note'] ?? 'บันทึกโดย HR (Manual Entry)',
+            'is_verified' => true,
         ]);
 
         AuditLogService::created($log, $request);
