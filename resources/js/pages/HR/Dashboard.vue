@@ -73,6 +73,7 @@
             <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-green-500 inline-block"></span> ตรงเวลา {{ stats.on_time }}</span>
             <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-yellow-500 inline-block"></span> สาย {{ stats.late }}</span>
             <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-gray-300 inline-block"></span> ไม่เข้างาน {{ stats.absent }}</span>
+            <span v-if="stats.ot_hours > 0" class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-purple-500 inline-block"></span> OT {{ stats.ot_hours }} ชม.</span>
           </div>
         </div>
 
@@ -183,7 +184,7 @@ const records = ref([])
 const companyStats = ref([])
 const stats = reactive({
   total: 0, present: 0, late: 0, on_time: 0, checked_out: 0, absent: 0,
-  forced_leaves_pending: 0, forced_leaves_approved: 0
+  forced_leaves_pending: 0, forced_leaves_approved: 0, ot_hours: 0
 })
 
 let refreshInterval = null
@@ -248,7 +249,8 @@ async function fetchData() {
       checked_out: sd.today?.checked_out || 0,
       absent: sd.today?.absent || 0,
       forced_leaves_pending: sd.today?.forced_leaves_pending || 0,
-      forced_leaves_approved: sd.today?.forced_leaves_approved || 0
+      forced_leaves_approved: sd.today?.forced_leaves_approved || 0,
+      ot_hours: sd.monthly?.ot_hours || 0
     })
     companyStats.value = sd.companies || []
     records.value = todayRes.data?.data?.records || []

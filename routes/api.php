@@ -263,8 +263,11 @@ Route::middleware(['auth:sanctum', 'role:admin,super_admin'])->group(function ()
     Route::get('/reports/monthly', [ReportController::class, 'monthly']);
     Route::get('/reports/employee/{id}', [ReportController::class, 'employee']);
     Route::get('/reports/export-attendance', [ReportController::class, 'exportAttendance']);
+    Route::get('/reports/export-attendance-pdf', [ReportController::class, 'exportAttendancePdf']);
     Route::get('/reports/leave', [ReportController::class, 'leave']);
+    Route::get('/reports/export-leave-pdf', [ReportController::class, 'exportLeavePdf']);
     Route::get('/reports/ot', [ReportController::class, 'ot']);
+    Route::get('/reports/export-ot-pdf', [ReportController::class, 'exportOtPdf']);
 
     // Audit Logs
     Route::get('/audit-logs', [AuditLogController::class, 'index']);
@@ -352,6 +355,7 @@ Route::middleware(['auth:sanctum', 'role:admin,super_admin'])->group(function ()
     Route::post('/manual/leave', [ManualEntryController::class, 'leaveStore']);
     Route::put('/manual/leave/{id}', [ManualEntryController::class, 'leaveUpdate']);
     Route::delete('/manual/leave/{id}', [ManualEntryController::class, 'leaveDestroy']);
+    Route::post('/manual/import-shift', [ManualEntryController::class, 'importShiftSchedule']);
 
     // Face registration
     Route::post('/face/register', [FaceController::class, 'register']);

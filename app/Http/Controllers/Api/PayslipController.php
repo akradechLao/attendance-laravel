@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\Payslip;
 use App\Services\AuditLogService;
+use App\Services\TelegramService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -253,6 +254,23 @@ class PayslipController extends Controller
             'บันทึกสลิปเงินเดือน ' . $employee->name . ' เดือน ' . $validated['month'] . '/' . $validated['year'],
             $request
         );
+
+        // Send Telegram notification to employee
+        try {
+            $telegram = new TelegramService();
+            if ($employee->telegram_chat_id) {
+                $thMonths = ['','มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
+                $monthName = $thMonths[(int)$validated['month']] ?? $validated['month'];
+                $message = "💰 <b>สลิปเงินเดือนพร้อมแล้ว</b>\n\n";
+                $message .= "👤 <b>ชื่อ:</b> {$employee->name}\n";
+                $message .= "📅 <b>เดือน:</b> {$monthName} {$validated['year']}\n";
+                $message .= "💵 <b>เงินได้รวม:</b> " . number_format($payslip->total_income ?? 0, 2) . " บาท\n";
+                $message .= "\nเปิดดูสลิปได้ที่หน้าสลิปเงินเดือน";
+                $telegram->sendToChat($employee->telegram_chat_id, $message);
+            }
+        } catch (\Exception $e) {
+            // Silent fail
+        }
 
         return response()->json([
             'success' => true,

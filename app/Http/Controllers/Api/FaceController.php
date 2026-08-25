@@ -612,6 +612,38 @@ class FaceController extends Controller
                 'reason' => 'สายเกิน 30 นาที (' . $lateMinutes . ' นาที) → บังคับลากิจ 1 ชม.',
             ]);
         }
+
+        // Send late warning notification
+        $this->sendLateWarningNotification($employee, $lateMinutes, $shiftStartDate);
+    }
+
+    private function sendLateWarningNotification(Employee $employee, int $lateMinutes, Carbon $date): void
+    {
+        try {
+            $telegram = new TelegramService();
+            $companyName = $employee->company->name ?? '-';
+            $dateStr = $date->format('d/m/Y');
+
+            $message = "⚠️ <b>แจ้งเตือนสาย</b>\n\n";
+            $message .= "👤 <b>ชื่อ:</b> {$employee->name}\n";
+            $message .= "🏢 <b>บริษัท:</b> $companyName\n";
+            $message .= "📅 <b>วันที่:</b> $dateStr\n";
+            $message .= "⏰ <b>สาย:</b> $lateMinutes นาที\n";
+            if ($lateMinutes > 30) {
+                $message .= "📝 <b>สถานะ:</b> บังคับลากิจ 1 ชม.\n";
+            }
+
+            if ($employee->telegram_chat_id) {
+                $telegram->sendToChat($employee->telegram_chat_id, $message);
+            }
+
+            // Send to supervisor via company group
+            if ($employee->company) {
+                $telegram->sendToCompanyGroups($employee->company_id, $message, 'attendance');
+            }
+        } catch (\Exception $e) {
+            // Silent fail
+        }
     }
 
     /**

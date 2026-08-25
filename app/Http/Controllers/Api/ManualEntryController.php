@@ -411,4 +411,82 @@ class ManualEntryController extends Controller
 
         return response()->json(['success' => true, 'message' => 'ลบข้อมูลลาสำเร็จ']);
     }
+
+    // ============================================================
+    // SHIFT SCHEDULE IMPORT
+    // ============================================================
+
+    public function importShiftSchedule(Request $request): JsonResponse
+    {
+        $request->validate([
+            'file' => 'required|file|mimes:csv,txt|max:5120',
+            'company_id' => 'required|exists:companies,id',
+        ]);
+
+        $file = $request->file('file');
+        $rows = array_map('str_getcsv', file($file->getRealPath()));
+
+        if (count($rows) < 2) {
+            return response()->json(['success' => false, 'message' => 'ไฟล์ว่างเปล่าหรือไม่มีข้อมูล'], 400);
+        }
+
+        // Skip header row
+        $header = array_map('strtolower', array_map('trim', $rows[0]));
+        $dataRows = array_slice($rows, 1);
+
+        $imported = 0;
+        $skipped = 0;
+        $errors = [];
+
+        foreach ($dataRows as $i => $row) {
+            $rowData = array_combine($header, $row);
+
+            $empCode = $rowData['employee_code'] ?? $rowData['emp_id'] ?? null;
+            $workDate = $rowData['work_date'] ?? null;
+            $shiftCode = $rowData['shift_code'] ?? 'WC0002';
+            $dayType = $rowData['day_type'] ?? 'working';
+
+            if (!$empCode || !$workDate) {
+                $skipped++;
+                $errors[] = "แถว " . ($i + 2) . ": 缺少 employee_code หรือ work_date";
+                continue;
+            }
+
+            // Find employee
+            $employee = Employee::where('employee_code', $empCode)
+                ->orWhere('id', $empCode)
+                ->where('company_id', $request->company_id)
+                ->first();
+
+            if (!$employee) {
+                $skipped++;
+                $errors[] = "แถว " . ($i + 2) . ": ไม่พบพนักงานรหัส {$empCode}";
+                continue;
+            }
+
+            ShiftSchedule::updateOrCreate(
+                ['emp_id' => $employee->id, 'work_date' => $workDate],
+                [
+                    'company_id' => $request->company_id,
+                    'shift_code' => $shiftCode,
+                    'day_type' => $dayType,
+                ]
+            );
+            $imported++;
+        }
+
+        AuditLogService::log('import', null, null, [
+            'file' => $file->getClientOriginalName(),
+            'imported' => $imported,
+            'skipped' => $skipped,
+        ], "Import shift schedule: {$imported} records imported, {$skipped} skipped", $request);
+
+        return response()->json([
+            'success' => true,
+            'imported' => $imported,
+            'skipped' => $skipped,
+            'errors' => array_slice($errors, 0, 20),
+            'message' => "นำเข้าสำเร็จ {$imported} รายการ, ข้าม {$skipped} รายการ",
+        ]);
+    }
 }

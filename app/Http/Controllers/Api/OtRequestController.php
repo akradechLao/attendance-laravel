@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\OtRequest;
 use App\Models\Employee;
 use App\Constants\RoleConstants;
+use App\Services\TelegramService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -136,6 +138,8 @@ class OtRequestController extends Controller
                 'hr_approved_at' => now(),
             ]);
 
+            $this->sendOtNotification($otRequest, 'approved');
+
             return response()->json([
                 'success' => true,
                 'data' => $otRequest->load('employee'),
@@ -190,6 +194,8 @@ class OtRequestController extends Controller
                 'rejected_at' => now(),
             ]);
 
+            $this->sendOtNotification($otRequest, 'rejected');
+
             return response()->json([
                 'success' => true,
                 'data' => $otRequest->load('employee'),
@@ -214,6 +220,33 @@ class OtRequestController extends Controller
                 'data' => null,
                 'message' => 'Failed to reject OT request: ' . $e->getMessage(),
             ], 500);
+        }
+    }
+
+    private function sendOtNotification(OtRequest $otRequest, string $action): void
+    {
+        try {
+            $telegram = new TelegramService();
+            $employee = $otRequest->employee;
+            if (!$employee) return;
+
+            $emoji = $action === 'approved' ? '✅' : '❌';
+            $statusText = $action === 'approved' ? 'อนุมัติ' : 'ไม่อนุมัติ';
+
+            $message = "{$emoji} <b>OT {$statusText}</b>\n\n";
+            $message .= "👤 <b>ชื่อ:</b> {$employee->name}\n";
+            $message .= "📅 <b>วันที่:</b> {$otRequest->date}\n";
+            $message .= "🕐 <b>เวลา:</b> {$otRequest->start_time} - {$otRequest->end_time}\n";
+            $message .= "⏱️ <b>จำนวน:</b> {$otRequest->total_hours} ชม.\n";
+            if ($action === 'rejected' && $otRequest->rejection_reason) {
+                $message .= "❌ <b>เหตุผล:</b> {$otRequest->rejection_reason}\n";
+            }
+
+            if ($employee->telegram_chat_id) {
+                $telegram->sendToChat($employee->telegram_chat_id, $message);
+            }
+        } catch (\Exception $e) {
+            // Silent fail
         }
     }
 }

@@ -135,6 +135,29 @@
 
     <!-- Shift Table -->
     <div v-if="activeTab === 'shift'" class="bg-white rounded-lg shadow-sm overflow-hidden">
+      <!-- Import Section -->
+      <div class="p-4 border-b bg-gray-50">
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-sm font-semibold text-gray-700">นำเข้าตารางกะจาก CSV</h3>
+            <p class="text-xs text-gray-500 mt-1">คอลัมน์: employee_code, work_date (YYYY-MM-DD), shift_code, day_type</p>
+          </div>
+          <div class="flex gap-2">
+            <button @click="downloadShiftTemplate" class="px-3 py-1.5 text-xs bg-gray-200 rounded-lg hover:bg-gray-300">ดาวน์โหลด template</button>
+            <label class="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer">
+              เลือกไฟล์ CSV
+              <input type="file" accept=".csv,.txt" class="hidden" @change="handleShiftImport" :disabled="importing" />
+            </label>
+          </div>
+        </div>
+        <div v-if="importResult" class="mt-2 p-2 rounded text-xs" :class="importResult.success ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700'">
+          {{ importResult.message }}
+          <div v-if="importResult.errors?.length" class="mt-1 text-red-600">
+            <p v-for="(err, i) in importResult.errors" :key="i">{{ err }}</p>
+          </div>
+        </div>
+      </div>
+
       <table class="w-full text-sm">
         <thead class="bg-gray-50">
           <tr>
@@ -436,6 +459,8 @@ const saving = ref(false)
 
 const showDeleteConfirm = ref(false)
 const deleteTarget = ref({ type: '', id: null })
+const importing = ref(false)
+const importResult = ref(null)
 
 const shiftCodes = [
   { code: 'WC0001', label: '07:30-16:30' },
@@ -595,5 +620,40 @@ function leaveStatusClass(s) {
 }
 function leaveStatusLabel(s) {
   return { approved: 'อนุมัติ', pending: 'รออนุมัติ', rejected: 'ปฏิเสธ' }[s] || s || '-'
+}
+
+const companyId = computed(() => {
+  try { return JSON.parse(localStorage.getItem('user'))?.company_id || 1 } catch { return 1 }
+})
+
+function downloadShiftTemplate() {
+  const csv = 'employee_code,work_date,shift_code,day_type\nEMP001,2026-01-05,WC0002,working\nEMP001,2026-01-06,WC0002,holiday\n'
+  const blob = new Blob([csv], { type: 'text/csv' })
+  const link = document.createElement('a')
+  link.href = URL.createObjectURL(blob)
+  link.download = 'shift_schedule_template.csv'
+  link.click()
+}
+
+async function handleShiftImport(event) {
+  const file = event.target.files[0]
+  if (!file) return
+  importing.value = true
+  importResult.value = null
+  try {
+    const formData = new FormData()
+    formData.append('file', file)
+    formData.append('company_id', companyId.value)
+    const res = await axios.post('/api/manual/import-shift', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    importResult.value = res.data
+    loadData()
+  } catch (e) {
+    importResult.value = { success: false, message: e.response?.data?.message || 'เกิดข้อผิดพลาด' }
+  } finally {
+    importing.value = false
+    event.target.value = ''
+  }
 }
 </script>

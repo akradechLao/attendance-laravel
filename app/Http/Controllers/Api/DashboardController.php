@@ -7,6 +7,7 @@ use App\Models\AttendanceLog;
 use App\Models\Employee;
 use App\Models\Company;
 use App\Models\LateForcedLeave;
+use App\Models\OtRequest;
 use App\Helpers\AttendanceCalculator;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -77,6 +78,14 @@ class DashboardController extends Controller
             $monthlyLate = $monthlyAttendance->where('check_in_status', 'late')->count();
             $monthlyOnTime = $monthlyAttendance->where('check_in_status', 'on_time')->count();
 
+            // Monthly OT hours
+            $otQuery = OtRequest::where('status', 'approved')
+                ->whereBetween('date', [$monthStart, $monthEnd]);
+            if ($companyId) {
+                $otQuery->where('company_id', $companyId);
+            }
+            $monthlyOtHours = $otQuery->sum('total_hours');
+
             $companies = Company::all();
             $companyStats = [];
             foreach ($companies as $company) {
@@ -126,6 +135,7 @@ class DashboardController extends Controller
                         'late' => $monthlyLate,
                         'on_time' => $monthlyOnTime,
                         'total_records' => $monthlyAttendance->count(),
+                        'ot_hours' => $monthlyOtHours,
                     ],
                     'companies' => $companyStats,
                 ],

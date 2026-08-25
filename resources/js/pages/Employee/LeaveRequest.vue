@@ -51,6 +51,12 @@
         <div v-if="totalDays > 0" class="text-sm text-blue-600">
           จำนวนวันลา: {{ totalDays }} วัน
         </div>
+        <div v-if="selectedBalance && totalDays > 0" class="text-sm" :class="totalDays <= selectedBalance.remaining ? 'text-green-600' : 'text-red-600'">
+          เหลือหลังลา: {{ Math.max(0, selectedBalance.remaining - totalDays) }} วัน
+        </div>
+        <div v-if="selectedBalance && totalDays > selectedBalance.remaining && selectedBalance.code !== 'unpaid'" class="text-sm text-red-600 bg-red-50 p-2 rounded-lg">
+          ⚠️ วันลาประเภทนี้เหลือ {{ selectedBalance.remaining }} วัน แต่คุณต้องการลา {{ totalDays }} วัน (เกิน {{ totalDays - selectedBalance.remaining }} วัน)
+        </div>
         <button @click="submitLeave" :disabled="submitting"
                 class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50">
           {{ submitting ? 'กำลังส่ง...' : 'ส่งคำขอลา' }}
@@ -103,6 +109,11 @@ const totalDays = computed(() => {
   const start = new Date(form.value.start_date)
   const end = new Date(form.value.end_date)
   return Math.max(1, Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1)
+})
+
+const selectedBalance = computed(() => {
+  if (!form.value.leave_type_id) return null
+  return balances.value.find(b => b.leave_type_id == form.value.leave_type_id) || null
 })
 
 const loadData = async () => {

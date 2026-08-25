@@ -53,15 +53,7 @@ class ShiftSwapController extends Controller
             return response()->json(['success' => false, 'message' => 'ไม่สามารถสลับกับตัวเองได้'], 400);
         }
 
-        $requestReplacementDay = $validated['request_replacement_day'] ?? false;
-        unset($validated['request_replacement_day']);
-
         $swap = ShiftSwap::create($validated);
-
-        // Store replacement day flag in supervisor_note temporarily
-        if ($requestReplacementDay) {
-            $swap->update(['supervisor_note' => 'REQUEST_REPLACEMENT_DAY']);
-        }
 
         return response()->json([
             'success' => true,
@@ -116,7 +108,7 @@ class ShiftSwapController extends Controller
         ]);
 
         // Create replacement day off leave request if requested
-        if ($swap->supervisor_note === 'REQUEST_REPLACEMENT_DAY') {
+        if ($swap->request_replacement_day) {
             $leaveDate = Carbon::parse($swap->swap_date);
             LeaveRequest::create([
                 'emp_id' => $swap->requester_id,
@@ -124,11 +116,15 @@ class ShiftSwapController extends Controller
                 'start_date' => $leaveDate->format('Y-m-d'),
                 'end_date' => $leaveDate->format('Y-m-d'),
                 'total_days' => 1,
-                'reason' => 'วันหยุดทดแทนจากการสลับกะ ' . $swap->swap_date,
+                'reason' => 'วันหยุดทดแทนจากการสลับกะ ' . $leaveDate->format('d/m/Y'),
                 'status' => 'approved',
                 'approved_by' => $request->user()->id ?? null,
                 'approved_at' => now(),
             ]);
+
+            // Deduct leave balance
+            $leaveService = app(\App\Services\LeaveService::class);
+            $leaveService->deductLeave($swap->requester_id, 1, $leaveDate->format('Y-m-d'), $leaveDate->format('Y-m-d'));
         }
 
         return response()->json([

@@ -196,14 +196,32 @@
               <div v-if="detailLog.old_values || detailLog.new_values" class="border-t pt-4">
                 <p class="text-xs text-gray-500 uppercase mb-2">การเปลี่ยนแปลง</p>
                 <div class="bg-gray-50 rounded-lg p-4 text-sm">
-                  <template v-if="detailLog.old_values">
-                    <p class="text-red-600 font-medium mb-1">ค่าเดิม:</p>
-                    <pre class="text-xs text-gray-600 whitespace-pre-wrap">{{ JSON.stringify(detailLog.old_values, null, 2) }}</pre>
-                  </template>
-                  <template v-if="detailLog.new_values">
-                    <p class="text-green-600 font-medium mb-1 mt-3">ค่าใหม่:</p>
-                    <pre class="text-xs text-gray-600 whitespace-pre-wrap">{{ JSON.stringify(detailLog.new_values, null, 2) }}</pre>
-                  </template>
+                  <div v-if="detailLog.old_values && detailLog.new_values && typeof detailLog.old_values === 'object' && typeof detailLog.new_values === 'object'">
+                    <table class="w-full text-xs">
+                      <thead><tr class="border-b">
+                        <th class="text-left py-1 px-2 text-gray-500">ฟิลด์</th>
+                        <th class="text-left py-1 px-2 text-red-500">ค่าเดิม</th>
+                        <th class="text-left py-1 px-2 text-green-600">ค่าใหม่</th>
+                      </tr></thead>
+                      <tbody>
+                        <tr v-for="(newVal, key) in detailLog.new_values" :key="key" class="border-b border-gray-200">
+                          <td class="py-1 px-2 font-medium text-gray-700">{{ key }}</td>
+                          <td class="py-1 px-2 text-red-500">{{ detailLog.old_values[key] ?? '-' }}</td>
+                          <td class="py-1 px-2 text-green-600">{{ newVal }}</td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                  <div v-else>
+                    <template v-if="detailLog.old_values">
+                      <p class="text-red-600 font-medium mb-1">ค่าเดิม:</p>
+                      <pre class="text-xs text-gray-600 whitespace-pre-wrap">{{ typeof detailLog.old_values === 'object' ? JSON.stringify(detailLog.old_values, null, 2) : detailLog.old_values }}</pre>
+                    </template>
+                    <template v-if="detailLog.new_values">
+                      <p class="text-green-600 font-medium mb-1 mt-3">ค่าใหม่:</p>
+                      <pre class="text-xs text-gray-600 whitespace-pre-wrap">{{ typeof detailLog.new_values === 'object' ? JSON.stringify(detailLog.new_values, null, 2) : detailLog.new_values }}</pre>
+                    </template>
+                  </div>
                 </div>
               </div>
             </div>

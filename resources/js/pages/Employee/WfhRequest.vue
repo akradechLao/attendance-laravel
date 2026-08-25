@@ -1,8 +1,8 @@
 <template>
   <div class="p-4 space-y-6">
     <div class="flex items-center justify-between">
-      <h1 class="text-2xl font-bold text-[#0f172a]">ข้อเสนอ WFH วันเสาร์</h1>
-      <div class="text-sm text-gray-500">1 วัน/เดือน (เฉพาะวันเสาร์)</div>
+      <h1 class="text-2xl font-bold text-[#0f172a]">ขอ WFH</h1>
+      <div class="text-sm text-gray-500">{{ total }} วัน/เดือน (จันทร์-ศุกร์)</div>
     </div>
 
     <!-- Month Selector -->
@@ -31,29 +31,36 @@
       </div>
     </div>
 
-    <!-- Saturday Calendar -->
+    <!-- Date Picker -->
     <div class="bg-white rounded-xl shadow p-4">
-      <h2 class="font-semibold text-[#0f172a] mb-3">เลือกวันเสาร์</h2>
+      <h2 class="font-semibold text-[#0f172a] mb-3">เลือกวัน WFH (จันทร์-ศุกร์)</h2>
       <div v-if="loading" class="text-center py-8 text-gray-500">กำลังโหลด...</div>
-      <div v-else class="grid grid-cols-5 gap-3">
-        <button v-for="sat in saturdays" :key="sat.date"
-                @click="!sat.occupied && selectDate(sat.date)"
-                :disabled="sat.occupied || remaining === 0"
-                :class="[
-                  'p-4 rounded-lg text-center transition',
-                  sat.occupied ? 'bg-gray-100 text-gray-400 cursor-not-allowed' :
-                  selectedDate === sat.date ? 'bg-blue-600 text-white' :
-                  'bg-green-50 text-green-700 hover:bg-green-100'
-                ]">
-          <div class="text-lg font-bold">{{ sat.day }}</div>
-          <div class="text-xs">{{ sat.occupied ? 'ไม่ว่าง' : 'ว่าง' }}</div>
-        </button>
+      <div v-else>
+        <div class="grid grid-cols-7 gap-2 mb-3">
+          <div v-for="day in ['จ','อ','พ','พฤ','ศ','ส','อา']" :key="day" class="text-center text-xs text-gray-500 font-medium py-1">{{ day }}</div>
+          <div v-for="(blank, i) in startDayBlanks" :key="'b'+i"></div>
+          <button v-for="d in daysInMonth" :key="d.date"
+                  @click="!d.isWeekend && !d.occupied && selectDate(d.date)"
+                  :disabled="d.isWeekend || d.occupied || remaining === 0"
+                  :class="[
+                    'p-2 rounded-lg text-center transition text-xs',
+                    d.isWeekend ? 'bg-gray-50 text-gray-300 cursor-not-allowed' :
+                    d.occupied ? 'bg-gray-100 text-gray-400 cursor-not-allowed' :
+                    d.isPast ? 'bg-gray-50 text-gray-300 cursor-not-allowed' :
+                    selectedDate === d.date ? 'bg-blue-600 text-white' :
+                    'bg-green-50 text-green-700 hover:bg-green-100'
+                  ]">
+            <div class="font-bold">{{ d.day }}</div>
+            <div v-if="d.occupied" class="text-[9px]">ไม่ว่าง</div>
+          </button>
+        </div>
+        <p class="text-xs text-gray-400 text-center">เลือกวันที่ต้องการ WFH (สีเขียว = ว่าง)</p>
       </div>
     </div>
 
     <!-- Reason Form -->
     <div v-if="selectedDate" class="bg-white rounded-xl shadow p-4">
-      <h2 class="font-semibold text-[#0f172a] mb-3">เหตุผล (ไม่บังคับ)</h2>
+      <h2 class="font-semibold text-[#0f172a] mb-3">วันที่เลือก: {{ formatSelectedDate }}</h2>
       <textarea v-model="reason" rows="3" placeholder="เช่น ต้องไปทำธุระ..."
                 class="w-full border rounded-lg p-2" />
       
@@ -115,11 +122,40 @@ const saturdays = ref([])
 const myRequests = ref([])
 const used = ref(0)
 const remaining = ref(1)
-const total = 1
+const total = ref(1)
 const toast = ref(null)
 
 const user = computed(() => state.user)
 const employeeId = computed(() => user.value?.id)
+
+const daysInMonth = computed(() => {
+  const [year, month] = selectedMonth.value.split('-').map(Number)
+  const daysCount = new Date(year, month, 0).getDate()
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
+  return Array.from({ length: daysCount }, (_, i) => {
+    const d = new Date(year, month - 1, i + 1)
+    return {
+      date: d.toISOString().slice(0, 10),
+      day: i + 1,
+      isWeekend: d.getDay() === 0 || d.getDay() === 6,
+      isPast: d < today,
+      occupied: false,
+    }
+  })
+})
+
+const startDayBlanks = computed(() => {
+  const [year, month] = selectedMonth.value.split('-').map(Number)
+  const firstDay = new Date(year, month - 1, 1).getDay()
+  return firstDay === 0 ? 6 : firstDay - 1
+})
+
+const formatSelectedDate = computed(() => {
+  if (!selectedDate.value) return ''
+  const d = new Date(selectedDate.value)
+  return d.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+})
 
 const loadData = async () => {
   loading.value = true
@@ -132,6 +168,13 @@ const loadData = async () => {
     myRequests.value = myRes.data.data
     used.value = myRes.data.used
     remaining.value = myRes.data.remaining
+    total.value = myRes.data.quota || 1
+
+    // Mark occupied days on calendar
+    for (const day of daysInMonth.value) {
+      const match = satRes.data.data.find(d => d.date === day.date)
+      if (match) day.occupied = match.occupied
+    }
   } catch (err) {
     console.error(err)
   }

@@ -10,6 +10,7 @@ use App\Models\OtRequest;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ReportController extends Controller
 {
@@ -354,5 +355,202 @@ class ReportController extends Controller
                 'message' => 'Failed to retrieve OT report: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    public function exportAttendancePdf(Request $request)
+    {
+        $request->validate([
+            'company_id' => 'nullable|exists:companies,id',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+        ]);
+
+        $query = AttendanceLog::whereBetween('check_in', [
+            Carbon::parse($request->start_date)->startOfDay(),
+            Carbon::parse($request->end_date)->endOfDay(),
+        ]);
+
+        if ($request->filled('company_id')) {
+            $query->where('company_id', $request->company_id);
+        }
+
+        $logs = $query->with('employee.company')->orderBy('check_in', 'asc')->get();
+
+        $html = $this->buildAttendancePdfHtml($logs, $request->start_date, $request->end_date);
+
+        $pdf = Pdf::loadHtml($html)->setPaper('a4', 'landscape');
+        return $pdf->download('attendance-report-' . $request->start_date . '.pdf');
+    }
+
+    public function exportLeavePdf(Request $request)
+    {
+        $request->validate([
+            'company_id' => 'nullable|exists:companies,id',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+        ]);
+
+        $query = LeaveRequest::whereBetween('start_date', [$request->start_date, $request->end_date]);
+
+        if ($request->filled('company_id')) {
+            $query->where('company_id', $request->company_id);
+        }
+
+        $leaves = $query->with('employee.company', 'leaveType')->orderBy('start_date', 'desc')->get();
+
+        $html = $this->buildLeavePdfHtml($leaves, $request->start_date, $request->end_date);
+
+        $pdf = Pdf::loadHtml($html)->setPaper('a4', 'landscape');
+        return $pdf->download('leave-report-' . $request->start_date . '.pdf');
+    }
+
+    public function exportOtPdf(Request $request)
+    {
+        $request->validate([
+            'company_id' => 'nullable|exists:companies,id',
+            'start_date' => 'required|date',
+            'end_date' => 'required|date|after_or_equal:start_date',
+        ]);
+
+        $query = OtRequest::whereBetween('date', [$request->start_date, $request->end_date]);
+
+        if ($request->filled('company_id')) {
+            $query->where('company_id', $request->company_id);
+        }
+
+        $ots = $query->with('employee.company')->orderBy('date', 'desc')->get();
+
+        $html = $this->buildOtPdfHtml($ots, $request->start_date, $request->end_date);
+
+        $pdf = Pdf::loadHtml($html)->setPaper('a4', 'landscape');
+        return $pdf->download('ot-report-' . $request->start_date . '.pdf');
+    }
+
+    private function buildAttendancePdfHtml($logs, $startDate, $endDate): string
+    {
+        $rows = '';
+        foreach ($logs as $i => $log) {
+            $empName = $log->employee?->name ?? '-';
+            $company = $log->employee?->company?->name ?? '-';
+            $checkIn = $log->check_in ? Carbon::parse($log->check_in)->format('d/m/Y H:i') : '-';
+            $checkOut = $log->check_out ? Carbon::parse($log->check_out)->format('d/m/Y H:i') : '-';
+            $status = match($log->check_in_status) {
+                'late' => '<span style="color:#d97706;font-weight:bold">สาย</span>',
+                'on_time' => '<span style="color:#16a34a">ปกติ</span>',
+                default => '-',
+            };
+            $late = $log->late_minutes ? $log->late_minutes . ' นาที' : '-';
+            $rows .= "<tr>
+                <td style='border:1px solid #ddd;padding:6px'>{$i}</td>
+                <td style='border:1px solid #ddd;padding:6px'>{$empName}</td>
+                <td style='border:1px solid #ddd;padding:6px'>{$company}</td>
+                <td style='border:1px solid #ddd;padding:6px'>{$checkIn}</td>
+                <td style='border:1px solid #ddd;padding:6px'>{$checkOut}</td>
+                <td style='border:1px solid #ddd;padding:6px'>{$status}</td>
+                <td style='border:1px solid #ddd;padding:6px'>{$late}</td>
+            </tr>";
+        }
+
+        return "<html><head><meta charset='utf-8'></head><body>
+            <h2 style='text-align:center'>รายงานเข้างาน</h2>
+            <p style='text-align:center'>วันที่ {$startDate} - {$endDate}</p>
+            <p style='text-align:center'>รวม {$logs->count()} รายการ</p>
+            <table style='width:100%;border-collapse:collapse;font-size:11px'>
+                <thead><tr style='background:#f3f4f6'>
+                    <th style='border:1px solid #ddd;padding:6px'>#</th>
+                    <th style='border:1px solid #ddd;padding:6px'>ชื่อ</th>
+                    <th style='border:1px solid #ddd;padding:6px'>บริษัท</th>
+                    <th style='border:1px solid #ddd;padding:6px'>เช็คอิน</th>
+                    <th style='border:1px solid #ddd;padding:6px'>เช็คเอาท์</th>
+                    <th style='border:1px solid #ddd;padding:6px'>สถานะ</th>
+                    <th style='border:1px solid #ddd;padding:6px'>สาย</th>
+                </tr></thead>
+                <tbody>{$rows}</tbody>
+            </table></body></html>";
+    }
+
+    private function buildLeavePdfHtml($leaves, $startDate, $endDate): string
+    {
+        $rows = '';
+        foreach ($leaves as $i => $leave) {
+            $empName = $leave->employee?->name ?? '-';
+            $company = $leave->employee?->company?->name ?? '-';
+            $type = $leave->leaveType?->name ?? '-';
+            $status = match($leave->status) {
+                'approved' => '<span style="color:#16a34a;font-weight:bold">อนุมัติ</span>',
+                'pending' => '<span style="color:#d97706;font-weight:bold">รออนุมัติ</span>',
+                'rejected' => '<span style="color:#dc2626;font-weight:bold">ปฏิเสธ</span>',
+                default => '-',
+            };
+            $rows .= "<tr>
+                <td style='border:1px solid #ddd;padding:6px'>{$i}</td>
+                <td style='border:1px solid #ddd;padding:6px'>{$empName}</td>
+                <td style='border:1px solid #ddd;padding:6px'>{$company}</td>
+                <td style='border:1px solid #ddd;padding:6px'>{$type}</td>
+                <td style='border:1px solid #ddd;padding:6px'>{$leave->start_date}</td>
+                <td style='border:1px solid #ddd;padding:6px'>{$leave->end_date}</td>
+                <td style='border:1px solid #ddd;padding:6px'>{$leave->total_days}</td>
+                <td style='border:1px solid #ddd;padding:6px'>{$status}</td>
+            </tr>";
+        }
+
+        return "<html><head><meta charset='utf-8'></head><body>
+            <h2 style='text-align:center'>รายงานการลา</h2>
+            <p style='text-align:center'>วันที่ {$startDate} - {$endDate}</p>
+            <p style='text-align:center'>รวม {$leaves->count()} รายการ</p>
+            <table style='width:100%;border-collapse:collapse;font-size:11px'>
+                <thead><tr style='background:#f3f4f6'>
+                    <th style='border:1px solid #ddd;padding:6px'>#</th>
+                    <th style='border:1px solid #ddd;padding:6px'>ชื่อ</th>
+                    <th style='border:1px solid #ddd;padding:6px'>บริษัท</th>
+                    <th style='border:1px solid #ddd;padding:6px'>ประเภทลา</th>
+                    <th style='border:1px solid #ddd;padding:6px'>วันเริ่ม</th>
+                    <th style='border:1px solid #ddd;padding:6px'>วันสิ้นสุด</th>
+                    <th style='border:1px solid #ddd;padding:6px'>จำนวนวัน</th>
+                    <th style='border:1px solid #ddd;padding:6px'>สถานะ</th>
+                </tr></thead>
+                <tbody>{$rows}</tbody>
+            </table></body></html>";
+    }
+
+    private function buildOtPdfHtml($ots, $startDate, $endDate): string
+    {
+        $rows = '';
+        foreach ($ots as $i => $ot) {
+            $empName = $ot->employee?->name ?? '-';
+            $company = $ot->employee?->company?->name ?? '-';
+            $status = match($ot->status) {
+                'approved' => '<span style="color:#16a34a;font-weight:bold">อนุมัติ</span>',
+                'pending' => '<span style="color:#d97706;font-weight:bold">รออนุมัติ</span>',
+                'rejected' => '<span style="color:#dc2626;font-weight:bold">ปฏิเสธ</span>',
+                default => '-',
+            };
+            $rows .= "<tr>
+                <td style='border:1px solid #ddd;padding:6px'>{$i}</td>
+                <td style='border:1px solid #ddd;padding:6px'>{$empName}</td>
+                <td style='border:1px solid #ddd;padding:6px'>{$company}</td>
+                <td style='border:1px solid #ddd;padding:6px'>{$ot->date}</td>
+                <td style='border:1px solid #ddd;padding:6px'>{$ot->start_time} - {$ot->end_time}</td>
+                <td style='border:1px solid #ddd;padding:6px'>{$ot->total_hours}</td>
+                <td style='border:1px solid #ddd;padding:6px'>{$status}</td>
+            </tr>";
+        }
+
+        return "<html><head><meta charset='utf-8'></head><body>
+            <h2 style='text-align:center'>รายงาน OT</h2>
+            <p style='text-align:center'>วันที่ {$startDate} - {$endDate}</p>
+            <p style='text-align:center'>รวม {$ots->count()} รายการ</p>
+            <table style='width:100%;border-collapse:collapse;font-size:11px'>
+                <thead><tr style='background:#f3f4f6'>
+                    <th style='border:1px solid #ddd;padding:6px'>#</th>
+                    <th style='border:1px solid #ddd;padding:6px'>ชื่อ</th>
+                    <th style='border:1px solid #ddd;padding:6px'>บริษัท</th>
+                    <th style='border:1px solid #ddd;padding:6px'>วันที่</th>
+                    <th style='border:1px solid #ddd;padding:6px'>เวลา</th>
+                    <th style='border:1px solid #ddd;padding:6px'>ชั่วโมง</th>
+                    <th style='border:1px solid #ddd;padding:6px'>สถานะ</th>
+                </tr></thead>
+                <tbody>{$rows}</tbody>
+            </table></body></html>";
     }
 }

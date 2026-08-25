@@ -44,25 +44,29 @@ class WfhRequestController extends Controller
         $start = Carbon::parse($month)->startOfMonth();
         $end = $start->copy()->endOfMonth();
 
-        $saturdays = [];
-        $current = $start->copy()->startOfWeek(Carbon::SATURDAY);
+        $availableDays = [];
+        $current = $start->copy();
 
         while ($current <= $end) {
-            $occupied = WfhRecord::where('date', $current->format('Y-m-d'))
-                ->whereIn('status', ['pending', 'approved'])
-                ->count();
+            // Only weekdays (Mon-Fri)
+            if ($current->dayOfWeek !== Carbon::SATURDAY && $current->dayOfWeek !== Carbon::SUNDAY) {
+                $occupied = WfhRecord::where('date', $current->format('Y-m-d'))
+                    ->whereIn('status', ['pending', 'approved'])
+                    ->count();
 
-            $saturdays[] = [
-                'date' => $current->format('Y-m-d'),
-                'day' => $current->format('d'),
-                'occupied' => $occupied > 0,
-            ];
-            $current->addWeek();
+                $availableDays[] = [
+                    'date' => $current->format('Y-m-d'),
+                    'day' => $current->format('d'),
+                    'day_name' => $current->locale('th')->isoFormat('ddd'),
+                    'occupied' => $occupied > 0,
+                ];
+            }
+            $current->addDay();
         }
 
         return response()->json([
             'success' => true,
-            'data' => $saturdays,
+            'data' => $availableDays,
         ]);
     }
 
@@ -75,10 +79,11 @@ class WfhRequestController extends Controller
 
         $date = Carbon::parse($request->date);
 
-        if ($date->dayOfWeek !== Carbon::SATURDAY) {
+        // Allow weekdays only (Mon-Fri)
+        if ($date->dayOfWeek === Carbon::SATURDAY || $date->dayOfWeek === Carbon::SUNDAY) {
             return response()->json([
                 'success' => false,
-                'message' => 'WFH กำหนดได้เฉพาะวันเสาร์เท่านั้น',
+                'message' => 'WFH กำหนดได้เฉพาะวันจันทร์-ศุกร์เท่านั้น',
             ], 400);
         }
 
@@ -104,7 +109,7 @@ class WfhRequestController extends Controller
         if ($occupied > 0) {
             return response()->json([
                 'success' => false,
-                'message' => 'วันเสาร์นี้มีพนักงานอื่นใช้แล้ว กรุณาเลือกวันอื่น',
+                'message' => 'วันนี้มีพนักงานอื่นใช้แล้ว กรุณาเลือกวันอื่น',
             ], 400);
         }
 
@@ -223,6 +228,9 @@ class WfhRequestController extends Controller
         $empId = $request->get('emp_id');
         $month = $request->get('month', Carbon::now()->format('Y-m'));
 
+        $employee = Employee::find($empId);
+        $quota = $employee->wfh_quota ?? 1;
+
         $records = WfhRecord::where('emp_id', $empId)
             ->whereYear('date', Carbon::parse($month)->year)
             ->whereMonth('date', Carbon::parse($month)->month)
@@ -236,7 +244,8 @@ class WfhRequestController extends Controller
             'success' => true,
             'data' => $records,
             'used' => $used,
-            'remaining' => max(0, 1 - $used),
+            'remaining' => max(0, $quota - $used),
+            'quota' => $quota,
         ]);
     }
 

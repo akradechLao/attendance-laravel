@@ -9,6 +9,7 @@ use App\Models\Employee;
 use App\Constants\RoleConstants;
 use App\Services\LeaveService;
 use App\Services\AuditLogService;
+use App\Services\TelegramService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -120,6 +121,9 @@ class LeaveController extends Controller
 
             AuditLogService::action('approve', $leave, 'อนุมัติใบลา ' . ($leave->employee->name ?? $leave->emp_id), $request);
 
+            // Send Telegram notification
+            $this->sendLeaveNotification($leave, 'approved');
+
             return response()->json([
                 'success' => true,
                 'data' => $leave->load(['employee', 'leaveType']),
@@ -176,6 +180,9 @@ class LeaveController extends Controller
 
             AuditLogService::action('reject', $leave, 'ไม่อนุมัติใบลา ' . ($leave->employee->name ?? $leave->emp_id) . ': ' . $validated['rejection_reason'], $request);
 
+            // Send Telegram notification
+            $this->sendLeaveNotification($leave, 'rejected');
+
             return response()->json([
                 'success' => true,
                 'data' => $leave->load(['employee', 'leaveType']),
@@ -219,6 +226,35 @@ class LeaveController extends Controller
                 'data' => null,
                 'message' => 'Failed to retrieve leave types: ' . $e->getMessage(),
             ], 500);
+        }
+    }
+
+    private function sendLeaveNotification(LeaveRequest $leave, string $action): void
+    {
+        try {
+            $telegram = new TelegramService();
+            $employee = $leave->employee;
+            $leaveType = $leave->leaveType;
+            if (!$employee) return;
+
+            $emoji = $action === 'approved' ? '✅' : '❌';
+            $statusText = $action === 'approved' ? 'อนุมัติ' : 'ไม่อนุมัติ';
+            $typeName = $leaveType?->name ?? '-';
+
+            $message = "{$emoji} <b>ใบลา{$statusText}</b>\n\n";
+            $message .= "👤 <b>ชื่อ:</b> {$employee->name}\n";
+            $message .= "📋 <b>ประเภท:</b> {$typeName}\n";
+            $message .= "📅 <b>วันที่:</b> {$leave->start_date} - {$leave->end_date}\n";
+            $message .= "📝 <b>จำนวน:</b> {$leave->total_days} วัน\n";
+            if ($action === 'rejected' && $leave->rejection_reason) {
+                $message .= "❌ <b>เหตุผล:</b> {$leave->rejection_reason}\n";
+            }
+
+            if ($employee->telegram_chat_id) {
+                $telegram->sendToChat($employee->telegram_chat_id, $message);
+            }
+        } catch (\Exception $e) {
+            // Silent fail
         }
     }
 }

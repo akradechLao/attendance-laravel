@@ -17,6 +17,7 @@ class ShiftSwap extends Model
         'status',
         'supervisor_id',
         'supervisor_note',
+        'request_replacement_day',
     ];
 
     protected $casts = [

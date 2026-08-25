@@ -16,6 +16,16 @@
           </svg>
           {{ exporting ? 'กำลังส่งออก...' : 'ส่งออก CSV' }}
         </button>
+        <button
+          @click="exportPDF"
+          :disabled="records.length === 0 || exporting"
+          class="btn-primary flex items-center gap-2"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+          </svg>
+          {{ exporting ? 'กำลังส่งออก...' : 'ส่งออก PDF' }}
+        </button>
       </div>
 
       <div class="border-b border-gray-200">
@@ -532,6 +542,23 @@ function exportCSV() {
   URL.revokeObjectURL(link.href)
 
   setTimeout(() => { exporting.value = false }, 500)
+}
+
+function exportPDF() {
+  if (records.value.length === 0) return
+  exporting.value = true
+  const params = new URLSearchParams({
+    start_date: filters.startDate,
+    end_date: filters.endDate,
+  })
+  if (filters.companyId) params.append('company_id', filters.companyId)
+  const urls = {
+    attendance: '/api/reports/export-attendance-pdf',
+    leave: '/api/reports/export-leave-pdf',
+    ot: '/api/reports/export-ot-pdf',
+  }
+  window.location.href = urls[activeTab.value] + '?' + params.toString()
+  setTimeout(() => { exporting.value = false }, 2000)
 }
 
 onMounted(() => {
