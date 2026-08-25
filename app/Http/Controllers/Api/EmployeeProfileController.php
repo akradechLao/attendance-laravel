@@ -16,7 +16,7 @@ class EmployeeProfileController extends Controller
             return response()->json(['success' => false, 'message' => 'Employee not found'], 404);
         }
 
-        $employee->load(['company', 'workShifts', 'assignedOfficeLocations']);
+        $employee->load(['company', 'workShifts', 'assignedOfficeLocations', 'faceData']);
 
         return response()->json([
             'success' => true,
@@ -40,6 +40,7 @@ class EmployeeProfileController extends Controller
                 'has_ot' => $employee->has_ot,
                 'status' => $employee->status,
                 'start_date' => $employee->start_date,
+                'face_data_count' => $employee->faceData->count(),
             ],
         ]);
     }

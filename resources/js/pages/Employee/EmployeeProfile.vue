@@ -69,6 +69,29 @@
             <span class="text-gray-800 text-sm font-medium">{{ profile.office_location }}</span>
           </div>
         </div>
+
+        <div class="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm">
+          <h3 class="text-sm font-bold text-gray-500 mb-4 uppercase tracking-wide">ข้อมูลใบหน้า</h3>
+          <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-xl">
+            <div :class="profile.face_data_count > 0 ? 'bg-emerald-100' : 'bg-amber-100'" class="w-10 h-10 rounded-full flex items-center justify-center">
+              <svg v-if="profile.face_data_count > 0" class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+              </svg>
+              <svg v-else class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+              </svg>
+            </div>
+            <div>
+              <p class="text-gray-800 text-sm font-medium">
+                {{ profile.face_data_count > 0 ? 'ลงทะเบียนแล้ว' : 'ยังไม่ได้ลงทะเบียน' }}
+              </p>
+              <p class="text-gray-400 text-xs">{{ profile.face_data_count }} / 5 รูป</p>
+            </div>
+          </div>
+          <p v-if="profile.face_data_count === 0" class="mt-2 text-amber-600 text-xs">
+            กรุณาลงทะเบียนใบหน้าที่หน้าสแกนเข้างาน เพื่อใช้ Face Scan
+          </p>
+        </div>
       </div>
 
       <div v-else class="text-center py-12 text-gray-400 text-sm">ไม่พบข้อมูล</div>

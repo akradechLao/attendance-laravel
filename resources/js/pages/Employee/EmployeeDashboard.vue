@@ -25,6 +25,13 @@
         <!-- Today Status Card -->
         <div class="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
           <h2 class="text-sm font-bold text-gray-500 uppercase tracking-wide mb-4">สถานะวันนี้</h2>
+
+          <!-- Scheduled Work Hours -->
+          <div v-if="data.today.schedule_start" class="mb-4 p-3 bg-blue-50 rounded-xl border border-blue-200 text-center">
+            <p class="text-blue-600 text-xs font-medium mb-1">เวลาเข้างานที่กำหนด</p>
+            <p class="text-xl font-bold text-blue-700">{{ data.today.schedule_start?.substring(0, 5) }} - {{ data.today.schedule_end?.substring(0, 5) }} น.</p>
+          </div>
+
           <div v-if="data.today.is_checked_in" class="space-y-4">
             <!-- Check-in/out times -->
             <div class="grid grid-cols-2 gap-4">
@@ -40,6 +47,12 @@
                 </p>
                 <p v-if="data.today.is_checked_out" class="text-[10px] text-gray-400 mt-1">{{ formatDateThai(data.today.date) }}</p>
               </div>
+            </div>
+
+            <!-- Worked Hours -->
+            <div v-if="data.today.worked_hours !== null" class="text-center p-3 bg-cyan-50 rounded-xl border border-cyan-200">
+              <p class="text-cyan-600 text-xs font-medium mb-1">ชั่วโมงทำงานวันนี้</p>
+              <p class="text-2xl font-bold text-cyan-700">{{ data.today.worked_hours }} ชม.</p>
             </div>
             <!-- Status -->
             <div class="text-center">
@@ -143,6 +156,14 @@
             </div>
             <p class="font-bold text-gray-800 text-sm">สแกนเข้า/ออก</p>
           </router-link>
+          <router-link to="/employee/history" class="bg-white rounded-2xl p-4 border border-gray-200 shadow-sm text-center hover:shadow-md transition-shadow">
+            <div class="w-10 h-10 mx-auto rounded-xl bg-cyan-500 flex items-center justify-center mb-2">
+              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+              </svg>
+            </div>
+            <p class="font-bold text-gray-800 text-sm">ประวัติเข้างาน</p>
+          </router-link>
           <router-link to="/employee/payslip" class="bg-white rounded-2xl p-4 border border-gray-200 shadow-sm text-center hover:shadow-md transition-shadow">
             <div class="w-10 h-10 mx-auto rounded-xl bg-green-500 flex items-center justify-center mb-2">
               <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -159,14 +180,6 @@
             </div>
             <p class="font-bold text-gray-800 text-sm">ขอลางาน</p>
           </router-link>
-          <router-link to="/employee/schedule" class="bg-white rounded-2xl p-4 border border-gray-200 shadow-sm text-center hover:shadow-md transition-shadow">
-            <div class="w-10 h-10 mx-auto rounded-xl bg-teal-500 flex items-center justify-center mb-2">
-              <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <p class="font-bold text-gray-800 text-sm">ตารางเวร</p>
-          </router-link>
         </div>
       </div>
     </main>
@@ -181,7 +194,7 @@ const thMonths = ['มกราคม','กุมภาพันธ์','มี�
 
 const loading = ref(true)
 const data = ref({
-  today: { check_in: null, check_out: null, status: null, late_minutes: null, is_checked_in: false, is_checked_out: false },
+  today: { check_in: null, check_out: null, status: null, late_minutes: null, is_checked_in: false, is_checked_out: false, schedule_start: null, schedule_end: null, worked_hours: null },
   month: { working_days: 0, on_time: 0, late: 0, absent: 0, leave_days: 0, total_late_minutes: 0, ot_hours: 0 },
   pending: { leave: 0, ot: 0, wfh: 0 },
 })

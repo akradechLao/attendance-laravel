@@ -7,7 +7,9 @@ use App\Models\Employee;
 use App\Models\ShiftSchedule;
 use App\Models\ShiftSwap;
 use App\Models\WorkShift;
+use App\Models\LeaveRequest;
 use App\Constants\RoleConstants;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -44,13 +46,22 @@ class ShiftSwapController extends Controller
             'requester_shift' => 'required|string',
             'target_shift' => 'required|string',
             'reason' => 'nullable|string',
+            'request_replacement_day' => 'nullable|boolean',
         ]);
 
         if ($validated['requester_id'] == $validated['target_id']) {
             return response()->json(['success' => false, 'message' => 'ไม่สามารถสลับกับตัวเองได้'], 400);
         }
 
+        $requestReplacementDay = $validated['request_replacement_day'] ?? false;
+        unset($validated['request_replacement_day']);
+
         $swap = ShiftSwap::create($validated);
+
+        // Store replacement day flag in supervisor_note temporarily
+        if ($requestReplacementDay) {
+            $swap->update(['supervisor_note' => 'REQUEST_REPLACEMENT_DAY']);
+        }
 
         return response()->json([
             'success' => true,
@@ -103,6 +114,22 @@ class ShiftSwapController extends Controller
             'supervisor_note' => $request->get('supervisor_note', ''),
             'status' => 'approved',
         ]);
+
+        // Create replacement day off leave request if requested
+        if ($swap->supervisor_note === 'REQUEST_REPLACEMENT_DAY') {
+            $leaveDate = Carbon::parse($swap->swap_date);
+            LeaveRequest::create([
+                'emp_id' => $swap->requester_id,
+                'leave_type_id' => 1,
+                'start_date' => $leaveDate->format('Y-m-d'),
+                'end_date' => $leaveDate->format('Y-m-d'),
+                'total_days' => 1,
+                'reason' => 'วันหยุดทดแทนจากการสลับกะ ' . $swap->swap_date,
+                'status' => 'approved',
+                'approved_by' => $request->user()->id ?? null,
+                'approved_at' => now(),
+            ]);
+        }
 
         return response()->json([
             'success' => true,

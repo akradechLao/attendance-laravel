@@ -125,7 +125,7 @@
         </router-link>
 
         <!-- ขอโอที -->
-        <router-link to="/employee/ot" class="block group">
+        <router-link v-if="hasOt" to="/employee/ot" class="block group">
           <div class="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-center">
             <div class="w-12 h-12 sm:w-14 sm:h-14 mx-auto rounded-2xl bg-amber-500 flex items-center justify-center mb-3 shadow-lg group-hover:scale-110 transition-transform">
               <svg class="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -159,7 +159,7 @@
         </router-link>
 
         <!-- ขอย้ายเวร -->
-        <router-link to="/employee/shift-swap" class="block group">
+        <router-link v-if="hasShifts" to="/employee/shift-swap" class="block group">
           <div class="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-center">
             <div class="w-12 h-12 sm:w-14 sm:h-14 mx-auto rounded-2xl bg-pink-500 flex items-center justify-center mb-3 shadow-lg group-hover:scale-110 transition-transform">
               <svg class="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -172,7 +172,7 @@
         </router-link>
 
         <!-- ตารางเวร -->
-        <router-link to="/employee/schedule" class="block group">
+        <router-link v-if="hasShifts" to="/employee/schedule" class="block group">
           <div class="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-center">
             <div class="w-12 h-12 sm:w-14 sm:h-14 mx-auto rounded-2xl bg-teal-500 flex items-center justify-center mb-3 shadow-lg group-hover:scale-110 transition-transform">
               <svg class="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -254,19 +254,19 @@
       <div v-if="pendingCounts.leave + pendingCounts.ot + pendingCounts.wfh > 0" class="bg-white rounded-2xl p-6 border border-gray-200 shadow-md mb-6">
         <h3 class="text-base font-bold text-gray-800 mb-4 text-center">รายการที่รออนุมัติ</h3>
         <div class="grid grid-cols-3 gap-4">
-          <div class="text-center">
+          <div v-if="pendingCounts.leave > 0" class="text-center">
             <div class="w-12 h-12 mx-auto rounded-xl bg-blue-50 flex items-center justify-center mb-2 border border-blue-200">
               <span class="text-xl font-bold text-blue-600">{{ pendingCounts.leave }}</span>
             </div>
             <p class="text-gray-500 text-xs font-medium">ลางาน</p>
           </div>
-          <div class="text-center">
+          <div v-if="hasOt && pendingCounts.ot > 0" class="text-center">
             <div class="w-12 h-12 mx-auto rounded-xl bg-amber-50 flex items-center justify-center mb-2 border border-amber-200">
               <span class="text-xl font-bold text-amber-500">{{ pendingCounts.ot }}</span>
             </div>
             <p class="text-gray-500 text-xs font-medium">โอที</p>
           </div>
-          <div class="text-center">
+          <div v-if="pendingCounts.wfh > 0" class="text-center">
             <div class="w-12 h-12 mx-auto rounded-xl bg-emerald-50 flex items-center justify-center mb-2 border border-emerald-200">
               <span class="text-xl font-bold text-emerald-500">{{ pendingCounts.wfh }}</span>
             </div>
@@ -288,6 +288,12 @@ const router = useRouter()
 const pendingCounts = ref({ leave: 0, ot: 0, wfh: 0 })
 const warnings = ref([])
 const announcements = ref([])
+
+const hasOt = computed(() => store.user?.has_ot === true || store.user?.has_ot === 1)
+const hasShifts = computed(() => {
+  const shifts = store.user?.work_shifts
+  return shifts && shifts.length > 0
+})
 
 const initials = computed(() => {
   const name = store.user?.name || 'E'

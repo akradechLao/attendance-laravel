@@ -104,7 +104,7 @@ class EmployeeAuthController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $employee->load('company'),
+                'data' => $employee->load(['company', 'workShifts']),
                 'message' => 'Employee verified successfully.',
             ]);
         } catch (\Exception $e) {

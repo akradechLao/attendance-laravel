@@ -102,6 +102,17 @@
             placeholder="เช่น ต้องการสลับเวรเพื่อทำธุระส่วนตัว..." />
         </div>
 
+        <!-- Replacement Day Off -->
+        <div class="mb-4 p-3 bg-purple-50 rounded-xl border border-purple-200">
+          <label class="flex items-start gap-3 cursor-pointer">
+            <input type="checkbox" v-model="form.request_replacement_day" class="mt-1 w-4 h-4 text-purple-600 rounded focus:ring-purple-500" />
+            <div>
+              <p class="text-sm font-medium text-purple-800">ขอวันหยุดทดแทน</p>
+              <p class="text-xs text-purple-600 mt-0.5">ส่งคำขอลาสำหรับวันที่เดิมของฉัน (วันหยุดทดแทนจากการเปลี่ยนกะ)</p>
+            </div>
+          </label>
+        </div>
+
         <button @click="submitSwap" :disabled="submitting || !mySchedule"
           class="w-full bg-blue-500 text-white py-3 rounded-xl font-bold hover:bg-blue-600 disabled:opacity-50 transition-colors">
           {{ submitting ? 'กำลังส่ง...' : 'ส่งคำขอสลับเวร' }}
@@ -176,6 +187,7 @@ const form = ref({
   target_shift_code: '',
   target_shift_label: '',
   reason: '',
+  request_replacement_day: false,
 })
 
 function formatDate(d) {
@@ -228,11 +240,12 @@ async function submitSwap() {
       requester_shift: mySchedule.value.shift_code,
       target_shift: form.value.target_shift_code,
       reason: form.value.reason || null,
+      request_replacement_day: form.value.request_replacement_day,
     })
     showToast('success', 'ส่งคำขอสลับเวรสำเร็จ')
     step.value = 1
     swapDate.value = todayStr
-    form.value = { target_id: '', target_name: '', target_shift_code: '', target_shift_label: '', reason: '' }
+    form.value = { target_id: '', target_name: '', target_shift_code: '', target_shift_label: '', reason: '', request_replacement_day: false }
     loadMyRequests()
   } catch (e) {
     showToast('error', e.response?.data?.message || 'เกิดข้อผิดพลาด')

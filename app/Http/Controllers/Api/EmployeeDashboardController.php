@@ -7,6 +7,7 @@ use App\Models\AttendanceLog;
 use App\Models\LeaveRequest;
 use App\Models\OtRequest;
 use App\Models\WfhRecord;
+use App\Models\ShiftSchedule;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -28,6 +29,30 @@ class EmployeeDashboardController extends Controller
         $todayLog = AttendanceLog::where('emp_id', $employee->id)
             ->where('date', $today->format('Y-m-d'))
             ->first();
+
+        // Today's scheduled shift
+        $todaySchedule = ShiftSchedule::where('emp_id', $employee->id)
+            ->where('work_date', $today->format('Y-m-d'))
+            ->first();
+        $scheduleStart = null;
+        $scheduleEnd = null;
+        if ($employee->workShifts->count() > 0) {
+            $defaultShift = $employee->workShifts->first();
+            $scheduleStart = $defaultShift->start_time;
+            $scheduleEnd = $defaultShift->end_time;
+        }
+
+        // Calculate worked hours
+        $workedHours = null;
+        if ($todayLog && $todayLog->check_in && $todayLog->check_out) {
+            $in = Carbon::parse($todayLog->check_in);
+            $out = Carbon::parse($todayLog->check_out);
+            $workedHours = round($in->diffInMinutes($out) / 60, 1);
+        } elseif ($todayLog && $todayLog->check_in && !$todayLog->check_out) {
+            $in = Carbon::parse($todayLog->check_in);
+            $now = Carbon::now();
+            $workedHours = round($in->diffInMinutes($now) / 60, 1);
+        }
 
         // Monthly stats
         $monthLogs = AttendanceLog::where('emp_id', $employee->id)
@@ -71,6 +96,9 @@ class EmployeeDashboardController extends Controller
                     'late_minutes' => $todayLog->late_minutes,
                     'is_checked_in' => true,
                     'is_checked_out' => !is_null($todayLog->check_out),
+                    'schedule_start' => $scheduleStart,
+                    'schedule_end' => $scheduleEnd,
+                    'worked_hours' => $workedHours,
                 ] : [
                     'date' => $today->format('Y-m-d'),
                     'check_in' => null,
@@ -79,6 +107,9 @@ class EmployeeDashboardController extends Controller
                     'late_minutes' => null,
                     'is_checked_in' => false,
                     'is_checked_out' => false,
+                    'schedule_start' => $scheduleStart,
+                    'schedule_end' => $scheduleEnd,
+                    'worked_hours' => null,
                 ],
                 'month' => [
                     'working_days' => $workingDays,
