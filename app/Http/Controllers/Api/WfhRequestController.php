@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\WfhRecord;
+use App\Constants\RoleConstants;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -132,6 +133,16 @@ class WfhRequestController extends Controller
             ], 400);
         }
 
+        // Authorization: must be subordinate or HR admin
+        $user = $request->user();
+        $userRole = $user->role ?? 'employee';
+        if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
+            $approver = $user->employee ?? Employee::find($user->id);
+            if (!$approver || !$approver->isSubordinateOf($record->emp_id)) {
+                return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
+            }
+        }
+
         $approvedDate = $request->get('approved_date', $record->date);
 
         if (Carbon::parse($approvedDate)->dayOfWeek !== Carbon::SATURDAY) {
@@ -172,6 +183,16 @@ class WfhRequestController extends Controller
     public function reject(Request $request, $id): JsonResponse
     {
         $record = WfhRecord::findOrFail($id);
+
+        // Authorization: must be subordinate or HR admin
+        $user = $request->user();
+        $userRole = $user->role ?? 'employee';
+        if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
+            $approver = $user->employee ?? Employee::find($user->id);
+            if (!$approver || !$approver->isSubordinateOf($record->emp_id)) {
+                return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
+            }
+        }
 
         $record->update([
             'supervisor_id' => $request->get('supervisor_id'),
@@ -221,12 +242,21 @@ class WfhRequestController extends Controller
 
     public function teamRequests(Request $request): JsonResponse
     {
-        $supervisorId = $request->get('supervisor_id');
+        $user = $request->user();
+        $employee = $user->employee ?? Employee::find($user->id);
+
+        if (!$employee) {
+            return response()->json(['success' => false, 'message' => 'Employee not found'], 404);
+        }
+
         $month = $request->get('month', Carbon::now()->format('Y-m'));
+        $employeeIds = $employee->getAllSubordinateIds();
 
-        $employees = Employee::where('supervisor_id', $supervisorId)->pluck('id')->toArray();
+        if (empty($employeeIds)) {
+            return response()->json(['success' => true, 'data' => []]);
+        }
 
-        $records = WfhRecord::whereIn('emp_id', $employees)
+        $records = WfhRecord::whereIn('emp_id', $employeeIds)
             ->whereYear('date', Carbon::parse($month)->year)
             ->whereMonth('date', Carbon::parse($month)->month)
             ->with('employee')

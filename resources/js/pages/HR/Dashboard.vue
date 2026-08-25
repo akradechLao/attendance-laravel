@@ -118,8 +118,8 @@
                   <th class="text-left px-4 py-3 text-xs font-semibold text-gray-600">บริษัท</th>
                   <th class="text-left px-4 py-3 text-xs font-semibold text-gray-600">กะ</th>
                   <th class="text-left px-4 py-3 text-xs font-semibold text-gray-600">รอบ</th>
-                  <th class="text-left px-4 py-3 text-xs font-semibold text-gray-600">เวลาเข้า</th>
-                  <th class="text-left px-4 py-3 text-xs font-semibold text-gray-600">เวลาออก</th>
+                  <th class="text-left px-4 py-3 text-xs font-semibold text-gray-600">วันที่/เวลาเข้า</th>
+                  <th class="text-left px-4 py-3 text-xs font-semibold text-gray-600">วันที่/เวลาออก</th>
                   <th class="text-left px-4 py-3 text-xs font-semibold text-gray-600">ชั่วโมงทำงาน</th>
                   <th class="text-left px-4 py-3 text-xs font-semibold text-gray-600">สถานะ</th>
                   <th class="text-left px-4 py-3 text-xs font-semibold text-gray-600">ประเภท</th>
@@ -141,8 +141,14 @@
                   </td>
                   <td class="px-4 py-3 text-xs text-gray-500">{{ record.shift_time || '-' }}</td>
                   <td class="px-4 py-3 text-sm text-gray-600">{{ record.round_no || 1 }}</td>
-                  <td class="px-4 py-3 text-sm font-medium" :class="record.is_late ? 'text-yellow-600' : 'text-green-600'">{{ record.check_in || '-' }}</td>
-                  <td class="px-4 py-3 text-sm text-gray-600">{{ record.check_out || '-' }}</td>
+                  <td class="px-4 py-3 text-sm font-medium" :class="record.is_late ? 'text-yellow-600' : 'text-green-600'">
+                    <div>{{ record.check_in || '-' }}</div>
+                    <div v-if="record.date" class="text-[10px] text-gray-400">{{ formatDateThai(record.date) }}</div>
+                  </td>
+                  <td class="px-4 py-3 text-sm text-gray-600">
+                    <div>{{ record.check_out || '-' }}</div>
+                    <div v-if="record.check_out && record.date" class="text-[10px] text-gray-400">{{ formatDateThai(record.date) }}</div>
+                  </td>
                   <td class="px-4 py-3 text-sm font-medium" :class="record.work_minutes > 0 ? 'text-blue-600' : 'text-gray-400'">{{ record.work_hours_display }}</td>
                   <td class="px-4 py-3">
                     <div class="flex flex-col gap-0.5">
@@ -215,6 +221,17 @@ function formatDateTime(val) {
   } catch {
     return val
   }
+}
+
+const thMonths = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.']
+
+function formatDateThai(dateStr) {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  const day = d.getDate()
+  const month = thMonths[d.getMonth()]
+  const year = d.getFullYear() + 543
+  return `${day} ${month} ${year}`
 }
 
 async function fetchData() {

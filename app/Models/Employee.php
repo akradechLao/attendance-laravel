@@ -2,6 +2,7 @@
 namespace App\Models;
 
 use App\Constants\PositionConstants;
+use App\Constants\RoleConstants;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -57,6 +58,32 @@ class Employee extends Authenticatable
         'password' => 'hashed',
         'wfh_quota' => 'integer',
     ];
+
+    // Role helpers
+    public function isEmployee(): bool
+    {
+        return $this->role === RoleConstants::EMPLOYEE;
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === RoleConstants::ADMIN;
+    }
+
+    public function isSuperAdmin(): bool
+    {
+        return $this->role === RoleConstants::SUPER_ADMIN;
+    }
+
+    public function hasRole(string ...$roles): bool
+    {
+        return in_array($this->role, $roles);
+    }
+
+    public function getRoleLabelAttribute(): string
+    {
+        return RoleConstants::LABELS[$this->role] ?? $this->role;
+    }
 
     public function company(): BelongsTo
     {
@@ -133,6 +160,53 @@ class Employee extends Authenticatable
     {
         $level = $this->getLevel();
         return $level <= PositionConstants::HIERARCHY['division_manager'];
+    }
+
+    /**
+     * Check if $employeeId is a direct or indirect subordinate of this employee.
+     * Walks up the reports_to chain from the target employee.
+     */
+    public function isSubordinateOf(int $employeeId): bool
+    {
+        if ($this->id === $employeeId) {
+            return false;
+        }
+
+        $current = Employee::find($employeeId);
+        $maxDepth = 10;
+
+        while ($current && $maxDepth > 0) {
+            if ($current->reports_to === $this->id) {
+                return true;
+            }
+            $current = Employee::find($current->reports_to);
+            $maxDepth--;
+        }
+
+        return false;
+    }
+
+    /**
+     * Get all subordinate employee IDs (direct + indirect).
+     */
+    public function getAllSubordinateIds(): array
+    {
+        $ids = [];
+        $this->collectSubordinates($this->id, $ids);
+        return $ids;
+    }
+
+    private function collectSubordinates(int $parentId, array &$ids, int $depth = 0): void
+    {
+        if ($depth > 10) {
+            return;
+        }
+
+        $children = Employee::where('reports_to', $parentId)->pluck('id')->toArray();
+        foreach ($children as $childId) {
+            $ids[] = $childId;
+            $this->collectSubordinates($childId, $ids, $depth + 1);
+        }
     }
 
     public function hasActiveRemoteAssignment(): bool

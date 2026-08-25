@@ -12,8 +12,22 @@ class SupervisorController extends Controller
 {
     public function leaveApproval(Request $request)
     {
+        $user = $request->user();
+        $employee = $user->employee ?? Employee::find($user->id);
+
+        if (!$employee) {
+            return response()->json(['success' => false, 'message' => 'Employee not found'], 404);
+        }
+
+        $subordinateIds = $employee->getAllSubordinateIds();
+
+        if (empty($subordinateIds)) {
+            return response()->json(['data' => []]);
+        }
+
         $query = LeaveRequest::with(['employee', 'leaveType'])
-            ->where('status', 'pending');
+            ->where('status', 'pending')
+            ->whereIn('emp_id', $subordinateIds);
 
         if ($request->emp_id) {
             $query->where('emp_id', $request->emp_id);
@@ -26,8 +40,22 @@ class SupervisorController extends Controller
 
     public function otApproval(Request $request)
     {
+        $user = $request->user();
+        $employee = $user->employee ?? Employee::find($user->id);
+
+        if (!$employee) {
+            return response()->json(['success' => false, 'message' => 'Employee not found'], 404);
+        }
+
+        $subordinateIds = $employee->getAllSubordinateIds();
+
+        if (empty($subordinateIds)) {
+            return response()->json(['data' => []]);
+        }
+
         $query = OtRequest::with('employee')
-            ->where('status', 'pending');
+            ->where('status', 'pending')
+            ->whereIn('emp_id', $subordinateIds);
 
         if ($request->emp_id) {
             $query->where('emp_id', $request->emp_id);
@@ -41,10 +69,16 @@ class SupervisorController extends Controller
     public function teamCalendar(Request $request)
     {
         $date = $request->date ?? date('Y-m-d');
+        $user = $request->user();
+        $employee = $user->employee ?? Employee::find($user->id);
+
+        if (!$employee) {
+            return response()->json(['success' => false, 'message' => 'Employee not found'], 404);
+        }
 
         $teamMembers = Employee::with(['attendanceLogs' => function ($query) use ($date) {
             $query->where('date', $date);
-        }])->where('reports_to', auth()->id())->get();
+        }])->where('reports_to', $employee->id)->get();
 
         return response()->json(['data' => $teamMembers]);
     }

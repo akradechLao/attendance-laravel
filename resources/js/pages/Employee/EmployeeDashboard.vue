@@ -31,12 +31,14 @@
               <div class="bg-emerald-50 rounded-xl p-4 text-center border border-emerald-200">
                 <p class="text-emerald-600 text-xs font-medium mb-1">เข้างาน</p>
                 <p class="text-2xl font-bold text-emerald-700">{{ data.today.check_in?.substring(0, 5) || '-' }}</p>
+                <p class="text-[10px] text-emerald-500 mt-1">{{ formatDateThai(data.today.date) }}</p>
               </div>
               <div class="bg-gray-50 rounded-xl p-4 text-center border border-gray-200">
                 <p class="text-gray-500 text-xs font-medium mb-1">ออกงาน</p>
                 <p class="text-2xl font-bold" :class="data.today.is_checked_out ? 'text-blue-700' : 'text-gray-300'">
                   {{ data.today.check_out?.substring(0, 5) || 'ยังไม่ออก' }}
                 </p>
+                <p v-if="data.today.is_checked_out" class="text-[10px] text-gray-400 mt-1">{{ formatDateThai(data.today.date) }}</p>
               </div>
             </div>
             <!-- Status -->
@@ -184,6 +186,15 @@ const todayThai = computed(() => {
   const days = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์']
   return `${days[d.getDay()]}ที่ ${d.getDate()} ${thMonths[d.getMonth()]} ${d.getFullYear() + 543}`
 })
+
+function formatDateThai(dateStr) {
+  if (!dateStr) return ''
+  const d = new Date(dateStr)
+  const day = d.getDate()
+  const month = thMonths[d.getMonth()]
+  const year = d.getFullYear() + 543
+  return `${day} ${month} ${year}`
+}
 
 onMounted(async () => {
   try {

@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceLog;
 use App\Models\Employee;
+use App\Models\LeaveRequest;
+use App\Models\OtRequest;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -15,17 +17,21 @@ class ReportController extends Controller
     {
         try {
             $request->validate([
-                'company_id' => 'required|exists:companies,id',
+                'company_id' => 'nullable|exists:companies,id',
                 'start_date' => 'required|date',
                 'end_date' => 'required|date|after_or_equal:start_date',
             ]);
 
-            $logs = AttendanceLog::where('company_id', $request->company_id)
-                ->whereBetween('check_in', [
-                    Carbon::parse($request->start_date)->startOfDay(),
-                    Carbon::parse($request->end_date)->endOfDay(),
-                ])
-                ->with('employee')
+            $query = AttendanceLog::whereBetween('check_in', [
+                Carbon::parse($request->start_date)->startOfDay(),
+                Carbon::parse($request->end_date)->endOfDay(),
+            ]);
+
+            if ($request->filled('company_id')) {
+                $query->where('company_id', $request->company_id);
+            }
+
+            $logs = $query->with('employee.company')
                 ->orderBy('check_in', 'desc')
                 ->get();
 
@@ -33,14 +39,25 @@ class ReportController extends Controller
             $lateCount = $logs->where('status', 'late')->count();
             $onTimeCount = $logs->where('status', 'on_time')->count();
 
+            $startDate = Carbon::parse($request->start_date);
+            $endDate = Carbon::parse($request->end_date);
+            $totalWorkingDays = 0;
+            for ($date = $startDate->copy(); $date->lte($endDate); $date->addDay()) {
+                if (!$date->isWeekend()) {
+                    $totalWorkingDays++;
+                }
+            }
+
             return response()->json([
                 'success' => true,
                 'data' => [
                     'records' => $logs,
                     'summary' => [
+                        'total_days' => $totalWorkingDays,
+                        'on_time' => $onTimeCount,
+                        'late' => $lateCount,
+                        'absent' => max(0, $totalWorkingDays - $totalRecords),
                         'total_records' => $totalRecords,
-                        'late_count' => $lateCount,
-                        'on_time_count' => $onTimeCount,
                     ],
                 ],
                 'message' => 'Attendance report retrieved successfully.',
@@ -187,6 +204,154 @@ class ReportController extends Controller
                 'success' => false,
                 'data' => null,
                 'message' => 'Failed to retrieve employee report: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function exportAttendance(Request $request): JsonResponse
+    {
+        try {
+            $request->validate([
+                'company_id' => 'nullable|exists:companies,id',
+                'start_date' => 'required|date',
+                'end_date' => 'required|date|after_or_equal:start_date',
+            ]);
+
+            $query = AttendanceLog::whereBetween('check_in', [
+                Carbon::parse($request->start_date)->startOfDay(),
+                Carbon::parse($request->end_date)->endOfDay(),
+            ]);
+
+            if ($request->filled('company_id')) {
+                $query->where('company_id', $request->company_id);
+            }
+
+            $logs = $query->with('employee.company')
+                ->orderBy('check_in', 'asc')
+                ->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $logs,
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'Failed to export attendance: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function leave(Request $request): JsonResponse
+    {
+        try {
+            $request->validate([
+                'company_id' => 'nullable|exists:companies,id',
+                'start_date' => 'required|date',
+                'end_date' => 'required|date|after_or_equal:start_date',
+            ]);
+
+            $query = LeaveRequest::whereBetween('start_date', [
+                $request->start_date,
+                $request->end_date,
+            ]);
+
+            if ($request->filled('company_id')) {
+                $query->where('company_id', $request->company_id);
+            }
+
+            $leaves = $query->with('employee.company', 'leaveType')
+                ->orderBy('start_date', 'desc')
+                ->get();
+
+            $statusCounts = $leaves->groupBy('status')->map(fn($items) => $items->count());
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'records' => $leaves,
+                    'summary' => [
+                        'total' => $leaves->count(),
+                        'approved' => $statusCounts->get('approved', 0),
+                        'pending' => $statusCounts->get('pending', 0),
+                        'rejected' => $statusCounts->get('rejected', 0),
+                    ],
+                ],
+                'message' => 'Leave report retrieved successfully.',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'Failed to retrieve leave report: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function ot(Request $request): JsonResponse
+    {
+        try {
+            $request->validate([
+                'company_id' => 'nullable|exists:companies,id',
+                'start_date' => 'required|date',
+                'end_date' => 'required|date|after_or_equal:start_date',
+            ]);
+
+            $query = OtRequest::whereBetween('date', [
+                $request->start_date,
+                $request->end_date,
+            ]);
+
+            if ($request->filled('company_id')) {
+                $query->where('company_id', $request->company_id);
+            }
+
+            $ots = $query->with('employee.company')
+                ->orderBy('date', 'desc')
+                ->get();
+
+            $statusCounts = $ots->groupBy('status')->map(fn($items) => $items->count());
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'records' => $ots,
+                    'summary' => [
+                        'total' => $ots->count(),
+                        'approved' => $statusCounts->get('approved', 0),
+                        'pending' => $statusCounts->get('pending', 0),
+                        'rejected' => $statusCounts->get('rejected', 0),
+                    ],
+                ],
+                'message' => 'OT report retrieved successfully.',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'Validation failed.',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'Failed to retrieve OT report: ' . $e->getMessage(),
             ], 500);
         }
     }

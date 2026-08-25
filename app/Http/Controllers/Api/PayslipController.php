@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\Payslip;
+use App\Services\AuditLogService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -241,6 +242,16 @@ class PayslipController extends Controller
         $payslip = Payslip::updateOrCreate(
             ['emp_id' => $empId, 'month' => $validated['month'], 'year' => $validated['year']],
             $validated
+        );
+
+        $action = $payslip->wasRecentlyCreated ? 'create' : 'update';
+        AuditLogService::log(
+            $action,
+            $payslip,
+            $payslip->wasRecentlyCreated ? null : $payslip->getChanges(),
+            $validated,
+            'บันทึกสลิปเงินเดือน ' . $employee->name . ' เดือน ' . $validated['month'] . '/' . $validated['year'],
+            $request
         );
 
         return response()->json([

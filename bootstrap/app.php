@@ -16,6 +16,11 @@ return Application::configure(basePath: dirname(__DIR__))
             \Laravel\Sanctum\Http\Middleware\EnsureFrontendRequestsAreStateful::class,
         ]);
 
+        $middleware->alias([
+            'role' => \App\Http\Middleware\RoleMiddleware::class,
+            'position' => \App\Http\Middleware\PositionMiddleware::class,
+        ]);
+
         $middleware->throttleApi();
 
         $middleware->redirectGuestsTo(function (\Illuminate\Http\Request $request) {

@@ -5,6 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
+use App\Models\Employee;
+use App\Constants\RoleConstants;
+use App\Services\AuditLogService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -80,11 +83,23 @@ class LeaveController extends Controller
                 ], 400);
             }
 
+            // Authorization: must be subordinate or HR admin
+            $user = $request->user();
+            $userRole = $user->role ?? 'employee';
+            if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
+                $approver = $user->employee ?? Employee::find($user->id);
+                if (!$approver || !$approver->isSubordinateOf($leave->emp_id)) {
+                    return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
+                }
+            }
+
             $leave->update([
                 'status' => 'approved',
                 'approved_by' => $request->user()->id ?? null,
                 'approved_at' => now(),
             ]);
+
+            AuditLogService::action('approve', $leave, 'อนุมัติใบลา ' . ($leave->employee->name ?? $leave->emp_id), $request);
 
             return response()->json([
                 'success' => true,
@@ -119,6 +134,16 @@ class LeaveController extends Controller
                 ], 400);
             }
 
+            // Authorization: must be subordinate or HR admin
+            $user = $request->user();
+            $userRole = $user->role ?? 'employee';
+            if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
+                $approver = $user->employee ?? Employee::find($user->id);
+                if (!$approver || !$approver->isSubordinateOf($leave->emp_id)) {
+                    return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
+                }
+            }
+
             $validated = $request->validate([
                 'rejection_reason' => 'required|string|max:1000',
             ]);
@@ -129,6 +154,8 @@ class LeaveController extends Controller
                 'rejected_by' => $request->user()->id ?? null,
                 'rejected_at' => now(),
             ]);
+
+            AuditLogService::action('reject', $leave, 'ไม่อนุมัติใบลา ' . ($leave->employee->name ?? $leave->emp_id) . ': ' . $validated['rejection_reason'], $request);
 
             return response()->json([
                 'success' => true,

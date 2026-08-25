@@ -7,6 +7,7 @@ use App\Models\LeaveRequest;
 use App\Models\LeaveType;
 use App\Models\Employee;
 use App\Services\LeaveService;
+use App\Constants\RoleConstants;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -80,6 +81,16 @@ class LeaveRequestController extends Controller
             return response()->json(['success' => false, 'message' => 'รายการนี้ดำเนินการแล้ว'], 400);
         }
 
+        // Authorization: must be subordinate or HR admin
+        $user = $request->user();
+        $userRole = $user->role ?? 'employee';
+        if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
+            $approver = $user->employee ?? Employee::find($user->id);
+            if (!$approver || !$approver->isSubordinateOf($leave->emp_id)) {
+                return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
+            }
+        }
+
         $employee = Employee::find($leave->emp_id);
         $leaveType = LeaveType::find($leave->leave_type_id);
         $year = Carbon::parse($leave->start_date)->year;
@@ -98,6 +109,16 @@ class LeaveRequestController extends Controller
     public function reject(Request $request, $id): JsonResponse
     {
         $leave = LeaveRequest::findOrFail($id);
+
+        // Authorization: must be subordinate or HR admin
+        $user = $request->user();
+        $userRole = $user->role ?? 'employee';
+        if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
+            $approver = $user->employee ?? Employee::find($user->id);
+            if (!$approver || !$approver->isSubordinateOf($leave->emp_id)) {
+                return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
+            }
+        }
 
         $leave->update([
             'status' => 'rejected',
@@ -120,8 +141,18 @@ class LeaveRequestController extends Controller
 
     public function teamLeaves(Request $request): JsonResponse
     {
-        $supervisorId = $request->get('supervisor_id');
-        $employeeIds = Employee::where('supervisor_id', $supervisorId)->pluck('id')->toArray();
+        $user = $request->user();
+        $employee = $user->employee ?? Employee::find($user->id);
+
+        if (!$employee) {
+            return response()->json(['success' => false, 'message' => 'Employee not found'], 404);
+        }
+
+        $employeeIds = $employee->getAllSubordinateIds();
+
+        if (empty($employeeIds)) {
+            return response()->json(['success' => true, 'data' => []]);
+        }
 
         $leaves = LeaveRequest::whereIn('emp_id', $employeeIds)
             ->with(['employee', 'leaveType'])

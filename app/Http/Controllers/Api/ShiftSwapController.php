@@ -7,6 +7,7 @@ use App\Models\Employee;
 use App\Models\ShiftSchedule;
 use App\Models\ShiftSwap;
 use App\Models\WorkShift;
+use App\Constants\RoleConstants;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -21,9 +22,12 @@ class ShiftSwapController extends Controller
         }
 
         if ($request->has('supervisor_id') && $request->supervisor_id) {
-            $employeeIds = Employee::where('supervisor_id', $request->supervisor_id)->pluck('id')->toArray();
-            $employeeIds[] = $request->supervisor_id;
-            $query->whereIn('requester_id', $employeeIds);
+            $supervisor = Employee::find($request->supervisor_id);
+            if ($supervisor) {
+                $employeeIds = $supervisor->getAllSubordinateIds();
+                $employeeIds[] = $supervisor->id;
+                $query->whereIn('requester_id', $employeeIds);
+            }
         }
 
         $swaps = $query->orderBy('created_at', 'desc')->get();
@@ -61,6 +65,16 @@ class ShiftSwapController extends Controller
 
         if ($swap->status !== 'pending') {
             return response()->json(['success' => false, 'message' => 'รายการนี้ดำเนินการแล้ว'], 400);
+        }
+
+        // Authorization: must be subordinate or HR admin
+        $user = $request->user();
+        $userRole = $user->role ?? 'employee';
+        if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
+            $approver = $user->employee ?? Employee::find($user->id);
+            if (!$approver || (!$approver->isSubordinateOf($swap->requester_id) && !$approver->isSubordinateOf($swap->target_id))) {
+                return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
+            }
         }
 
         // Actually swap the shift_schedules
@@ -101,6 +115,16 @@ class ShiftSwapController extends Controller
     {
         $swap = ShiftSwap::findOrFail($id);
 
+        // Authorization: must be subordinate or HR admin
+        $user = $request->user();
+        $userRole = $user->role ?? 'employee';
+        if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
+            $approver = $user->employee ?? Employee::find($user->id);
+            if (!$approver || (!$approver->isSubordinateOf($swap->requester_id) && !$approver->isSubordinateOf($swap->target_id))) {
+                return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
+            }
+        }
+
         $swap->update([
             'supervisor_id' => $request->get('supervisor_id'),
             'supervisor_note' => $request->get('supervisor_note', ''),
@@ -132,9 +156,15 @@ class ShiftSwapController extends Controller
 
     public function teamSwaps(Request $request): JsonResponse
     {
-        $supervisorId = $request->get('supervisor_id');
-        $employeeIds = Employee::where('supervisor_id', $supervisorId)->pluck('id')->toArray();
-        $employeeIds[] = $supervisorId;
+        $user = $request->user();
+        $employee = $user->employee ?? Employee::find($user->id);
+
+        if (!$employee) {
+            return response()->json(['success' => false, 'message' => 'Employee not found'], 404);
+        }
+
+        $employeeIds = $employee->getAllSubordinateIds();
+        $employeeIds[] = $employee->id;
 
         $swaps = ShiftSwap::whereIn('requester_id', $employeeIds)
             ->with(['requester', 'target'])

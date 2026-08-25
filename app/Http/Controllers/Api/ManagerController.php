@@ -13,8 +13,22 @@ class ManagerController extends Controller
 {
     public function leaveApproval(Request $request)
     {
+        $user = $request->user();
+        $employee = $user->employee ?? Employee::find($user->id);
+
+        if (!$employee) {
+            return response()->json(['success' => false, 'message' => 'Employee not found'], 404);
+        }
+
+        $subordinateIds = $employee->getAllSubordinateIds();
+
+        if (empty($subordinateIds)) {
+            return response()->json(['data' => []]);
+        }
+
         $query = LeaveRequest::with(['employee', 'leaveType'])
-            ->where('status', 'pending');
+            ->where('status', 'pending')
+            ->whereIn('emp_id', $subordinateIds);
 
         if ($request->emp_id) {
             $query->where('emp_id', $request->emp_id);
@@ -27,8 +41,22 @@ class ManagerController extends Controller
 
     public function otApproval(Request $request)
     {
+        $user = $request->user();
+        $employee = $user->employee ?? Employee::find($user->id);
+
+        if (!$employee) {
+            return response()->json(['success' => false, 'message' => 'Employee not found'], 404);
+        }
+
+        $subordinateIds = $employee->getAllSubordinateIds();
+
+        if (empty($subordinateIds)) {
+            return response()->json(['data' => []]);
+        }
+
         $query = OtRequest::with('employee')
-            ->where('status', 'pending');
+            ->where('status', 'pending')
+            ->whereIn('emp_id', $subordinateIds);
 
         if ($request->emp_id) {
             $query->where('emp_id', $request->emp_id);
@@ -41,8 +69,20 @@ class ManagerController extends Controller
 
     public function teamReport(Request $request)
     {
+        $user = $request->user();
+        $manager = $user->employee ?? Employee::find($user->id);
+
+        if (!$manager) {
+            return response()->json(['success' => false, 'message' => 'Employee not found'], 404);
+        }
+
         $empId = $request->emp_id;
         $month = $request->month;
+
+        // Authorization check: must be a subordinate
+        if (!$manager->isSubordinateOf($empId) && $manager->id !== $empId) {
+            return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
+        }
 
         $employee = Employee::findOrFail($empId);
         $attendanceLogs = AttendanceLog::where('emp_id', $empId)

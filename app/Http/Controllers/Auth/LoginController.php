@@ -34,7 +34,13 @@ class LoginController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'user' => $user,
+                    'user' => [
+                        'id' => $user->id,
+                        'name' => $user->username,
+                        'username' => $user->username,
+                        'role' => $user->role ?? 'admin',
+                        'company_id' => $user->company_id,
+                    ],
                     'token' => $token,
                 ],
                 'message' => 'Login successful.',
@@ -70,9 +76,18 @@ class LoginController extends Controller
     public function me(Request $request): JsonResponse
     {
         try {
+            $user = $request->user();
+            $data = [
+                'id' => $user->id,
+                'name' => $user->username ?? $user->name,
+                'username' => $user->username ?? null,
+                'role' => $user->role ?? 'admin',
+                'company_id' => $user->company_id ?? null,
+            ];
+
             return response()->json([
                 'success' => true,
-                'data' => $request->user(),
+                'data' => $data,
                 'message' => 'User retrieved successfully.',
             ]);
         } catch (\Exception $e) {

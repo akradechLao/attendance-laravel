@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\WfhRecord;
+use App\Models\Employee;
+use App\Constants\RoleConstants;
 use Illuminate\Http\Request;
 
 class WfhController extends Controller
@@ -38,9 +40,20 @@ class WfhController extends Controller
         return response()->json(['data' => $record]);
     }
 
-    public function approve($id)
+    public function approve($id, Request $request)
     {
         $record = WfhRecord::findOrFail($id);
+
+        // Authorization: must be subordinate or HR admin
+        $user = $request->user();
+        $userRole = $user->role ?? 'employee';
+        if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
+            $approver = $user->employee ?? Employee::find($user->id);
+            if (!$approver || !$approver->isSubordinateOf($record->emp_id)) {
+                return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
+            }
+        }
+
         $record->update([
             'status' => 'approved',
             'approved_by' => auth()->id(),
@@ -53,6 +66,17 @@ class WfhController extends Controller
     public function reject($id, Request $request)
     {
         $record = WfhRecord::findOrFail($id);
+
+        // Authorization: must be subordinate or HR admin
+        $user = $request->user();
+        $userRole = $user->role ?? 'employee';
+        if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
+            $approver = $user->employee ?? Employee::find($user->id);
+            if (!$approver || !$approver->isSubordinateOf($record->emp_id)) {
+                return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
+            }
+        }
+
         $record->update([
             'status' => 'rejected',
             'rejection_reason' => $request->reason,

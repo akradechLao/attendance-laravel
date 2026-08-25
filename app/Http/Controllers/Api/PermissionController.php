@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\AdminUser;
+use App\Constants\RoleConstants;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -22,7 +23,7 @@ class PermissionController extends Controller
 
     public function updateRole(Request $request, $id)
     {
-        $request->validate(['role' => 'required|in:employee,admin,super_admin']);
+        $request->validate(['role' => 'required|in:' . implode(',', RoleConstants::ALL)]);
 
         $employee = Employee::findOrFail($id);
 

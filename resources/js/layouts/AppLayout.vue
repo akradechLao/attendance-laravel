@@ -27,7 +27,7 @@
 
         <!-- Navigation -->
         <nav class="flex-1 p-4 space-y-1 overflow-y-auto custom-scrollbar">
-          <template v-for="item in navItems" :key="(item && (item.section || item.path)) || Math.random()">
+          <template v-for="item in filteredNavItems" :key="(item && (item.section || item.path)) || Math.random()">
             <!-- Section Header -->
             <div v-if="item.section" class="pt-4 pb-2">
               <p class="px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">{{ item.section }}</p>
@@ -92,7 +92,7 @@
           <div class="flex items-center gap-4">
             <div class="text-right">
               <p class="text-sm font-medium text-gray-700">{{ store.user?.name || 'Admin' }}</p>
-              <p class="text-xs text-gray-500">{{ store.user?.role || 'HR Admin' }}</p>
+              <p class="text-xs text-gray-500">{{ roleLabel }}</p>
             </div>
             <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold">
               {{ initials }}
@@ -127,55 +127,77 @@ const route = useRoute()
 const router = useRouter()
 const sidebarOpen = ref(false)
 
+const userRole = computed(() => store.user?.role || 'employee')
+const isAdmin = computed(() => ['admin', 'super_admin'].includes(userRole.value))
+const isSuperAdmin = computed(() => userRole.value === 'super_admin')
+
 const initials = computed(() => {
   const name = store.user?.name || 'A'
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 })
 
+const roleLabels = {
+  employee: 'พนักงาน',
+  admin: 'HR Admin',
+  super_admin: 'ผู้ดูแลระบบ'
+}
+const roleLabel = computed(() => roleLabels[userRole.value] || userRole.value)
+
 const navItems = [
   { section: 'ภาพรวม' },
-  { path: '/dashboard', label: 'แดชบอร์ด', icon: '📊' },
-  { path: '/employees', label: 'พนักงาน', icon: '👥' },
-  { path: '/reports', label: 'รายงาน', icon: '📋' },
-  { section: 'จัดการเข้างาน' },
-  { path: '/leave', label: 'ลางาน', icon: '📅' },
-  { path: '/ot', label: 'OT', icon: '⏰' },
-  { path: '/wfh', label: 'ปฏิบัติงานนอกสถานที่', icon: '🏠' },
-  { path: '/holidays', label: 'วันหยุด', icon: '🎌' },
-  { path: '/attendance-adjustment', label: 'ปรับแก้สถานะเข้างาน', icon: '✏️' },
-  { path: '/attendance-verification', label: 'ยืนยันสถานะเข้างาน', icon: '✅' },
-  { section: 'จัดกะ & _OT' },
-  { path: '/shifts', label: 'กะทำงาน', icon: '🔄' },
-  { path: '/shift-assignments', label: 'มอบหมายกะรายเดือน', icon: '📅' },
-  { path: '/mandatory-ot', label: 'มอบหมาย OT บังคับ', icon: '⏰' },
-  { path: '/auto-ot', label: 'คำนวณ OT อัตโนมัติ', icon: '🤖' },
-  { path: '/ot-summary', label: 'สรุป OT', icon: '📊' },
-  { section: 'อนุมัติ' },
-  { path: '/leave-approval', label: 'อนุมัติลางาน', icon: '✅' },
-  { path: '/wfh-approval', label: 'อนุมัติ WFH', icon: '✅' },
-  { path: '/shift-swap-approval', label: 'อนุมัติสลับเวร', icon: '✅' },
-  { section: 'เงินเดือน' },
-  { path: '/payslip-entry', label: 'กรอกสลิปเงินเดือน', icon: '💰' },
-  { section: 'ดูแลทีม' },
-  { path: '/supervisor/leave-approval', label: 'อนุมัติลางาน (หัวหน้า)', icon: '👤' },
-  { path: '/supervisor/ot-approval', label: 'อนุมัติ OT (หัวหน้า)', icon: '👤' },
-  { path: '/supervisor/team-calendar', label: 'ปฏิทินทีม', icon: '📆' },
-  { path: '/manager/leave-approval', label: 'อนุมัติลางาน (ผู้จัดการ)', icon: '👤' },
-  { path: '/manager/ot-approval', label: 'อนุมัติ OT (ผู้จัดการ)', icon: '👤' },
-  { path: '/manager/team-report', label: 'รายงานทีม', icon: '📊' },
-  { section: 'Remote' },
-  { path: '/remote-assignments', label: 'ปฏิบัติงานต่างจังหวัด', icon: '📍' },
-  { path: '/location-history', label: 'แผนที่', icon: '🗺' },
+  { path: '/dashboard', label: 'แดชบอร์ด', icon: '📊', minRole: 'admin' },
+  { path: '/employees', label: 'พนักงาน', icon: '👥', minRole: 'admin' },
+  { path: '/reports', label: 'รายงาน', icon: '📋', minRole: 'admin' },
+  { section: 'จัดการเข้างาน', minRole: 'admin' },
+  { path: '/leave', label: 'ลางาน', icon: '📅', minRole: 'admin' },
+  { path: '/ot', label: 'OT', icon: '⏰', minRole: 'admin' },
+  { path: '/wfh', label: 'ปฏิบัติงานนอกสถานที่', icon: '🏠', minRole: 'admin' },
+  { path: '/holidays', label: 'วันหยุด', icon: '🎌', minRole: 'admin' },
+  { path: '/attendance-adjustment', label: 'ปรับแก้สถานะเข้างาน', icon: '✏️', minRole: 'admin' },
+  { path: '/attendance-verification', label: 'ยืนยันสถานะเข้างาน', icon: '✅', minRole: 'admin' },
+  { path: '/manual-entry', label: 'บันทึกข้อมูลด้วยมือ', icon: '📝', minRole: 'admin' },
+  { section: 'จัดกะ & OT', minRole: 'admin' },
+  { path: '/shifts', label: 'กะทำงาน', icon: '🔄', minRole: 'admin' },
+  { path: '/shift-assignments', label: 'มอบหมายกะรายเดือน', icon: '📅', minRole: 'admin' },
+  { path: '/mandatory-ot', label: 'มอบหมาย OT บังคับ', icon: '⏰', minRole: 'admin' },
+  { path: '/auto-ot', label: 'คำนวณ OT อัตโนมัติ', icon: '🤖', minRole: 'admin' },
+  { path: '/ot-summary', label: 'สรุป OT', icon: '📊', minRole: 'admin' },
+  { section: 'อนุมัติ', minRole: 'admin' },
+  { path: '/leave-approval', label: 'อนุมัติลางาน', icon: '✅', minRole: 'admin' },
+  { path: '/wfh-approval', label: 'อนุมัติ WFH', icon: '✅', minRole: 'admin' },
+  { path: '/shift-swap-approval', label: 'อนุมัติสลับเวร', icon: '✅', minRole: 'admin' },
+  { section: 'เงินเดือน', minRole: 'admin' },
+  { path: '/payslip-entry', label: 'กรอกสลิปเงินเดือน', icon: '💰', minRole: 'admin' },
+  { section: 'ดูแลทีม', minRole: 'admin' },
+  { path: '/supervisor/leave-approval', label: 'อนุมัติลางาน (หัวหน้า)', icon: '👤', minRole: 'admin' },
+  { path: '/supervisor/ot-approval', label: 'อนุมัติ OT (หัวหน้า)', icon: '👤', minRole: 'admin' },
+  { path: '/supervisor/team-calendar', label: 'ปฏิทินทีม', icon: '📆', minRole: 'admin' },
+  { path: '/manager/leave-approval', label: 'อนุมัติลางาน (ผู้จัดการ)', icon: '👤', minRole: 'admin' },
+  { path: '/manager/ot-approval', label: 'อนุมัติ OT (ผู้จัดการ)', icon: '👤', minRole: 'admin' },
+  { path: '/manager/team-report', label: 'รายงานทีม', icon: '📊', minRole: 'admin' },
+  { section: 'Remote', minRole: 'admin' },
+  { path: '/remote-assignments', label: 'ปฏิบัติงานต่างจังหวัด', icon: '📍', minRole: 'admin' },
+  { path: '/location-history', label: 'แผนที่', icon: '🗺', minRole: 'admin' },
   { section: 'ตั้งค่า' },
-  { path: '/permission', label: 'จัดการสิทธิ์', icon: '🔑' },
-  { path: '/settings', label: 'ตั้งค่าพนักงาน', icon: '⚙' },
-  { path: '/admin/company-settings', label: 'ตั้งค่าบริษัท', icon: '🏢' },
-  { path: '/admin/system-settings', label: 'ตั้งค่าระบบ', icon: '🔧' },
-  { path: '/admin/location-settings', label: 'จุดเช็คอิน/เช็คเอาท์', icon: '📍' },
-  { path: '/photos', label: 'สถานะลงทะเบียนใบหน้า', icon: '🧑' },
-  { path: '/photo-import', label: 'นำเข้ารูปใบหน้า', icon: '📸' },
-  { path: '/telegram-settings', label: 'Telegram', icon: '✈' },
+  { path: '/audit-log', label: 'ประวัติการแก้ไขข้อมูล', icon: '📜', minRole: 'admin' },
+  { path: '/permission', label: 'จัดการสิทธิ์', icon: '🔑', minRole: 'super_admin' },
+  { path: '/settings', label: 'ตั้งค่าพนักงาน', icon: '⚙', minRole: 'super_admin' },
+  { path: '/admin/company-settings', label: 'ตั้งค่าบริษัท', icon: '🏢', minRole: 'super_admin' },
+  { path: '/admin/system-settings', label: 'ตั้งค่าระบบ', icon: '🔧', minRole: 'super_admin' },
+  { path: '/admin/location-settings', label: 'จุดเช็คอิน/เช็คเอาท์', icon: '📍', minRole: 'super_admin' },
+  { path: '/photos', label: 'สถานะลงทะเบียนใบหน้า', icon: '🧑', minRole: 'super_admin' },
+  { path: '/photo-import', label: 'นำเข้ารูปใบหน้า', icon: '📸', minRole: 'super_admin' },
+  { path: '/telegram-settings', label: 'Telegram', icon: '✈', minRole: 'super_admin' },
 ]
+
+const roleHierarchy = { employee: 0, admin: 1, super_admin: 2 }
+
+const filteredNavItems = computed(() => {
+  return navItems.filter(item => {
+    if (!item.minRole) return true
+    return (roleHierarchy[userRole.value] || 0) >= (roleHierarchy[item.minRole] || 0)
+  })
+})
 
 function isActive(path) {
   return route.path === path || route.path.startsWith(path + '/')
@@ -187,6 +209,10 @@ function handleLogout() {
 }
 
 function goHome() {
-  router.push('/dashboard')
+  if (userRole.value === 'employee') {
+    router.push('/employee/menu')
+  } else {
+    router.push('/dashboard')
+  }
 }
 </script>

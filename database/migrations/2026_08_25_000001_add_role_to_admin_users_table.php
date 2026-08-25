@@ -1,0 +1,25 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('admin_users', function (Blueprint $table) {
+            $table->string('role')->default('admin')->after('username');
+        });
+
+        // Set default role for existing admin users
+        DB::table('admin_users')->whereNull('role')->update(['role' => 'admin']);
+    }
+
+    public function down(): void
+    {
+        Schema::table('admin_users', function (Blueprint $table) {
+            $table->dropColumn('role');
+        });
+    }
+};
