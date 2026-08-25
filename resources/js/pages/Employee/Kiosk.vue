@@ -1,5 +1,17 @@
 <template>
   <div class="min-h-screen bg-gradient-to-br from-blue-100 via-indigo-50 to-purple-100 flex items-center justify-center p-3 sm:p-4 safe-area">
+    <!-- Employee Login Button -->
+    <a
+      v-if="!showAdminLogin"
+      href="/login"
+      class="fixed top-3 left-3 sm:top-4 sm:left-4 z-50 px-3 py-1.5 sm:px-4 sm:py-2 bg-blue-500/90 backdrop-blur-sm rounded-lg shadow-sm border border-blue-600 text-white hover:bg-blue-600 hover:shadow-md transition-all text-xs sm:text-sm font-medium flex items-center gap-1.5"
+    >
+      <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+      </svg>
+      เข้าสู่ระบบ
+    </a>
+
     <!-- Admin Login Button -->
     <button
       v-if="!showAdminLogin"
