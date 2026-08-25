@@ -4,6 +4,14 @@
     <header class="bg-white border-b border-gray-200 shadow-sm">
       <div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
         <div class="flex items-center gap-3">
+          <router-link
+            to="/login"
+            class="px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium transition-colors shadow-sm"
+          >
+            เข้าสู่ระบบ
+          </router-link>
+        </div>
+        <div class="flex items-center gap-3">
           <div class="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-lg shadow">
             {{ initials }}
           </div>
@@ -12,20 +20,12 @@
             <p class="text-blue-600 text-sm">{{ store.user?.company?.name }}</p>
           </div>
         </div>
-        <div class="flex items-center gap-2">
-          <router-link
-            to="/login"
-            class="px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium transition-colors shadow-sm"
-          >
-            เข้าสู่ระบบ
-          </router-link>
-          <button
-            @click="handleLogout"
-            class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-red-50 text-gray-500 hover:text-red-500 text-sm font-medium transition-colors"
-          >
-            ออกจากระบบ
-          </button>
-        </div>
+        <button
+          @click="handleLogout"
+          class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-red-50 text-gray-500 hover:text-red-500 text-sm font-medium transition-colors"
+        >
+          ออกจากระบบ
+        </button>
       </div>
     </header>
 
