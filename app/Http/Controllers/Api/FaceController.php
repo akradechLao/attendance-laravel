@@ -244,6 +244,26 @@ class FaceController extends Controller
                     ], 400);
                 }
 
+                // ─── GPS check-out enforcement ───
+                $isRemote = $employee->hasActiveRemoteAssignment();
+                $officeLocation = $employee->getAssignedOfficeLocation();
+
+                if (!$isRemote && $officeLocation && $request->latitude && $request->longitude) {
+                    $distance = $this->calculateDistance(
+                        $request->latitude,
+                        $request->longitude,
+                        $officeLocation->latitude,
+                        $officeLocation->longitude
+                    );
+
+                    if ($distance > $officeLocation->radius_meters) {
+                        return response()->json([
+                            'success' => false,
+                            'message' => 'คุณอยู่นอกพื้นที่เช็คเอาท์ (ห่าง ' . round($distance) . ' เมตร กรุณาเข้าใกล้สถานที่เช็คเอาท์ให้อยู่ในรัศมี ' . $officeLocation->radius_meters . ' เมตร)',
+                        ], 400);
+                    }
+                }
+
                 $updateData = ['check_out' => $now];
 
                 if ($request->latitude && $request->longitude) {

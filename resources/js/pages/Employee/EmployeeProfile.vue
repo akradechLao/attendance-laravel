@@ -18,10 +18,28 @@
       </div>
 
       <div v-else-if="profile" class="space-y-4">
-        <!-- Profile Card -->
+        <!-- Profile Card with Photo -->
         <div class="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm text-center">
-          <div class="w-20 h-20 mx-auto rounded-full bg-blue-500 flex items-center justify-center text-white text-2xl font-bold mb-3 shadow-lg">
-            {{ initials }}
+          <div class="relative w-24 h-24 mx-auto mb-3">
+            <img v-if="profile.photo"
+              :src="profile.photo"
+              alt="Profile"
+              class="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
+            />
+            <div v-else class="w-24 h-24 rounded-full bg-blue-500 flex items-center justify-center text-white text-2xl font-bold shadow-lg">
+              {{ initials }}
+            </div>
+            <label class="absolute bottom-0 right-0 w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center cursor-pointer shadow-lg hover:bg-blue-600 transition-colors border-2 border-white">
+              <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <input type="file" accept="image/*" class="hidden" @change="handlePhotoUpload" :disabled="uploading" />
+            </label>
+          </div>
+          <div v-if="uploading" class="flex items-center justify-center gap-2 text-blue-500 text-xs mb-2">
+            <div class="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            กำลังอัปโหลด...
           </div>
           <h2 class="text-xl font-bold text-gray-800">{{ profile.name }}</h2>
           <p class="text-blue-600 text-sm">{{ profile.nickname || '-' }}</p>
@@ -106,6 +124,7 @@ import store from '../../store'
 
 const loading = ref(true)
 const profile = ref(null)
+const uploading = ref(false)
 
 const initials = computed(() => {
   const name = profile.value?.name || 'E'
@@ -114,6 +133,33 @@ const initials = computed(() => {
 
 function InfoRow({ label, value }) {
   return { label, value }
+}
+
+async function handlePhotoUpload(event) {
+  const file = event.target.files[0]
+  if (!file) return
+
+  if (file.size > 2 * 1024 * 1024) {
+    alert('รูปต้องมีขนาดไม่เกิน 2 MB')
+    return
+  }
+
+  uploading.value = true
+  try {
+    const formData = new FormData()
+    formData.append('photo', file)
+    const res = await axios.post('/api/employee/profile/photo', formData, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    if (res.data.success) {
+      profile.value.photo = res.data.photo
+    }
+  } catch (e) {
+    alert(e.response?.data?.message || 'เกิดข้อผิดพลาด')
+  } finally {
+    uploading.value = false
+    event.target.value = ''
+  }
 }
 
 onMounted(async () => {

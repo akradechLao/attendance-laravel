@@ -173,6 +173,35 @@ class AttendanceController extends Controller
                 ], 400);
             }
 
+            // ─── GPS check-out enforcement ───
+            $scanType = $request->get('scan_type', 'office_scan');
+            if ($scanType === 'office_scan' && $request->latitude && $request->longitude) {
+                $officeLocations = $employee->officeLocations()->where('is_active', true)->get();
+                if ($officeLocations->isEmpty()) {
+                    $officeLocations = OfficeLocation::where('company_id', $employee->company_id)
+                        ->where('is_active', true)->get();
+                }
+
+                $withinAnyOffice = false;
+                foreach ($officeLocations as $officeLocation) {
+                    $distance = $this->locationService->calculateDistance(
+                        $request->latitude, $request->longitude,
+                        $officeLocation->latitude, $officeLocation->longitude
+                    );
+                    if ($distance <= $officeLocation->radius_meters) {
+                        $withinAnyOffice = true;
+                        break;
+                    }
+                }
+
+                if (!$withinAnyOffice) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'คุณอยู่นอกพื้นที่เช็คเอาท์ กรุณาเข้าใกล้สถานที่เช็คเอาท์ให้อยู่ในรัศมีที่กำหนด',
+                    ], 400);
+                }
+            }
+
             $updateData = ['check_out' => Carbon::now()->format('H:i:s')];
 
             if ($request->has('latitude') && $request->has('longitude')) {
@@ -188,6 +217,9 @@ class AttendanceController extends Controller
                     $updateData['remote_longitude'] = $request->longitude;
                     $updateData['remote_location_name'] = $locationName;
                     $updateData['remote_custom_name'] = $request->get('custom_location_name');
+                } else {
+                    $updateData['remote_latitude'] = $request->latitude;
+                    $updateData['remote_longitude'] = $request->longitude;
                 }
             }
 

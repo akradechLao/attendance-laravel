@@ -155,6 +155,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // ---- Employee Self-Service (any role) ----
     Route::get('/employee/profile', [EmployeeProfileController::class, 'show']);
     Route::put('/employee/profile', [EmployeeProfileController::class, 'update']);
+    Route::post('/employee/profile/photo', [EmployeeProfileController::class, 'uploadPhoto']);
     Route::get('/employee/schedule', [EmployeeScheduleController::class, 'index']);
     Route::get('/employee/warnings', [EmployeeWarningController::class, 'index']);
     Route::get('/employee/holidays', [EmployeeHolidayController::class, 'index']);

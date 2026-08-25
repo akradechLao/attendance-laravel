@@ -41,6 +41,7 @@ class EmployeeProfileController extends Controller
                 'status' => $employee->status,
                 'start_date' => $employee->start_date,
                 'face_data_count' => $employee->faceData->count(),
+                'photo' => $employee->photo,
             ],
         ]);
     }
@@ -63,6 +64,39 @@ class EmployeeProfileController extends Controller
         return response()->json([
             'success' => true,
             'data' => $employee->fresh(),
+        ]);
+    }
+
+    public function uploadPhoto(Request $request): JsonResponse
+    {
+        $employee = $request->user()->employee;
+
+        if (!$employee) {
+            return response()->json(['success' => false, 'message' => 'Employee not found'], 404);
+        }
+
+        $request->validate([
+            'photo' => 'required|image|mimes:jpg,jpeg,png|max:2048',
+        ]);
+
+        $file = $request->file('photo');
+        $filename = 'profile_' . $employee->id . '_' . time() . '.' . $file->getClientOriginalExtension();
+        $path = $file->storeAs('public/profile-photos', $filename);
+
+        // Delete old photo if exists
+        if ($employee->photo) {
+            $oldPath = str_replace('storage/', 'storage/app/public/', $employee->photo);
+            if (\Storage::disk('local')->exists($oldPath)) {
+                \Storage::disk('local')->delete($oldPath);
+            }
+        }
+
+        $employee->update(['photo' => '/storage/profile-photos/' . $filename]);
+
+        return response()->json([
+            'success' => true,
+            'photo' => $employee->photo,
+            'message' => 'อัปโหลดรูปโปรไฟล์สำเร็จ',
         ]);
     }
 }

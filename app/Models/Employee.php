@@ -22,6 +22,7 @@ class Employee extends Authenticatable
         'nickname',
         'phone',
         'email',
+        'photo',
         'birth_date',
         'id_card',
         'social_security',
