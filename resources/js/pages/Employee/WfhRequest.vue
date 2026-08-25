@@ -14,7 +14,7 @@
     <main class="max-w-4xl mx-auto px-4 py-6 space-y-6">
       <div class="flex items-center justify-between">
         <div></div>
-        <div class="text-sm text-gray-500">{{ total }} วัน/เดือน (จันทร์-ศุกร์)</div>
+        <div class="text-sm text-gray-500">{{ total }} วัน/เดือน (วันเสาร์)</div>
       </div>
 
     <!-- Month Selector -->
@@ -45,18 +45,18 @@
 
     <!-- Date Picker -->
     <div class="bg-white rounded-xl shadow p-4">
-      <h2 class="font-semibold text-[#0f172a] mb-3">เลือกวัน WFH (จันทร์-ศุกร์)</h2>
+      <h2 class="font-semibold text-[#0f172a] mb-3">เลือกวัน WFH (วันเสาร์)</h2>
       <div v-if="loading" class="text-center py-8 text-gray-500">กำลังโหลด...</div>
       <div v-else>
         <div class="grid grid-cols-7 gap-2 mb-3">
           <div v-for="day in ['จ','อ','พ','พฤ','ศ','ส','อา']" :key="day" class="text-center text-xs text-gray-500 font-medium py-1">{{ day }}</div>
           <div v-for="(blank, i) in startDayBlanks" :key="'b'+i"></div>
           <button v-for="d in daysInMonth" :key="d.date"
-                  @click="!d.isWeekend && !d.occupied && selectDate(d.date)"
-                  :disabled="d.isWeekend || d.occupied || remaining === 0"
+                  @click="d.isSaturday && !d.occupied && selectDate(d.date)"
+                  :disabled="!d.isSaturday || d.occupied || remaining === 0"
                   :class="[
                     'p-2 rounded-lg text-center transition text-xs',
-                    d.isWeekend ? 'bg-gray-50 text-gray-300 cursor-not-allowed' :
+                    !d.isSaturday ? 'bg-gray-50 text-gray-300 cursor-not-allowed' :
                     d.occupied ? 'bg-gray-100 text-gray-400 cursor-not-allowed' :
                     d.isPast ? 'bg-gray-50 text-gray-300 cursor-not-allowed' :
                     selectedDate === d.date ? 'bg-blue-600 text-white' :
@@ -151,6 +151,7 @@ const daysInMonth = computed(() => {
     return {
       date: d.toISOString().slice(0, 10),
       day: i + 1,
+      isSaturday: d.getDay() === 6,
       isWeekend: d.getDay() === 0 || d.getDay() === 6,
       isPast: d < today,
       occupied: false,

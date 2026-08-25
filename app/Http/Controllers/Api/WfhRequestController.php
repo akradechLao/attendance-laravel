@@ -48,8 +48,8 @@ class WfhRequestController extends Controller
         $current = $start->copy();
 
         while ($current <= $end) {
-            // Only weekdays (Mon-Fri)
-            if ($current->dayOfWeek !== Carbon::SATURDAY && $current->dayOfWeek !== Carbon::SUNDAY) {
+            // Only Saturdays
+            if ($current->dayOfWeek === Carbon::SATURDAY) {
                 $occupied = WfhRecord::where('date', $current->format('Y-m-d'))
                     ->whereIn('status', ['pending', 'approved'])
                     ->count();
@@ -80,11 +80,11 @@ class WfhRequestController extends Controller
         $employee = $request->user();
         $date = Carbon::parse($request->date);
 
-        // Allow weekdays only (Mon-Fri)
-        if ($date->dayOfWeek === Carbon::SATURDAY || $date->dayOfWeek === Carbon::SUNDAY) {
+        // Allow Saturdays only
+        if ($date->dayOfWeek !== Carbon::SATURDAY) {
             return response()->json([
                 'success' => false,
-                'message' => 'WFH กำหนดได้เฉพาะวันจันทร์-ศุกร์เท่านั้น',
+                'message' => 'WFH กำหนดได้เฉพาะวันเสาร์เท่านั้น',
             ], 400);
         }
 
@@ -149,13 +149,6 @@ class WfhRequestController extends Controller
         }
 
         $approvedDate = $request->get('approved_date', $record->date);
-
-        if (Carbon::parse($approvedDate)->dayOfWeek !== Carbon::SATURDAY) {
-            return response()->json([
-                'success' => false,
-                'message' => 'วันที่อนุมัติต้องเป็นวันเสาร์',
-            ], 400);
-        }
 
         $dateConflict = WfhRecord::where('date', $approvedDate)
             ->whereIn('status', ['pending', 'approved'])

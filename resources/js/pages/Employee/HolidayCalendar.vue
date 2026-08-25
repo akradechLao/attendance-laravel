@@ -48,31 +48,6 @@
       </div>
 
       <div v-else class="space-y-6">
-        <!-- Leave Balance Cards -->
-        <div>
-          <h2 class="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">สิทธิลาคงเหลือ</h2>
-          <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
-            <div v-for="b in balances" :key="b.leave_type_id"
-              class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
-              <p class="text-gray-400 text-xs font-medium mb-1">{{ b.name }}</p>
-              <div class="flex items-end gap-1">
-                <span class="text-2xl font-bold" :class="b.remaining > 0 ? 'text-blue-600' : 'text-gray-300'">
-                  {{ b.remaining }}
-                </span>
-                <span class="text-gray-400 text-xs mb-1">วัน</span>
-              </div>
-              <div class="mt-2 flex gap-2 text-[10px]">
-                <span class="text-gray-400">ใช้ไป {{ b.used }}</span>
-                <span class="text-gray-400">•</span>
-                <span class="text-gray-400">มี {{ b.entitled }}</span>
-              </div>
-              <div v-if="b.vacation_accumulated > 0" class="mt-1 text-[10px] text-amber-500">
-                ลาพักร้อนสะสม +{{ b.vacation_accumulated }} วัน
-              </div>
-            </div>
-          </div>
-        </div>
-
         <!-- Holiday List by Month -->
         <div>
           <h2 class="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">วันหยุดประจำปี ({{ year + 543 }})</h2>
@@ -111,26 +86,6 @@
             </div>
           </div>
         </div>
-
-        <!-- My Leave Markers -->
-        <div v-if="myLeaves.length > 0">
-          <h2 class="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">วันลาที่ได้รับอนุมัติแล้ว</h2>
-          <div class="space-y-2">
-            <div v-for="(leave, i) in myLeaves" :key="i"
-              class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm flex items-center justify-between">
-              <div>
-                <p class="font-medium text-gray-800 text-sm">{{ leave.type }}</p>
-                <p class="text-gray-400 text-xs">
-                  {{ formatFull(leave.start_date) }}
-                  <span v-if="leave.start_date !== leave.end_date"> - {{ formatFull(leave.end_date) }}</span>
-                </p>
-              </div>
-              <span class="bg-blue-50 text-blue-600 text-[10px] font-medium px-2 py-1 rounded-full">
-                {{ leave.days }} วัน
-              </span>
-            </div>
-          </div>
-        </div>
       </div>
     </main>
   </div>
@@ -146,8 +101,6 @@ const thMonthsFull = ['มกราคม','กุมภาพันธ์','ม
 const loading = ref(true)
 const year = ref(new Date().getFullYear())
 const holidays = ref([])
-const balances = ref([])
-const myLeaves = ref([])
 
 const typeStyles = {
   government: {
@@ -200,8 +153,6 @@ async function loadData() {
     const res = await axios.get('/api/employee/holidays', { params: { year: year.value } })
     if (res.data.success) {
       holidays.value = res.data.data.holidays
-      balances.value = res.data.data.balances
-      myLeaves.value = res.data.data.my_leaves
     }
   } catch (e) {
     console.error(e)
