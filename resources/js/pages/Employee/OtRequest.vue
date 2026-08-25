@@ -56,17 +56,37 @@
           <span>{{ loading ? 'กำลังส่ง...' : 'ส่งคำขอ' }}</span>
         </button>
       </form>
+
+      <!-- OT History -->
+      <div v-if="otHistory.length > 0" class="mt-8">
+        <h2 class="text-white font-bold mb-4">ประวัติขอ OT</h2>
+        <div class="space-y-3">
+          <div v-for="ot in otHistory" :key="ot.id"
+            class="bg-white/10 backdrop-blur-sm rounded-xl p-4 border border-white/20">
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-white font-semibold">{{ formatDate(ot.date || ot.ot_date) }}</span>
+              <span :class="['px-2 py-0.5 rounded-full text-xs font-medium', statusBadge(ot.status).class]">
+                {{ statusBadge(ot.status).text }}
+              </span>
+            </div>
+            <p class="text-blue-200 text-sm">{{ ot.start_time }} - {{ ot.end_time }} ({{ ot.hours || '-' }} ชม.)</p>
+            <p v-if="ot.reason" class="text-blue-300 text-xs mt-1">{{ ot.reason }}</p>
+            <p v-if="ot.rejection_reason" class="text-red-300 text-xs mt-1">เหตุผลปฏิเสธ: {{ ot.rejection_reason }}</p>
+          </div>
+        </div>
+      </div>
     </main>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import axios from 'axios'
 
 const loading = ref(false)
 const error = ref('')
 const success = ref(false)
+const otHistory = ref([])
 
 const form = reactive({
   date: '',
@@ -75,6 +95,33 @@ const form = reactive({
   reason: ''
 })
 
+function formatDate(dateStr) {
+  if (!dateStr) return ''
+  const d = new Date(dateStr.split('T')[0])
+  const day = d.getDate()
+  const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.']
+  return `${day} ${months[d.getMonth()]} ${d.getFullYear() + 543}`
+}
+
+function statusBadge(status) {
+  const map = {
+    pending_manager: { text: 'รออนุมัติผู้จัดการ', class: 'bg-amber-100 text-amber-700' },
+    pending_hr: { text: 'รออนุมัติ HR', class: 'bg-blue-100 text-blue-700' },
+    approved: { text: 'อนุมัติแล้ว', class: 'bg-green-100 text-green-700' },
+    rejected: { text: 'ปฏิเสธ', class: 'bg-red-100 text-red-700' },
+  }
+  return map[status] || { text: status, class: 'bg-gray-100 text-gray-700' }
+}
+
+async function fetchHistory() {
+  try {
+    const res = await axios.get('/api/ot')
+    otHistory.value = res.data.data?.data || res.data.data || []
+  } catch (e) {
+    // ignore
+  }
+}
+
 async function handleSubmit() {
   loading.value = true
   error.value = ''
@@ -82,6 +129,7 @@ async function handleSubmit() {
     const res = await axios.post('/api/employee/ot-requests', form)
     if (res.data.success) {
       success.value = true
+      await fetchHistory()
     } else {
       error.value = res.data.message || 'เกิดข้อผิดพลาด'
     }
@@ -91,4 +139,6 @@ async function handleSubmit() {
     loading.value = false
   }
 }
+
+onMounted(fetchHistory)
 </script>

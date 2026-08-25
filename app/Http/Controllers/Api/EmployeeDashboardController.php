@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\AttendanceLog;
 use App\Models\LeaveRequest;
 use App\Models\OtRequest;
+use App\Models\WfhRecord;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -57,6 +58,7 @@ class EmployeeDashboardController extends Controller
         // Pending requests count
         $pendingLeave = LeaveRequest::where('emp_id', $employee->id)->where('status', 'pending')->count();
         $pendingOt = OtRequest::where('emp_id', $employee->id)->where('status', 'pending')->count();
+        $pendingWfh = WfhRecord::where('emp_id', $employee->id)->where('status', 'pending')->count();
 
         return response()->json([
             'success' => true,
@@ -90,6 +92,7 @@ class EmployeeDashboardController extends Controller
                 'pending' => [
                     'leave' => $pendingLeave,
                     'ot' => $pendingOt,
+                    'wfh' => $pendingWfh,
                 ],
             ],
         ]);

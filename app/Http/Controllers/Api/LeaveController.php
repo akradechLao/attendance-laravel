@@ -7,7 +7,9 @@ use App\Models\LeaveRequest;
 use App\Models\LeaveType;
 use App\Models\Employee;
 use App\Constants\RoleConstants;
+use App\Services\LeaveService;
 use App\Services\AuditLogService;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -45,6 +47,9 @@ class LeaveController extends Controller
                 'reason' => 'nullable|string|max:1000',
             ]);
 
+            $startDate = Carbon::parse($validated['start_date']);
+            $endDate = Carbon::parse($validated['end_date']);
+            $validated['total_days'] = $startDate->diffInDays($endDate) + 1;
             $validated['status'] = 'pending';
 
             $leave = LeaveRequest::create($validated);
@@ -98,6 +103,20 @@ class LeaveController extends Controller
                 'approved_by' => $request->user()->id ?? null,
                 'approved_at' => now(),
             ]);
+
+            // Deduct leave balance
+            try {
+                $leaveService = app(LeaveService::class);
+                $employee = $leave->employee;
+                $leaveType = $leave->leaveType;
+                if ($employee && $leaveType) {
+                    $year = Carbon::parse($leave->start_date)->year;
+                    $leaveService->deductLeave($employee, $leaveType, $leave->total_days ?? 1, $year);
+                }
+            } catch (\Exception $e) {
+                // Log but don't fail the approval
+                \Log::warning('Failed to deduct leave balance: ' . $e->getMessage());
+            }
 
             AuditLogService::action('approve', $leave, 'อนุมัติใบลา ' . ($leave->employee->name ?? $leave->emp_id), $request);
 

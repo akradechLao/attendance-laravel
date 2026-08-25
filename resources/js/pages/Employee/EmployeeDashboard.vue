@@ -112,7 +112,7 @@
         </div>
 
         <!-- Pending Requests -->
-        <div v-if="data.pending.leave + data.pending.ot > 0" class="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm">
+        <div v-if="data.pending.leave + data.pending.ot + data.pending.wfh > 0" class="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm">
           <h2 class="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">รออนุมัติ</h2>
           <div class="flex gap-3">
             <router-link v-if="data.pending.leave > 0" to="/employee/leave"
@@ -124,6 +124,11 @@
               class="flex-1 bg-amber-50 rounded-xl p-3 text-center border border-amber-200 hover:bg-amber-100 transition-colors">
               <p class="text-xl font-bold text-amber-600">{{ data.pending.ot }}</p>
               <p class="text-[10px] text-amber-600 font-medium">โอที</p>
+            </router-link>
+            <router-link v-if="data.pending.wfh > 0" to="/employee/wfh"
+              class="flex-1 bg-amber-50 rounded-xl p-3 text-center border border-amber-200 hover:bg-amber-100 transition-colors">
+              <p class="text-xl font-bold text-amber-600">{{ data.pending.wfh }}</p>
+              <p class="text-[10px] text-amber-600 font-medium">WFH</p>
             </router-link>
           </div>
         </div>
@@ -178,7 +183,7 @@ const loading = ref(true)
 const data = ref({
   today: { check_in: null, check_out: null, status: null, late_minutes: null, is_checked_in: false, is_checked_out: false },
   month: { working_days: 0, on_time: 0, late: 0, absent: 0, leave_days: 0, total_late_minutes: 0, ot_hours: 0 },
-  pending: { leave: 0, ot: 0 },
+  pending: { leave: 0, ot: 0, wfh: 0 },
 })
 
 const todayThai = computed(() => {

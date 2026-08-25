@@ -17,9 +17,7 @@ onMounted(async () => {
 
 const loadWfhRecords = async () => {
   try {
-    const response = await api.get('/api/wfh-records', {
-      params: { emp_id: store.user?.emp_id }
-    })
+    const response = await api.get('/api/wfh')
     wfhRecords.value = response.data.data?.data || response.data.data || []
   } catch (error) {
     console.error('Failed to load records:', error)
@@ -34,10 +32,8 @@ const submitWfh = async () => {
 
   loading.value = true
   try {
-    await api.post('/api/wfh-records', {
-      emp_id: store.user?.emp_id,
-      start_date: selectedDate.value,
-      end_date: selectedEndDate.value || selectedDate.value,
+    await api.post('/api/wfh', {
+      date: selectedDate.value,
       reason: reason.value,
     })
     alert('ส่งคำขอสำเร็จ')

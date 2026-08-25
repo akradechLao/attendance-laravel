@@ -162,6 +162,24 @@
         </div>
       </template>
     </div>
+
+    <!-- Reject Modal -->
+    <div v-if="showRejectModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+      <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+        <h3 class="text-lg font-bold text-navy mb-4">ปฏิเสธคำขอลา</h3>
+        <p class="text-sm text-gray-600 mb-2">พนักงาน: <strong>{{ rejectTarget?.employee?.name }}</strong></p>
+        <div class="mb-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">เหตุผลการปฏิเสธ <span class="text-red-500">*</span></label>
+          <textarea v-model="rejectReason" rows="3" class="w-full border border-gray-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none" placeholder="กรอกเหตุผลการปฏิเสธ..."></textarea>
+        </div>
+        <div class="flex gap-3 justify-end">
+          <button @click="showRejectModal = false" class="px-4 py-2 border rounded-lg hover:bg-gray-50">ยกเลิก</button>
+          <button @click="confirmReject" :disabled="processing" class="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50">
+            {{ processing ? 'กำลังดำเนินการ...' : 'ยืนยันปฏิเสธ' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </AppLayout>
 </template>
 
@@ -175,6 +193,9 @@ const loading = ref(true)
 const processing = ref(false)
 const leaves = ref([])
 const activeTab = ref('pending')
+const showRejectModal = ref(false)
+const rejectTarget = ref(null)
+const rejectReason = ref('')
 
 const tabs = computed(() => [
   { key: 'pending', label: 'รออนุมัติ', count: pendingLeaves.value.length },
@@ -217,7 +238,7 @@ function formatDate(dateStr) {
 async function fetchLeaves() {
   loading.value = true
   try {
-    const response = await api.get('/api/leaves')
+    const response = await api.get('/api/leave')
     leaves.value = response.data.data?.data || response.data.data || []
   } catch (error) {
     console.error('Error fetching leaves:', error)
@@ -230,7 +251,7 @@ async function approveLeave(leave) {
   if (!confirm('ยืนยันการอนุมัติลา?')) return
   processing.value = true
   try {
-    await api.put(`/api/leaves/${leave.id}/approve`)
+    await api.put(`/api/leave/${leave.id}/approve`)
     fetchLeaves()
   } catch (error) {
     console.error('Error approving leave:', error)
@@ -241,10 +262,22 @@ async function approveLeave(leave) {
 }
 
 async function rejectLeave(leave) {
-  if (!confirm('ยืนยันการปฏิเสธลา?')) return
+  rejectTarget.value = leave
+  rejectReason.value = ''
+  showRejectModal.value = true
+}
+
+async function confirmReject() {
+  if (!rejectReason.value.trim()) {
+    alert('กรุณากรอกเหตุผลการปฏิเสธ')
+    return
+  }
   processing.value = true
   try {
-    await api.put(`/api/leaves/${leave.id}/reject`)
+    await api.put(`/api/leave/${rejectTarget.value.id}/reject`, {
+      rejection_reason: rejectReason.value
+    })
+    showRejectModal.value = false
     fetchLeaves()
   } catch (error) {
     console.error('Error rejecting leave:', error)

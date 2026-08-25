@@ -180,6 +180,42 @@
             </div>
           </div>
         </div>
+
+        <!-- Rejected -->
+        <div v-if="activeTab === 'rejected'" class="space-y-4">
+          <div v-if="rejectedOts.length === 0" class="card text-center py-8 text-gray-500">
+            ไม่มีรายการ OT ที่ถูกปฏิเสธ
+          </div>
+
+          <div
+            v-for="ot in rejectedOts"
+            :key="ot.id"
+            class="card opacity-75"
+          >
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div class="flex items-center gap-4">
+                <div class="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                  <svg class="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </div>
+                <div>
+                  <p class="font-semibold text-navy">{{ ot.employee?.name }}</p>
+                  <p class="text-sm text-gray-500">{{ ot.employee?.code }}</p>
+                </div>
+              </div>
+              <div class="text-right">
+                <span class="px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-700">
+                  ปฏิเสธ
+                </span>
+                <p class="text-sm text-gray-500 mt-1">
+                  {{ formatDate(ot.date) }} | {{ ot.hours }} ชั่วโมง
+                </p>
+                <p v-if="ot.rejection_reason" class="text-sm text-red-500 mt-1">เหตุผล: {{ ot.rejection_reason }}</p>
+              </div>
+            </div>
+          </div>
+        </div>
       </template>
     </div>
   </AppLayout>
@@ -199,12 +235,14 @@ const activeTab = ref('pending_manager')
 const tabs = computed(() => [
   { key: 'pending_manager', label: 'รออนุมัติผู้จัดการ', count: pendingManagerOts.value.length },
   { key: 'pending_hr', label: 'รออนุมัติ HR', count: pendingHrOts.value.length },
-  { key: 'approved', label: 'อนุมัติแล้ว', count: 0 }
+  { key: 'approved', label: 'อนุมัติแล้ว', count: 0 },
+  { key: 'rejected', label: 'ถูกปฏิเสธ', count: rejectedOts.value.length }
 ])
 
 const pendingManagerOts = computed(() => ots.value.filter(o => o.status === 'pending_manager'))
 const pendingHrOts = computed(() => ots.value.filter(o => o.status === 'pending_hr'))
 const approvedOts = computed(() => ots.value.filter(o => o.status === 'approved'))
+const rejectedOts = computed(() => ots.value.filter(o => o.status === 'rejected'))
 
 function formatDate(dateStr) {
   return new Date(dateStr).toLocaleDateString('th-TH', {
