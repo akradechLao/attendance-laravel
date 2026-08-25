@@ -420,16 +420,16 @@
           <div
             :class="[
               'w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-4 sm:mb-6 rounded-full flex items-center justify-center shadow-lg',
-              result.success ? 'bg-gradient-to-br from-green-400 to-emerald-600 shadow-green-500/30' : 'bg-gradient-to-br from-red-400 to-rose-600 shadow-red-500/30'
+              result.success ? 'bg-gradient-to-br from-green-500 to-green-700 shadow-green-600/40' : 'bg-gradient-to-br from-red-400 to-rose-600 shadow-red-500/30'
             ]"
           >
             <svg
               v-if="result.success"
-              class="w-10 h-10 sm:w-12 sm:h-12 text-green-500"
+              class="w-10 h-10 sm:w-12 sm:h-12 text-white"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
-            >
+              stroke-width="3"
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
             </svg>
             <svg
@@ -446,7 +446,7 @@
           <h2
             :class="[
               'text-xl sm:text-2xl font-bold mb-2 whitespace-pre-line',
-              result.success ? 'text-green-600' : 'text-red-600'
+              result.success ? 'text-green-700' : 'text-red-600'
             ]"
           >
             {{ result.message }}

@@ -128,12 +128,7 @@
               <tbody class="divide-y divide-gray-100">
                 <tr v-for="record in records" :key="record.id" class="hover:bg-gray-50">
                   <td class="px-4 py-3">
-                    <div class="flex items-center gap-2">
-                      <div class="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
-                        <span class="text-blue-600 text-xs font-semibold">{{ record.employee_name?.charAt(0) }}</span>
-                      </div>
-                      <span class="font-medium text-gray-800 text-sm">{{ record.employee_name }}</span>
-                    </div>
+                    <span class="font-medium text-gray-800 text-sm">{{ record.employee_name }}</span>
                   </td>
                   <td class="px-4 py-3 text-sm text-gray-600">{{ record.employee_code }}</td>
                    <td class="px-4 py-3">
