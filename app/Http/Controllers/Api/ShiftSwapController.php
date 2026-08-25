@@ -163,7 +163,7 @@ class ShiftSwapController extends Controller
 
     public function myRequests(Request $request): JsonResponse
     {
-        $employee = $request->user()->employee;
+        $employee = $request->user();
         if (!$employee) {
             return response()->json(['success' => false, 'message' => 'Employee not found'], 404);
         }
@@ -199,7 +199,7 @@ class ShiftSwapController extends Controller
 
     public function availableEmployees(Request $request): JsonResponse
     {
-        $employee = $request->user()->employee;
+        $employee = $request->user();
         if (!$employee) {
             return response()->json(['success' => false, 'message' => 'Employee not found'], 404);
         }

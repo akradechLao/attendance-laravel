@@ -49,7 +49,7 @@ class AnnouncementController extends Controller
             'expires_at' => 'nullable|date|after:published_at',
         ]);
 
-        $employee = $request->user()->employee;
+        $employee = $request->user();
 
         $announcement = Announcement::create([
             'company_id' => $employee->company_id,

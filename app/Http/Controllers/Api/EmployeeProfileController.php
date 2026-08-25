@@ -10,7 +10,7 @@ class EmployeeProfileController extends Controller
 {
     public function show(Request $request): JsonResponse
     {
-        $employee = $request->user()->employee;
+        $employee = $request->user();
 
         if (!$employee) {
             return response()->json(['success' => false, 'message' => 'Employee not found'], 404);
@@ -48,7 +48,7 @@ class EmployeeProfileController extends Controller
 
     public function update(Request $request): JsonResponse
     {
-        $employee = $request->user()->employee;
+        $employee = $request->user();
 
         if (!$employee) {
             return response()->json(['success' => false, 'message' => 'Employee not found'], 404);
@@ -69,7 +69,7 @@ class EmployeeProfileController extends Controller
 
     public function uploadPhoto(Request $request): JsonResponse
     {
-        $employee = $request->user()->employee;
+        $employee = $request->user();
 
         if (!$employee) {
             return response()->json(['success' => false, 'message' => 'Employee not found'], 404);

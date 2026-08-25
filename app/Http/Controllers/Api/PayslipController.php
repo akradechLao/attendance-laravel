@@ -15,7 +15,7 @@ class PayslipController extends Controller
     // Employee: view my payslip
     public function myPayslip(Request $request): JsonResponse
     {
-        $employee = $request->user()->employee;
+        $employee = $request->user();
         if (!$employee) {
             return response()->json(['success' => false, 'message' => 'Employee not found'], 404);
         }
@@ -82,7 +82,7 @@ class PayslipController extends Controller
     // Employee: payslip history
     public function myHistory(Request $request): JsonResponse
     {
-        $employee = $request->user()->employee;
+        $employee = $request->user();
         if (!$employee) {
             return response()->json(['success' => false, 'message' => 'Employee not found'], 404);
         }
@@ -108,7 +108,7 @@ class PayslipController extends Controller
     // HR: list employees for payslip entry
     public function hrList(Request $request): JsonResponse
     {
-        $company = $request->user()->employee?->company_id;
+        $company = $request->user()?->company_id;
         if (!$company) {
             return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
         }

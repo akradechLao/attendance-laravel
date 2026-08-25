@@ -1,6 +1,17 @@
 <template>
-  <div class="p-4 space-y-6">
-    <h1 class="text-2xl font-bold text-[#0f172a]">ขอลา</h1>
+  <div class="min-h-screen bg-gray-50">
+    <header class="bg-white border-b border-gray-200 shadow-sm">
+      <div class="max-w-4xl mx-auto px-4 py-3 flex items-center gap-3">
+        <router-link to="/employee/menu" class="text-blue-500 active:text-blue-600">
+          <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+          </svg>
+        </router-link>
+        <h1 class="text-lg font-bold text-gray-800">ขอลา</h1>
+      </div>
+    </header>
+
+    <main class="max-w-4xl mx-auto px-4 py-6 space-y-6">
 
     <!-- Leave Balance -->
     <div class="bg-white rounded-xl shadow p-4">
@@ -86,6 +97,7 @@
 
     <div v-if="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-lg text-white text-sm"
          :class="toast.type==='success' ? 'bg-green-600' : 'bg-red-600'">{{ toast.message }}</div>
+    </main>
   </div>
 </template>
 

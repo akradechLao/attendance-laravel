@@ -35,7 +35,7 @@ class EmployeeHistoryController extends Controller
 
     public function myHistory(Request $request)
     {
-        $employee = $request->user()->employee;
+        $employee = $request->user();
         if (!$employee) {
             return response()->json(['success' => false, 'message' => 'Employee not found'], 404);
         }
