@@ -81,19 +81,6 @@
           </div>
         </router-link>
 
-        <!-- สแกนเข้า/ออกงาน -->
-        <router-link to="/employee" class="block group">
-          <div class="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-center">
-            <div class="w-12 h-12 sm:w-14 sm:h-14 mx-auto rounded-2xl bg-indigo-500 flex items-center justify-center mb-3 shadow-lg group-hover:scale-110 transition-transform">
-              <svg class="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
-              </svg>
-            </div>
-            <h2 class="font-bold text-gray-800 text-sm sm:text-base">สแกนเข้า/ออกงาน</h2>
-            <p class="text-gray-400 text-xs mt-1">เช็คอิน เช็คเอาท์</p>
-          </div>
-        </router-link>
-
         <!-- ประวัติเข้างาน -->
         <router-link to="/employee/history" class="block group">
           <div class="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-center">
@@ -115,8 +102,8 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
               </svg>
             </div>
-            <h2 class="font-bold text-gray-800 text-sm sm:text-base">สถิติของฉัน</h2>
-            <p class="text-gray-400 text-xs mt-1">สรุปเข้างาน</p>
+            <h2 class="font-bold text-gray-800 text-sm sm:text-base">ประวัติการเตือน</h2>
+            <p class="text-gray-400 text-xs mt-1">ดูประวัติสาย & เตือน</p>
           </div>
         </router-link>
 
@@ -207,19 +194,6 @@
             </div>
             <h2 class="font-bold text-gray-800 text-sm sm:text-base">ปฏิทินวันหยุด</h2>
             <p class="text-gray-400 text-xs mt-1">วันหยุด & สิทธิลา</p>
-          </div>
-        </router-link>
-
-        <!-- สรุปการลาทีม -->
-        <router-link to="/employee/team-leave" class="block group">
-          <div class="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-center">
-            <div class="w-12 h-12 sm:w-14 sm:h-14 mx-auto rounded-2xl bg-indigo-500 flex items-center justify-center mb-3 shadow-lg group-hover:scale-110 transition-transform">
-              <svg class="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-            </div>
-            <h2 class="font-bold text-gray-800 text-sm sm:text-base">สรุปการลาทีม</h2>
-            <p class="text-gray-400 text-xs mt-1">ใครลาวันไหน</p>
           </div>
         </router-link>
 
