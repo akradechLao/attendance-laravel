@@ -159,26 +159,48 @@ class EmployeeRequestController extends Controller
     {
         try {
             $request->validate([
-                'date' => 'required|date',
+                'date' => 'required|date|after_or_equal:-30 days',
                 'reason' => 'nullable|string',
             ]);
 
             $employee = $request->user();
+            $date = Carbon::parse($request->date)->setTimezone('Asia/Bangkok');
+
+            if ($date->dayOfWeek !== Carbon::SATURDAY) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'WFH กำหนดได้เฉพาะวันเสาร์เท่านั้น',
+                ], 400);
+            }
 
             $existing = WfhRecord::where('emp_id', $employee->id)
-                ->where('date', $request->date)
+                ->whereYear('date', $date->year)
+                ->whereMonth('date', $date->month)
+                ->where('status', '!=', 'rejected')
                 ->first();
 
             if ($existing) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'วันนี้มีคำขอปฏิบัติงานนอกสถานที่แล้ว',
+                    'message' => 'คุณมีรายการ WFH ประจำเดือนนี้แล้ว',
+                ], 400);
+            }
+
+            $occupied = WfhRecord::where('date', $date->format('Y-m-d'))
+                ->whereIn('status', ['pending', 'approved'])
+                ->where('emp_id', '!=', $employee->id)
+                ->count();
+
+            if ($occupied > 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'วันนี้มีพนักงานอื่นใช้แล้ว กรุณาเลือกวันอื่น',
                 ], 400);
             }
 
             $wfh = WfhRecord::create([
                 'emp_id' => $employee->id,
-                'date' => $request->date,
+                'date' => $date->format('Y-m-d'),
                 'reason' => $request->reason,
                 'status' => 'pending',
             ]);
