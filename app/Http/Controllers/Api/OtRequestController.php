@@ -62,17 +62,7 @@ class OtRequestController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => [
-                    'id' => $otRequest->id,
-                    'employee_id' => $otRequest->employee_id,
-                    'date' => Carbon::parse($otRequest->date)->format('Y-m-d'),
-                    'start_time' => $otRequest->start_time,
-                    'end_time' => $otRequest->end_time,
-                    'reason' => $otRequest->reason,
-                    'status' => $otRequest->status,
-                    'created_at' => $otRequest->created_at ? Carbon::parse($otRequest->created_at)->setTimezone('Asia/Bangkok')->format('Y-m-d H:i') : null,
-                    'employee' => $otRequest->employee ? ['id' => $otRequest->employee->id, 'employee_code' => $otRequest->employee->employee_code, 'first_name' => $otRequest->employee->first_name, 'last_name' => $otRequest->employee->last_name] : null,
-                ],
+                'data' => $this->formatOt($otRequest),
                 'message' => 'OT request created successfully.',
             ], 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -250,12 +240,19 @@ class OtRequestController extends Controller
 
     private function formatOt(OtRequest $ot): array
     {
+        $start = $ot->start_time instanceof \Carbon\Carbon
+            ? $ot->start_time->setTimezone('Asia/Bangkok')->format('H:i')
+            : $ot->start_time;
+        $end = $ot->end_time instanceof \Carbon\Carbon
+            ? $ot->end_time->setTimezone('Asia/Bangkok')->format('H:i')
+            : $ot->end_time;
+
         return [
             'id' => $ot->id,
-            'employee_id' => $ot->employee_id,
+            'emp_id' => $ot->emp_id,
             'date' => Carbon::parse($ot->date)->format('Y-m-d'),
-            'start_time' => $ot->start_time,
-            'end_time' => $ot->end_time,
+            'start_time' => $start,
+            'end_time' => $end,
             'total_hours' => $ot->total_hours,
             'reason' => $ot->reason,
             'status' => $ot->status,
