@@ -12,6 +12,10 @@ class Kernel extends ConsoleKernel
         $schedule->command("leave:accumulate-vacation")
             ->yearlyOn(11, 30, "00:00")
             ->withoutOverlapping();
+
+        $schedule->command('attendance:archive', ['--years' => 2])
+            ->monthlyOn(1, '02:00')
+            ->withoutOverlapping();
     }
 
     protected function commands(): void
