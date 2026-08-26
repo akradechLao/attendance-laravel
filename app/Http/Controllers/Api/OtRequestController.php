@@ -16,8 +16,15 @@ class OtRequestController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            $otRequests = OtRequest::with('employee')
-                ->orderBy('created_at', 'desc')
+            $user = $request->user();
+            $query = OtRequest::with('employee');
+
+            $userRole = $user->role ?? 'employee';
+            if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
+                $query->where('emp_id', $user->id);
+            }
+
+            $otRequests = $query->orderBy('created_at', 'desc')
                 ->paginate($request->get('per_page', 15));
 
             return response()->json([

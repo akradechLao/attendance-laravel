@@ -35,7 +35,7 @@ class EmployeeHolidayController extends Controller
             ->orderBy('date')
             ->get()
             ->map(fn($h) => [
-                'date' => $h->date,
+                'date' => Carbon::parse($h->date)->format('Y-m-d'),
                 'name' => $h->name,
                 'type' => $h->type ?? 'company',
             ]);
@@ -50,10 +50,10 @@ class EmployeeHolidayController extends Controller
             ->with('leaveType:id,name,code')
             ->get()
             ->map(fn($l) => [
-                'start_date' => $l->start_date,
-                'end_date' => $l->end_date,
+                'start_date' => Carbon::parse($l->start_date)->format('Y-m-d'),
+                'end_date' => Carbon::parse($l->end_date)->format('Y-m-d'),
                 'type' => $l->leaveType?->name,
-                'days' => $l->total_days,
+                'days' => (int) $l->total_days,
             ]);
 
         return response()->json([
