@@ -235,7 +235,8 @@ class EmployeeRequestController extends Controller
 
             $employee = $request->user();
 
-            if (!Hash::check($request->current_password, $employee->password)) {
+            $validHash = str_starts_with((string) $employee->password, '$2y$');
+            if (!$validHash || !Hash::check($request->current_password, $employee->password)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'รหัสผ่านเดิมไม่ถูกต้อง',
