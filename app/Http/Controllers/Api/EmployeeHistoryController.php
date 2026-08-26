@@ -74,9 +74,9 @@ class EmployeeHistoryController extends Controller
                 ->map(fn($l) => [
                     'id' => $l->id,
                     'leave_type' => $l->leaveType?->name,
-                    'start_date' => $l->start_date,
-                    'end_date' => $l->end_date,
-                    'total_days' => $l->total_days,
+                    'start_date' => \Carbon\Carbon::parse($l->start_date)->format('Y-m-d'),
+                    'end_date' => \Carbon\Carbon::parse($l->end_date)->format('Y-m-d'),
+                    'total_days' => (int) $l->total_days,
                     'reason' => $l->reason,
                     'status' => $l->status,
                 ]);
