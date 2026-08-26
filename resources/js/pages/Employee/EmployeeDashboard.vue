@@ -14,6 +14,20 @@
     <main class="max-w-4xl mx-auto px-4 py-6">
       <div v-if="loading" class="text-center py-12">
         <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+        <p class="text-gray-400 text-sm mt-3">กำลังโหลดข้อมูล...</p>
+      </div>
+
+      <div v-else-if="error" class="text-center py-12">
+        <div class="w-16 h-16 mx-auto rounded-full bg-red-100 flex items-center justify-center mb-3">
+          <svg class="w-8 h-8 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+          </svg>
+        </div>
+        <p class="text-red-500 text-sm font-medium">ไม่สามารถโหลดข้อมูลได้</p>
+        <p class="text-gray-400 text-xs mt-1">{{ error }}</p>
+        <button @click="fetchData" class="mt-3 bg-blue-500 text-white px-6 py-2 rounded-xl text-sm font-bold hover:bg-blue-600">
+          ลองใหม่
+        </button>
       </div>
 
       <div v-else class="space-y-4">
@@ -193,6 +207,7 @@ import axios from 'axios'
 const thMonths = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม']
 
 const loading = ref(true)
+const error = ref(null)
 const data = ref({
   today: { check_in: null, check_out: null, status: null, late_minutes: null, is_checked_in: false, is_checked_out: false, schedule_start: null, schedule_end: null, worked_hours: null },
   month: { working_days: 0, on_time: 0, late: 0, absent: 0, leave_days: 0, total_late_minutes: 0, ot_hours: 0 },
@@ -207,23 +222,33 @@ const todayThai = computed(() => {
 
 function formatDateThai(dateStr) {
   if (!dateStr) return ''
-  const d = new Date(dateStr)
-  const day = d.getDate()
-  const month = thMonths[d.getMonth()]
-  const year = d.getFullYear() + 543
+  const parts = String(dateStr).split('T')[0].split('-')
+  const year = parseInt(parts[0]) + 543
+  const month = thMonths[parseInt(parts[1]) - 1]
+  const day = parseInt(parts[2])
   return `${day} ${month} ${year}`
 }
 
-onMounted(async () => {
+async function fetchData() {
+  loading.value = true
+  error.value = null
   try {
     const res = await axios.get('/api/employee/dashboard')
     if (res.data.success) {
       data.value = res.data.data
+    } else {
+      error.value = res.data.message || 'ไม่สามารถโหลดข้อมูลได้'
     }
   } catch (e) {
-    console.error(e)
+    if (e.response?.status === 401) {
+      error.value = 'กรุณาเข้าสู่ระบบใหม่'
+    } else {
+      error.value = e.response?.data?.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่'
+    }
   } finally {
     loading.value = false
   }
-})
+}
+
+onMounted(() => fetchData())
 </script>
