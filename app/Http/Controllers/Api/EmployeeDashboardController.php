@@ -128,15 +128,15 @@ class EmployeeDashboardController extends Controller
                 'success' => true,
                 'data' => [
                     'today' => $todayLog ? [
-                        'date' => $todayLog->date,
-                        'check_in' => $todayLog->check_in,
-                        'check_out' => $todayLog->check_out,
+                        'date' => Carbon::parse($todayLog->date)->format('Y-m-d'),
+                        'check_in' => $todayLog->check_in ? Carbon::parse($todayLog->check_in)->setTimezone('Asia/Bangkok')->format('H:i') : null,
+                        'check_out' => $todayLog->check_out ? Carbon::parse($todayLog->check_out)->setTimezone('Asia/Bangkok')->format('H:i') : null,
                         'status' => $todayLog->check_in_status,
-                        'late_minutes' => $todayLog->late_minutes,
+                        'late_minutes' => (int) ($todayLog->late_minutes ?? 0),
                         'is_checked_in' => true,
                         'is_checked_out' => !is_null($todayLog->check_out),
-                        'schedule_start' => $scheduleStart,
-                        'schedule_end' => $scheduleEnd,
+                        'schedule_start' => $scheduleStart ? Carbon::parse($scheduleStart)->format('H:i') : null,
+                        'schedule_end' => $scheduleEnd ? Carbon::parse($scheduleEnd)->format('H:i') : null,
                         'worked_hours' => $workedHours,
                     ] : [
                         'date' => $today->format('Y-m-d'),
@@ -146,8 +146,8 @@ class EmployeeDashboardController extends Controller
                         'late_minutes' => null,
                         'is_checked_in' => false,
                         'is_checked_out' => false,
-                        'schedule_start' => $scheduleStart,
-                        'schedule_end' => $scheduleEnd,
+                        'schedule_start' => $scheduleStart ? Carbon::parse($scheduleStart)->format('H:i') : null,
+                        'schedule_end' => $scheduleEnd ? Carbon::parse($scheduleEnd)->format('H:i') : null,
                         'worked_hours' => null,
                     ],
                     'month' => [

@@ -37,13 +37,13 @@ class EmployeeWarningController extends Controller
             ->whereBetween('date', [$startOfMonth->format('Y-m-d'), $endOfMonth->format('Y-m-d')])
             ->get()
             ->map(fn($fl) => [
-                'date' => $fl->date,
-                'late_minutes' => $fl->late_minutes,
+                'date' => Carbon::parse($fl->date)->setTimezone('Asia/Bangkok')->format('Y-m-d'),
+                'late_minutes' => (int) ($fl->late_minutes ?? 0),
                 'status' => $fl->status,
                 'note' => $fl->note,
             ]);
 
-        $totalLateMinutes = AttendanceLog::where('emp_id', $employee->id)
+        $totalLateMinutes = (int) AttendanceLog::where('emp_id', $employee->id)
             ->whereBetween('date', [$startOfMonth->format('Y-m-d'), $endOfMonth->format('Y-m-d')])
             ->where('check_in_status', 'late')
             ->sum('late_minutes');
