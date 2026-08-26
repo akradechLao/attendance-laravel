@@ -63,9 +63,9 @@ class LeaveService
         }
 
         $vacationRemaining = 0;
-        if ($leaveType->code === "annual" && $balance->vacation_accumulated > 0) {
+        if ($leaveType->code === "annual" && isset($balance->vacation_accumulated) && $balance->vacation_accumulated > 0) {
             $now = Carbon::now();
-            if ($balance->vacation_expiry_date && $now->lte($balance->vacation_expiry_date)) {
+            if (!empty($balance->vacation_expiry_date) && $now->lte($balance->vacation_expiry_date)) {
                 $vacationRemaining = (float) $balance->vacation_accumulated;
             }
         }
@@ -75,15 +75,13 @@ class LeaveService
             "used" => (float) $balance->used_days,
             "remaining" => (float) ($balance->entitled_days + $balance->carried_forward - $balance->used_days),
             "vacation_accumulated" => $vacationRemaining,
-            "vacation_expiry_date" => $balance->vacation_expiry_date?->format("Y-m-d"),
+            "vacation_expiry_date" => isset($balance->vacation_expiry_date) ? ($balance->vacation_expiry_date?->format("Y-m-d")) : null,
         ];
     }
 
     public function getAllBalances(Employee $employee, int $year): array
     {
-        $leaveTypes = LeaveType::where("company_id", $employee->company_id)
-            ->where("is_active", true)
-            ->get();
+        $leaveTypes = LeaveType::where("company_id", $employee->company_id)->get();
 
         $balances = [];
         foreach ($leaveTypes as $type) {
@@ -118,7 +116,7 @@ class LeaveService
 
         $balance->increment("used_days", $days - $toDeductFromVacation);
 
-        if ($toDeductFromVacation > 0 && $leaveType->code === "annual") {
+        if ($toDeductFromVacation > 0 && $leaveType->code === "annual" && isset($balance->vacation_accumulated)) {
             $balance->decrement("vacation_accumulated", $toDeductFromVacation);
         }
     }

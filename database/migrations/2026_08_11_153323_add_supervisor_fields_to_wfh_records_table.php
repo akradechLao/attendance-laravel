@@ -12,7 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('wfh_records', function (Blueprint $table) {
-            //
+            $table->foreignId('supervisor_id')->nullable()->after('status')->constrained('admin_users')->nullOnDelete();
+            $table->string('supervisor_note')->nullable()->after('supervisor_id');
+            $table->date('approved_date')->nullable()->after('supervisor_note');
         });
     }
 
@@ -22,7 +24,8 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('wfh_records', function (Blueprint $table) {
-            //
+            $table->dropForeign(['supervisor_id']);
+            $table->dropColumn(['supervisor_id', 'supervisor_note', 'approved_date']);
         });
     }
 };
