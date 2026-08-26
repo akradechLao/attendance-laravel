@@ -14,10 +14,18 @@ class WfhRequestController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
+        $user = $request->user();
         $query = WfhRecord::with(['employee', 'supervisor']);
 
+        $userRole = $user->role ?? 'employee';
+        if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
+            $query->where('emp_id', $user->id);
+        } elseif ($request->has('emp_id') && $request->emp_id) {
+            $query->where('emp_id', $request->emp_id);
+        }
+
         if ($request->has('month')) {
-            $month = Carbon::parse($request->month);
+            $month = Carbon::parse($request->month)->setTimezone('Asia/Bangkok');
             $query->whereYear('date', $month->year)
                   ->whereMonth('date', $month->month);
         }
@@ -26,11 +34,19 @@ class WfhRequestController extends Controller
             $query->where('status', $request->status);
         }
 
-        if ($request->has('emp_id') && $request->emp_id) {
-            $query->where('emp_id', $request->emp_id);
-        }
-
-        $records = $query->orderBy('date', 'desc')->get();
+        $records = $query->orderBy('date', 'desc')->get()
+            ->map(fn($r) => [
+                'id' => $r->id,
+                'emp_id' => $r->emp_id,
+                'date' => Carbon::parse($r->date)->format('Y-m-d'),
+                'approved_date' => $r->approved_date ? Carbon::parse($r->approved_date)->format('Y-m-d') : null,
+                'reason' => $r->reason,
+                'supervisor_note' => $r->supervisor_note,
+                'status' => $r->status,
+                'created_at' => $r->created_at ? Carbon::parse($r->created_at)->setTimezone('Asia/Bangkok')->format('Y-m-d H:i') : null,
+                'employee' => $r->employee ? ['id' => $r->employee->id, 'employee_code' => $r->employee->employee_code, 'first_name' => $r->employee->first_name, 'last_name' => $r->employee->last_name] : null,
+                'supervisor' => $r->supervisor ? ['id' => $r->supervisor->id, 'first_name' => $r->supervisor->first_name, 'last_name' => $r->supervisor->last_name] : null,
+            ]);
 
         return response()->json([
             'success' => true,
@@ -40,8 +56,8 @@ class WfhRequestController extends Controller
 
     public function availableSaturdays(Request $request): JsonResponse
     {
-        $month = $request->get('month', Carbon::now()->format('Y-m'));
-        $start = Carbon::parse($month)->startOfMonth();
+        $month = $request->get('month', now()->setTimezone('Asia/Bangkok')->format('Y-m'));
+        $start = Carbon::parse($month)->setTimezone('Asia/Bangkok')->startOfMonth();
         $end = $start->copy()->endOfMonth();
 
         $availableDays = [];
@@ -78,7 +94,7 @@ class WfhRequestController extends Controller
         ]);
 
         $employee = $request->user();
-        $date = Carbon::parse($request->date);
+        $date = Carbon::parse($request->date)->setTimezone('Asia/Bangkok');
 
         // Allow Saturdays only
         if ($date->dayOfWeek !== Carbon::SATURDAY) {
@@ -123,7 +139,15 @@ class WfhRequestController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $record->load('employee'),
+            'data' => [
+                'id' => $record->id,
+                'emp_id' => $record->emp_id,
+                'date' => Carbon::parse($record->date)->format('Y-m-d'),
+                'reason' => $record->reason,
+                'status' => $record->status,
+                'created_at' => $record->created_at ? Carbon::parse($record->created_at)->setTimezone('Asia/Bangkok')->format('Y-m-d H:i') : null,
+                'employee' => $record->employee ? ['id' => $record->employee->id, 'employee_code' => $record->employee->employee_code, 'first_name' => $record->employee->first_name, 'last_name' => $record->employee->last_name] : null,
+            ],
             'message' => 'ส่งคำขอ WFH สำเร็จ รอหัวหน้าอนุมัติ',
         ]);
     }
@@ -173,7 +197,17 @@ class WfhRequestController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $record->load(['employee', 'supervisor']),
+            'data' => [
+                'id' => $record->id,
+                'emp_id' => $record->emp_id,
+                'date' => Carbon::parse($record->date)->format('Y-m-d'),
+                'approved_date' => $record->approved_date ? Carbon::parse($record->approved_date)->format('Y-m-d') : null,
+                'reason' => $record->reason,
+                'supervisor_note' => $record->supervisor_note,
+                'status' => $record->status,
+                'employee' => $record->employee ? ['id' => $record->employee->id, 'employee_code' => $record->employee->employee_code, 'first_name' => $record->employee->first_name, 'last_name' => $record->employee->last_name] : null,
+                'supervisor' => $record->supervisor ? ['id' => $record->supervisor->id, 'first_name' => $record->supervisor->first_name, 'last_name' => $record->supervisor->last_name] : null,
+            ],
             'message' => 'อนุมัติ WFH สำเร็จ',
         ]);
     }
@@ -206,7 +240,16 @@ class WfhRequestController extends Controller
 
     public function cancel(Request $request, $id): JsonResponse
     {
+        $user = $request->user();
         $record = WfhRecord::findOrFail($id);
+
+        $userRole = $user->role ?? 'employee';
+        if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
+            if ($record->emp_id !== $user->id) {
+                return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
+            }
+        }
+
         $record->delete();
 
         return response()->json([
@@ -218,16 +261,29 @@ class WfhRequestController extends Controller
     public function myRequests(Request $request): JsonResponse
     {
         $employee = $request->user();
-        $month = $request->get('month', Carbon::now()->format('Y-m'));
+        $month = $request->get('month', now()->setTimezone('Asia/Bangkok')->format('Y-m'));
 
         $quota = $employee->wfh_quota ?? 1;
 
+        $monthDate = Carbon::parse($month)->setTimezone('Asia/Bangkok');
+
         $records = WfhRecord::where('emp_id', $employee->id)
-            ->whereYear('date', Carbon::parse($month)->year)
-            ->whereMonth('date', Carbon::parse($month)->month)
+            ->whereYear('date', $monthDate->year)
+            ->whereMonth('date', $monthDate->month)
             ->with('supervisor')
             ->orderBy('date', 'desc')
-            ->get();
+            ->get()
+            ->map(fn($r) => [
+                'id' => $r->id,
+                'emp_id' => $r->emp_id,
+                'date' => Carbon::parse($r->date)->format('Y-m-d'),
+                'approved_date' => $r->approved_date ? Carbon::parse($r->approved_date)->format('Y-m-d') : null,
+                'reason' => $r->reason,
+                'supervisor_note' => $r->supervisor_note,
+                'status' => $r->status,
+                'created_at' => $r->created_at ? Carbon::parse($r->created_at)->setTimezone('Asia/Bangkok')->format('Y-m-d H:i') : null,
+                'supervisor' => $r->supervisor ? ['id' => $r->supervisor->id, 'first_name' => $r->supervisor->first_name, 'last_name' => $r->supervisor->last_name] : null,
+            ]);
 
         $used = $records->where('status', 'approved')->count();
 
@@ -248,19 +304,32 @@ class WfhRequestController extends Controller
             return response()->json(['success' => false, 'message' => 'Employee not found'], 404);
         }
 
-        $month = $request->get('month', Carbon::now()->format('Y-m'));
+        $month = $request->get('month', now()->setTimezone('Asia/Bangkok')->format('Y-m'));
         $employeeIds = $employee->getAllSubordinateIds();
 
         if (empty($employeeIds)) {
             return response()->json(['success' => true, 'data' => []]);
         }
 
+        $monthDate = Carbon::parse($month)->setTimezone('Asia/Bangkok');
+
         $records = WfhRecord::whereIn('emp_id', $employeeIds)
-            ->whereYear('date', Carbon::parse($month)->year)
-            ->whereMonth('date', Carbon::parse($month)->month)
+            ->whereYear('date', $monthDate->year)
+            ->whereMonth('date', $monthDate->month)
             ->with('employee')
             ->orderBy('date', 'desc')
-            ->get();
+            ->get()
+            ->map(fn($r) => [
+                'id' => $r->id,
+                'emp_id' => $r->emp_id,
+                'date' => Carbon::parse($r->date)->format('Y-m-d'),
+                'approved_date' => $r->approved_date ? Carbon::parse($r->approved_date)->format('Y-m-d') : null,
+                'reason' => $r->reason,
+                'supervisor_note' => $r->supervisor_note,
+                'status' => $r->status,
+                'created_at' => $r->created_at ? Carbon::parse($r->created_at)->setTimezone('Asia/Bangkok')->format('Y-m-d H:i') : null,
+                'employee' => $r->employee ? ['id' => $r->employee->id, 'employee_code' => $r->employee->employee_code, 'first_name' => $r->employee->first_name, 'last_name' => $r->employee->last_name] : null,
+            ]);
 
         return response()->json([
             'success' => true,

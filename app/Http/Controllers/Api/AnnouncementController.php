@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Announcement;
+use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -30,7 +31,17 @@ class AnnouncementController extends Controller
             ->orderByDesc('priority')
             ->orderByDesc('created_at');
 
-        $announcements = $query->limit(20)->get();
+        $announcements = $query->limit(20)->get()
+            ->map(fn($a) => [
+                'id' => $a->id,
+                'title' => $a->title,
+                'body' => $a->body,
+                'priority' => $a->priority,
+                'is_active' => $a->is_active,
+                'published_at' => $a->published_at ? Carbon::parse($a->published_at)->setTimezone('Asia/Bangkok')->format('Y-m-d H:i') : null,
+                'expires_at' => $a->expires_at ? Carbon::parse($a->expires_at)->setTimezone('Asia/Bangkok')->format('Y-m-d H:i') : null,
+                'created_at' => $a->created_at ? Carbon::parse($a->created_at)->setTimezone('Asia/Bangkok')->format('Y-m-d H:i') : null,
+            ]);
 
         return response()->json([
             'success' => true,

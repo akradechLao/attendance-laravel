@@ -27,7 +27,7 @@ class EmployeeHolidayController extends Controller
             return response()->json(['success' => false, 'message' => 'Employee not found'], 404);
         }
 
-        $year = (int) $request->get('year', Carbon::now()->year);
+        $year = (int) $request->get('year', now()->setTimezone('Asia/Bangkok')->year);
 
         // Company holidays
         $holidays = CompanyHoliday::where('company_id', $employee->company_id)

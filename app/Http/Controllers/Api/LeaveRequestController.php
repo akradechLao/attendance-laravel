@@ -28,7 +28,7 @@ class LeaveRequestController extends Controller
             return response()->json(['success' => false, 'message' => 'No employee found'], 404);
         }
 
-        $year = $request->get('year', Carbon::now()->year);
+        $year = $request->get('year', now()->setTimezone('Asia/Bangkok')->year);
         $balances = $this->leaveService->getAllBalances($employee, $year);
 
         return response()->json(['success' => true, 'data' => $balances]);
@@ -46,8 +46,8 @@ class LeaveRequestController extends Controller
         $employee = $request->user();
         $validated['emp_id'] = $employee->id;
         $leaveType = LeaveType::find($validated['leave_type_id']);
-        $start = Carbon::parse($validated['start_date']);
-        $end = Carbon::parse($validated['end_date']);
+        $start = Carbon::parse($validated['start_date'])->setTimezone('Asia/Bangkok');
+        $end = Carbon::parse($validated['end_date'])->setTimezone('Asia/Bangkok');
         $totalDays = $start->diffInDays($end) + 1;
 
         $year = $start->year;
@@ -66,9 +66,23 @@ class LeaveRequestController extends Controller
 
         $leave = LeaveRequest::create($validated);
 
+        $leave->load(['employee', 'leaveType']);
+
         return response()->json([
             'success' => true,
-            'data' => $leave->load(['employee', 'leaveType']),
+            'data' => [
+                'id' => $leave->id,
+                'emp_id' => $leave->emp_id,
+                'leave_type_id' => $leave->leave_type_id,
+                'start_date' => Carbon::parse($leave->start_date)->format('Y-m-d'),
+                'end_date' => Carbon::parse($leave->end_date)->format('Y-m-d'),
+                'total_days' => (int) $leave->total_days,
+                'reason' => $leave->reason,
+                'status' => $leave->status,
+                'created_at' => $leave->created_at ? Carbon::parse($leave->created_at)->setTimezone('Asia/Bangkok')->format('Y-m-d H:i') : null,
+                'employee' => $leave->employee ? ['id' => $leave->employee->id, 'employee_code' => $leave->employee->employee_code, 'first_name' => $leave->employee->first_name, 'last_name' => $leave->employee->last_name] : null,
+                'leave_type' => $leave->leaveType ? ['id' => $leave->leaveType->id, 'name' => $leave->leaveType->name, 'code' => $leave->leaveType->code] : null,
+            ],
             'message' => 'ส่งคำขอลาสำเร็จ',
         ], 201);
     }
@@ -91,7 +105,7 @@ class LeaveRequestController extends Controller
         }
         $employee = Employee::find($leave->emp_id);
         $leaveType = LeaveType::find($leave->leave_type_id);
-        $year = Carbon::parse($leave->start_date)->year;
+        $year = Carbon::parse($leave->start_date)->setTimezone('Asia/Bangkok')->year;
 
         $this->leaveService->deductLeave($employee, $leaveType, $leave->total_days, $year);
 
@@ -101,7 +115,22 @@ class LeaveRequestController extends Controller
             'supervisor_note' => $request->get('supervisor_note', ''),
         ]);
 
-        return response()->json(['success' => true, 'data' => $leave, 'message' => 'อนุมัติลาสำเร็จ']);
+        $leave->load(['employee', 'leaveType']);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => $leave->id,
+                'emp_id' => $leave->emp_id,
+                'start_date' => Carbon::parse($leave->start_date)->format('Y-m-d'),
+                'end_date' => Carbon::parse($leave->end_date)->format('Y-m-d'),
+                'total_days' => (int) $leave->total_days,
+                'status' => $leave->status,
+                'employee' => $leave->employee ? ['id' => $leave->employee->id, 'employee_code' => $leave->employee->employee_code, 'first_name' => $leave->employee->first_name, 'last_name' => $leave->employee->last_name] : null,
+                'leave_type' => $leave->leaveType ? ['id' => $leave->leaveType->id, 'name' => $leave->leaveType->name] : null,
+            ],
+            'message' => 'อนุมัติลาสำเร็จ',
+        ]);
     }
 
     public function reject(Request $request, $id): JsonResponse
@@ -123,7 +152,22 @@ class LeaveRequestController extends Controller
             'supervisor_note' => $request->get('supervisor_note', ''),
         ]);
 
-        return response()->json(['success' => true, 'data' => $leave, 'message' => 'ปฏิเสธคำขอลา']);
+        $leave->load(['employee', 'leaveType']);
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'id' => $leave->id,
+                'emp_id' => $leave->emp_id,
+                'start_date' => Carbon::parse($leave->start_date)->format('Y-m-d'),
+                'end_date' => Carbon::parse($leave->end_date)->format('Y-m-d'),
+                'total_days' => (int) $leave->total_days,
+                'status' => $leave->status,
+                'employee' => $leave->employee ? ['id' => $leave->employee->id, 'employee_code' => $leave->employee->employee_code, 'first_name' => $leave->employee->first_name, 'last_name' => $leave->employee->last_name] : null,
+                'leave_type' => $leave->leaveType ? ['id' => $leave->leaveType->id, 'name' => $leave->leaveType->name] : null,
+            ],
+            'message' => 'ปฏิเสธคำขอลา',
+        ]);
     }
 
     public function myRequests(Request $request): JsonResponse
@@ -132,7 +176,20 @@ class LeaveRequestController extends Controller
         $leaves = LeaveRequest::where('emp_id', $employee->id)
             ->with('leaveType')
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->get()
+            ->map(fn($l) => [
+                'id' => $l->id,
+                'emp_id' => $l->emp_id,
+                'leave_type_id' => $l->leave_type_id,
+                'start_date' => Carbon::parse($l->start_date)->format('Y-m-d'),
+                'end_date' => Carbon::parse($l->end_date)->format('Y-m-d'),
+                'total_days' => (int) $l->total_days,
+                'reason' => $l->reason,
+                'status' => $l->status,
+                'supervisor_note' => $l->supervisor_note,
+                'created_at' => $l->created_at ? Carbon::parse($l->created_at)->setTimezone('Asia/Bangkok')->format('Y-m-d H:i') : null,
+                'leave_type' => $l->leaveType ? ['id' => $l->leaveType->id, 'name' => $l->leaveType->name, 'code' => $l->leaveType->code] : null,
+            ]);
 
         return response()->json(['success' => true, 'data' => $leaves]);
     }
@@ -154,7 +211,18 @@ class LeaveRequestController extends Controller
         $leaves = LeaveRequest::whereIn('emp_id', $employeeIds)
             ->with(['employee', 'leaveType'])
             ->orderBy('created_at', 'desc')
-            ->get();
+            ->get()
+            ->map(fn($l) => [
+                'id' => $l->id,
+                'emp_id' => $l->emp_id,
+                'start_date' => Carbon::parse($l->start_date)->format('Y-m-d'),
+                'end_date' => Carbon::parse($l->end_date)->format('Y-m-d'),
+                'total_days' => (int) $l->total_days,
+                'status' => $l->status,
+                'created_at' => $l->created_at ? Carbon::parse($l->created_at)->setTimezone('Asia/Bangkok')->format('Y-m-d H:i') : null,
+                'employee' => $l->employee ? ['id' => $l->employee->id, 'employee_code' => $l->employee->employee_code, 'first_name' => $l->employee->first_name, 'last_name' => $l->employee->last_name] : null,
+                'leave_type' => $l->leaveType ? ['id' => $l->leaveType->id, 'name' => $l->leaveType->name] : null,
+            ]);
 
         return response()->json(['success' => true, 'data' => $leaves]);
     }

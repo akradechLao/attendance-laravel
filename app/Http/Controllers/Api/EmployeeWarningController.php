@@ -19,9 +19,9 @@ class EmployeeWarningController extends Controller
             return response()->json(['success' => false, 'message' => 'Employee not found'], 404);
         }
 
-        $month = $request->get('month', now()->format('Y-m'));
-        $startOfMonth = Carbon::parse($month)->startOfMonth();
-        $endOfMonth = Carbon::parse($month)->endOfMonth();
+        $month = $request->get('month', now()->setTimezone('Asia/Bangkok')->format('Y-m'));
+        $startOfMonth = Carbon::parse($month)->setTimezone('Asia/Bangkok')->startOfMonth();
+        $endOfMonth = Carbon::parse($month)->setTimezone('Asia/Bangkok')->endOfMonth();
 
         $lateCount = AttendanceLog::where('emp_id', $employee->id)
             ->whereBetween('date', [$startOfMonth->format('Y-m-d'), $endOfMonth->format('Y-m-d')])

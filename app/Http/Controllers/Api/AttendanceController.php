@@ -9,6 +9,7 @@ use App\Models\OfficeLocation;
 use App\Models\RemoteAssignment;
 use App\Services\AttendanceService;
 use App\Services\LocationService;
+use App\Constants\RoleConstants;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -36,7 +37,7 @@ class AttendanceController extends Controller
             ]);
 
             $employee = Employee::findOrFail($request->employee_id);
-            $today = Carbon::today();
+            $today = Carbon::now('Asia/Bangkok')->today();
             $scanType = $request->get('scan_type', 'office_scan');
 
             // Check if already checked in today
@@ -109,8 +110,8 @@ class AttendanceController extends Controller
             }
 
             // Calculate late/on_time
-            $officeStartTime = Carbon::today()->setTime(8, 30, 0);
-            $checkInTime = Carbon::now();
+            $officeStartTime = Carbon::now('Asia/Bangkok')->today()->setTime(8, 30, 0);
+            $checkInTime = Carbon::now('Asia/Bangkok');
             $isLate = $checkInTime->gt($officeStartTime);
             $status = $isLate ? 'late' : 'on_time';
 
@@ -159,7 +160,7 @@ class AttendanceController extends Controller
             ]);
 
             $employee = Employee::findOrFail($request->employee_id);
-            $today = Carbon::today();
+            $today = Carbon::now('Asia/Bangkok')->today();
 
             $log = AttendanceLog::where('emp_id', $employee->id)
                 ->whereDate('date', $today)
@@ -202,7 +203,7 @@ class AttendanceController extends Controller
                 }
             }
 
-            $updateData = ['check_out' => Carbon::now()->format('H:i:s')];
+            $updateData = ['check_out' => Carbon::now('Asia/Bangkok')->format('H:i:s')];
 
             if ($request->has('latitude') && $request->has('longitude')) {
                 $scanType = $request->get('scan_type', 'office_scan');
@@ -248,15 +249,28 @@ class AttendanceController extends Controller
     {
         try {
             $employee = $request->user();
-            $today = Carbon::today();
+            $today = Carbon::now('Asia/Bangkok')->today();
 
             $log = AttendanceLog::where('emp_id', $employee->id)
                 ->whereDate('date', $today)
                 ->first();
 
+            if (!$log) {
+                return response()->json(['success' => true, 'data' => null]);
+            }
+
             return response()->json([
                 'success' => true,
-                'data' => $log,
+                'data' => [
+                    'id' => $log->id,
+                    'emp_id' => $log->emp_id,
+                    'date' => Carbon::parse($log->date)->setTimezone('Asia/Bangkok')->format('Y-m-d'),
+                    'check_in' => $log->check_in ? Carbon::parse($log->check_in)->setTimezone('Asia/Bangkok')->format('H:i') : null,
+                    'check_out' => $log->check_out ? Carbon::parse($log->check_out)->setTimezone('Asia/Bangkok')->format('H:i') : null,
+                    'status' => $log->status,
+                    'late_minutes' => (int) ($log->late_minutes ?? 0),
+                    'scan_type' => $log->scan_type,
+                ],
             ]);
         } catch (\Exception $e) {
             return response()->json([
@@ -269,6 +283,13 @@ class AttendanceController extends Controller
     public function history(Request $request, $id): JsonResponse
     {
         try {
+            $user = $request->user();
+            $userRole = $user->role ?? 'employee';
+
+            if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
+                $id = $user->id;
+            }
+
             $query = AttendanceLog::where('emp_id', $id)->with('employee');
 
             if ($request->has('start_date') && $request->has('end_date')) {
@@ -280,6 +301,21 @@ class AttendanceController extends Controller
 
             $logs = $query->orderBy('date', 'desc')
                 ->paginate($request->get('per_page', 15));
+
+            $logs->getCollection()->transform(fn($log) => [
+                'id' => $log->id,
+                'emp_id' => $log->emp_id,
+                'date' => Carbon::parse($log->date)->setTimezone('Asia/Bangkok')->format('Y-m-d'),
+                'check_in' => $log->check_in ? Carbon::parse($log->check_in)->setTimezone('Asia/Bangkok')->format('H:i') : null,
+                'check_out' => $log->check_out ? Carbon::parse($log->check_out)->setTimezone('Asia/Bangkok')->format('H:i') : null,
+                'status' => $log->status,
+                'late_minutes' => (int) ($log->late_minutes ?? 0),
+                'early_minutes' => (int) ($log->early_minutes ?? 0),
+                'overtime_minutes' => (int) ($log->overtime_minutes ?? 0),
+                'schedule_start' => $log->schedule_start,
+                'schedule_end' => $log->schedule_end,
+                'employee' => $log->employee ? ['id' => $log->employee->id, 'employee_code' => $log->employee->employee_code, 'first_name' => $log->employee->first_name, 'last_name' => $log->employee->last_name] : null,
+            ]);
 
             return response()->json([
                 'success' => true,

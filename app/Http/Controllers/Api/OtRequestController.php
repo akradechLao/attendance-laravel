@@ -27,6 +27,8 @@ class OtRequestController extends Controller
             $otRequests = $query->orderBy('created_at', 'desc')
                 ->paginate($request->get('per_page', 15));
 
+            $otRequests->getCollection()->transform(fn($ot) => $this->formatOt($ot));
+
             return response()->json([
                 'success' => true,
                 'data' => $otRequests,
@@ -45,20 +47,32 @@ class OtRequestController extends Controller
     {
         try {
             $validated = $request->validate([
-                'employee_id' => 'required|exists:employees,id',
-                'date' => 'required|date',
+                'date' => 'required|date|after_or_equal:-30 days',
                 'start_time' => 'required|date_format:H:i',
                 'end_time' => 'required|date_format:H:i|after:start_time',
                 'reason' => 'nullable|string|max:1000',
             ]);
 
+            $user = $request->user();
+            $validated['employee_id'] = $user->id;
             $validated['status'] = 'pending_manager';
 
             $otRequest = OtRequest::create($validated);
+            $otRequest->load('employee');
 
             return response()->json([
                 'success' => true,
-                'data' => $otRequest->load('employee'),
+                'data' => [
+                    'id' => $otRequest->id,
+                    'employee_id' => $otRequest->employee_id,
+                    'date' => Carbon::parse($otRequest->date)->format('Y-m-d'),
+                    'start_time' => $otRequest->start_time,
+                    'end_time' => $otRequest->end_time,
+                    'reason' => $otRequest->reason,
+                    'status' => $otRequest->status,
+                    'created_at' => $otRequest->created_at ? Carbon::parse($otRequest->created_at)->setTimezone('Asia/Bangkok')->format('Y-m-d H:i') : null,
+                    'employee' => $otRequest->employee ? ['id' => $otRequest->employee->id, 'employee_code' => $otRequest->employee->employee_code, 'first_name' => $otRequest->employee->first_name, 'last_name' => $otRequest->employee->last_name] : null,
+                ],
                 'message' => 'OT request created successfully.',
             ], 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -105,9 +119,11 @@ class OtRequestController extends Controller
                 'manager_approved_at' => now(),
             ]);
 
+            $otRequest->load('employee');
+
             return response()->json([
                 'success' => true,
-                'data' => $otRequest->load('employee'),
+                'data' => $this->formatOt($otRequest),
                 'message' => 'OT request approved by manager.',
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
@@ -146,9 +162,11 @@ class OtRequestController extends Controller
 
             $this->sendOtNotification($otRequest, 'approved');
 
+            $otRequest->load('employee');
+
             return response()->json([
                 'success' => true,
-                'data' => $otRequest->load('employee'),
+                'data' => $this->formatOt($otRequest),
                 'message' => 'OT request approved by HR.',
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
@@ -201,9 +219,11 @@ class OtRequestController extends Controller
 
             $this->sendOtNotification($otRequest, 'rejected');
 
+            $otRequest->load('employee');
+
             return response()->json([
                 'success' => true,
-                'data' => $otRequest->load('employee'),
+                'data' => $this->formatOt($otRequest),
                 'message' => 'OT request rejected successfully.',
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
@@ -226,6 +246,23 @@ class OtRequestController extends Controller
                 'message' => 'Failed to reject OT request: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    private function formatOt(OtRequest $ot): array
+    {
+        return [
+            'id' => $ot->id,
+            'employee_id' => $ot->employee_id,
+            'date' => Carbon::parse($ot->date)->format('Y-m-d'),
+            'start_time' => $ot->start_time,
+            'end_time' => $ot->end_time,
+            'total_hours' => $ot->total_hours,
+            'reason' => $ot->reason,
+            'status' => $ot->status,
+            'rejection_reason' => $ot->rejection_reason,
+            'created_at' => $ot->created_at ? Carbon::parse($ot->created_at)->setTimezone('Asia/Bangkok')->format('Y-m-d H:i') : null,
+            'employee' => $ot->employee ? ['id' => $ot->employee->id, 'employee_code' => $ot->employee->employee_code, 'first_name' => $ot->employee->first_name, 'last_name' => $ot->employee->last_name] : null,
+        ];
     }
 
     private function sendOtNotification(OtRequest $otRequest, string $action): void

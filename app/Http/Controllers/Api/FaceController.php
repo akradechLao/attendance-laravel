@@ -83,7 +83,7 @@ class FaceController extends Controller
                 ], 401);
             }
 
-            $now = Carbon::now();
+            $now = Carbon::now('Asia/Bangkok');
 
             if ($request->type === 'check_in') {
                 // หาวันที่เริ่มกะ (รองรับกะข้ามคืน)

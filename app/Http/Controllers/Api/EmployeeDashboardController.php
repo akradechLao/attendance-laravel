@@ -22,12 +22,12 @@ class EmployeeDashboardController extends Controller
                 return response()->json(['success' => false, 'message' => 'Employee not found'], 404);
             }
 
-            $today = Carbon::today();
+            $today = Carbon::now('Asia/Bangkok')->today();
 
             // Support optional month/year params for historical stats
             $statMonth = $request->input('month') ? (int) $request->input('month') : $today->month;
             $statYear = $request->input('year') ? (int) $request->input('year') : $today->year;
-            $statDate = Carbon::createFromDate($statYear, $statMonth, 1);
+            $statDate = Carbon::createFromDate($statYear, $statMonth, 1)->setTimezone('Asia/Bangkok');
             $monthStart = $statDate->copy()->startOfMonth();
             $monthEnd = $statDate->copy()->endOfMonth();
 
