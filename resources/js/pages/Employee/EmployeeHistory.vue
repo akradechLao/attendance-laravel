@@ -1,12 +1,24 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import store from '../../store'
 import api from '@/services/api'
+
+const thMonths = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม']
 
 const loading = ref(false)
 const attendanceHistory = ref([])
 const leaveHistory = ref([])
 const selectedTab = ref('attendance')
+const summary = ref(null)
+
+const now = new Date()
+const statMonth = ref(now.getMonth() + 1)
+const statYear = ref(now.getFullYear())
+
+const isCurrentMonth = computed(() => {
+  const c = new Date()
+  return statMonth.value === c.getMonth() + 1 && statYear.value === c.getFullYear()
+})
 
 onMounted(async () => {
   await loadHistory()
@@ -15,14 +27,44 @@ onMounted(async () => {
 const loadHistory = async () => {
   loading.value = true
   try {
-    const response = await api.get('/employee/attendance/history')
-    attendanceHistory.value = response.data.data?.attendance || []
-    leaveHistory.value = response.data.data?.leave || []
+    const response = await api.get('/employee/attendance/history', {
+      params: { month: statMonth.value, year: statYear.value }
+    })
+    if (response.data.data && Array.isArray(response.data.data)) {
+      attendanceHistory.value = response.data.data
+      leaveHistory.value = []
+      summary.value = null
+    } else {
+      attendanceHistory.value = response.data.data?.attendance || []
+      leaveHistory.value = response.data.data?.leave || []
+      summary.value = response.data.summary || null
+    }
   } catch (error) {
     console.error('Failed to load history:', error)
   } finally {
     loading.value = false
   }
+}
+
+function prevMonth() {
+  if (statMonth.value === 1) {
+    statMonth.value = 12
+    statYear.value--
+  } else {
+    statMonth.value--
+  }
+  loadHistory()
+}
+
+function nextMonth() {
+  if (isCurrentMonth.value) return
+  if (statMonth.value === 12) {
+    statMonth.value = 1
+    statYear.value++
+  } else {
+    statMonth.value++
+  }
+  loadHistory()
 }
 </script>
 
@@ -40,6 +82,41 @@ const loadHistory = async () => {
     </header>
 
     <main class="max-w-4xl mx-auto px-4 py-6 space-y-6">
+      <!-- Month Selector -->
+      <div class="bg-white rounded-2xl p-4 border border-gray-200 shadow-sm">
+        <div class="flex items-center justify-between">
+          <button @click="prevMonth" class="w-9 h-9 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
+            <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+          </button>
+          <p class="text-base font-bold text-gray-700">{{ thMonths[statMonth - 1] }} {{ statYear + 543 }}</p>
+          <button @click="nextMonth" :disabled="isCurrentMonth" :class="['w-9 h-9 rounded-full flex items-center justify-center transition-colors', isCurrentMonth ? 'bg-gray-50 text-gray-300 cursor-not-allowed' : 'bg-gray-100 hover:bg-gray-200 text-gray-600']">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Summary Stats (when viewing specific month) -->
+      <div v-if="summary" class="grid grid-cols-3 gap-3">
+        <div class="bg-white rounded-xl p-3 border border-gray-200 shadow-sm text-center">
+          <p class="text-2xl font-bold text-emerald-600">{{ summary.total_days }}</p>
+          <p class="text-[10px] text-emerald-600 font-medium mt-0.5">วันที่เข้างาน</p>
+        </div>
+        <div class="bg-white rounded-xl p-3 border border-gray-200 shadow-sm text-center">
+          <p class="text-2xl font-bold text-blue-600">{{ summary.on_time }}</p>
+          <p class="text-[10px] text-blue-600 font-medium mt-0.5">ตรงเวลา</p>
+        </div>
+        <div class="bg-white rounded-xl p-3 border border-gray-200 shadow-sm text-center">
+          <p class="text-2xl font-bold text-amber-600">{{ summary.late }}</p>
+          <p class="text-[10px] text-amber-600 font-medium mt-0.5">สาย</p>
+        </div>
+        <div v-if="summary.total_late_minutes > 0" class="col-span-3 text-center text-xs text-amber-600">
+          สายรวม {{ summary.total_late_minutes }} นาที
+        </div>
+        <div v-if="summary.leave_days > 0" class="col-span-3 bg-purple-50 rounded-xl p-2 text-center border border-purple-200">
+          <p class="text-sm font-bold text-purple-600">ลารวม {{ summary.leave_days }} วัน</p>
+        </div>
+      </div>
+
       <!-- Tabs -->
       <div class="border-b">
         <nav class="flex gap-6">

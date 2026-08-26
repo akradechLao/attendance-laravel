@@ -23,10 +23,15 @@ class EmployeeDashboardController extends Controller
             }
 
             $today = Carbon::today();
-            $monthStart = Carbon::now()->startOfMonth();
-            $monthEnd = Carbon::now()->endOfMonth();
 
-            // Today's attendance
+            // Support optional month/year params for historical stats
+            $statMonth = $request->input('month') ? (int) $request->input('month') : $today->month;
+            $statYear = $request->input('year') ? (int) $request->input('year') : $today->year;
+            $statDate = Carbon::createFromDate($statYear, $statMonth, 1);
+            $monthStart = $statDate->copy()->startOfMonth();
+            $monthEnd = $statDate->copy()->endOfMonth();
+
+            // Today's attendance (always current day)
             $todayLog = AttendanceLog::where('emp_id', $employee->id)
                 ->where('date', $today->format('Y-m-d'))
                 ->first();
@@ -41,7 +46,6 @@ class EmployeeDashboardController extends Controller
                     $scheduleEnd = $defaultShift->end_time;
                 }
             } catch (\Exception $e) {
-                // workShifts relationship may fail - try shift_schedules instead
             }
 
             if (!$scheduleStart && !$scheduleEnd) {
@@ -53,9 +57,7 @@ class EmployeeDashboardController extends Controller
                         $scheduleStart = $todaySchedule->start_time;
                         $scheduleEnd = $todaySchedule->end_time;
                     }
-                } catch (\Exception $e) {
-                    // shift_schedules query may fail
-                }
+                } catch (\Exception $e) {}
             }
 
             // Calculate worked hours
@@ -70,7 +72,7 @@ class EmployeeDashboardController extends Controller
                 $workedHours = round($in->diffInMinutes($now) / 60, 1);
             }
 
-            // Monthly stats
+            // Monthly stats for selected month
             $monthLogs = AttendanceLog::where('emp_id', $employee->id)
                 ->whereBetween('date', [$monthStart->format('Y-m-d'), $monthEnd->format('Y-m-d')])
                 ->get();
@@ -79,10 +81,17 @@ class EmployeeDashboardController extends Controller
             $lateDays = $monthLogs->where('check_in_status', 'late')->count();
             $onTimeDays = $monthLogs->where('check_in_status', 'on_time')->count();
             $totalLateMinutes = $monthLogs->sum('late_minutes');
-            $absentDays = $monthStart->diffInDays($today) + 1 - $workingDays;
-            if ($absentDays < 0) $absentDays = 0;
 
-            // Approved leave days this month
+            // Absent days: only meaningful for current month or past months up to today
+            $absentDays = 0;
+            if ($monthStart->lte($today)) {
+                $effectiveEnd = $monthEnd->lte($today) ? $monthEnd : $today;
+                $totalDaysInPeriod = $monthStart->diffInDays($effectiveEnd) + 1;
+                $absentDays = $totalDaysInPeriod - $workingDays;
+                if ($absentDays < 0) $absentDays = 0;
+            }
+
+            // Approved leave days in selected month
             $leaveDays = 0;
             try {
                 $leaveDays = LeaveRequest::where('emp_id', $employee->id)
@@ -92,17 +101,17 @@ class EmployeeDashboardController extends Controller
                     ->sum('total_days');
             } catch (\Exception $e) {}
 
-            // Approved OT hours this month
+            // Approved OT hours in selected month
             $otHours = 0;
             try {
                 $otHours = OtRequest::where('emp_id', $employee->id)
                     ->where('status', 'approved')
-                    ->whereMonth('ot_date', $today->month)
-                    ->whereYear('ot_date', $today->year)
+                    ->whereMonth('ot_date', $statMonth)
+                    ->whereYear('ot_date', $statYear)
                     ->sum('total_hours');
             } catch (\Exception $e) {}
 
-            // Pending requests count
+            // Pending requests (always current)
             $pendingLeave = 0;
             $pendingOt = 0;
             $pendingWfh = 0;
@@ -150,6 +159,8 @@ class EmployeeDashboardController extends Controller
                         'leave_days' => $leaveDays,
                         'total_late_minutes' => $totalLateMinutes,
                         'ot_hours' => $otHours,
+                        'month' => $statMonth,
+                        'year' => $statYear,
                     ],
                     'pending' => [
                         'leave' => $pendingLeave,

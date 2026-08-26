@@ -105,7 +105,18 @@
 
         <!-- Monthly Summary -->
         <div class="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
-          <h2 class="text-sm font-bold text-gray-500 uppercase tracking-wide mb-4">สรุปเดือนนี้</h2>
+          <div class="flex items-center justify-between mb-4">
+            <button @click="prevMonth" class="w-8 h-8 rounded-full bg-gray-100 hover:bg-gray-200 flex items-center justify-center transition-colors">
+              <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" /></svg>
+            </button>
+            <div class="text-center">
+              <h2 class="text-sm font-bold text-gray-500 uppercase tracking-wide">สรุปเดือน</h2>
+              <p class="text-base font-bold text-gray-700">{{ thMonths[statMonth - 1] }} {{ statYear + 543 }}</p>
+            </div>
+            <button @click="nextMonth" :disabled="isCurrentMonth" :class="['w-8 h-8 rounded-full flex items-center justify-center transition-colors', isCurrentMonth ? 'bg-gray-50 text-gray-300 cursor-not-allowed' : 'bg-gray-100 hover:bg-gray-200 text-gray-600']">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>
+            </button>
+          </div>
           <div class="grid grid-cols-3 gap-3">
             <div class="text-center p-3 bg-emerald-50 rounded-xl border border-emerald-200">
               <p class="text-2xl font-bold text-emerald-600">{{ data.month.working_days }}</p>
@@ -208,10 +219,18 @@ const thMonths = ['มกราคม','กุมภาพันธ์','มี�
 
 const loading = ref(true)
 const error = ref(null)
+const now = new Date()
+const statMonth = ref(now.getMonth() + 1)
+const statYear = ref(now.getFullYear())
 const data = ref({
   today: { check_in: null, check_out: null, status: null, late_minutes: null, is_checked_in: false, is_checked_out: false, schedule_start: null, schedule_end: null, worked_hours: null },
   month: { working_days: 0, on_time: 0, late: 0, absent: 0, leave_days: 0, total_late_minutes: 0, ot_hours: 0 },
   pending: { leave: 0, ot: 0, wfh: 0 },
+})
+
+const isCurrentMonth = computed(() => {
+  const c = new Date()
+  return statMonth.value === c.getMonth() + 1 && statYear.value === c.getFullYear()
 })
 
 const todayThai = computed(() => {
@@ -233,9 +252,13 @@ async function fetchData() {
   loading.value = true
   error.value = null
   try {
-    const res = await axios.get('/api/employee/dashboard')
+    const res = await axios.get('/api/employee/dashboard', {
+      params: { month: statMonth.value, year: statYear.value }
+    })
     if (res.data.success) {
       data.value = res.data.data
+      if (res.data.data.month?.month) statMonth.value = res.data.data.month.month
+      if (res.data.data.month?.year) statYear.value = res.data.data.month.year
     } else {
       error.value = res.data.message || 'ไม่สามารถโหลดข้อมูลได้'
     }
@@ -248,6 +271,27 @@ async function fetchData() {
   } finally {
     loading.value = false
   }
+}
+
+function prevMonth() {
+  if (statMonth.value === 1) {
+    statMonth.value = 12
+    statYear.value--
+  } else {
+    statMonth.value--
+  }
+  fetchData()
+}
+
+function nextMonth() {
+  if (isCurrentMonth.value) return
+  if (statMonth.value === 12) {
+    statMonth.value = 1
+    statYear.value++
+  } else {
+    statMonth.value++
+  }
+  fetchData()
 }
 
 onMounted(() => fetchData())
