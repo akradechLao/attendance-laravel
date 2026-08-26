@@ -55,22 +55,31 @@ class EmployeeHistoryController extends Controller
                 ->get()
                 ->map(fn($log) => [
                     'id' => $log->id,
-                    'date' => $log->date,
-                    'check_in' => $log->check_in,
-                    'check_out' => $log->check_out,
+                    'date' => \Carbon\Carbon::parse($log->date)->format('Y-m-d'),
+                    'check_in' => $log->check_in ? \Carbon\Carbon::parse($log->check_in)->setTimezone('Asia/Bangkok')->format('H:i') : null,
+                    'check_out' => $log->check_out ? \Carbon\Carbon::parse($log->check_out)->setTimezone('Asia/Bangkok')->format('H:i') : null,
                     'status' => $log->check_in_status,
-                    'late_minutes' => $log->late_minutes,
-                    'note' => $log->note,
+                    'late_minutes' => (int) ($log->late_minutes ?? 0),
+                    'note' => $log->adjustment_note,
                 ]);
 
-            $leave = LeaveRequest::with('leaveType')
+            $leave = LeaveRequest::with('leaveType:id,name,code')
                 ->where('emp_id', $employee->id)
                 ->where(function ($q) use ($monthStart, $monthEnd) {
                     $q->whereBetween('start_date', [$monthStart->format('Y-m-d'), $monthEnd->format('Y-m-d')])
                       ->orWhereBetween('end_date', [$monthStart->format('Y-m-d'), $monthEnd->format('Y-m-d')]);
                 })
                 ->orderBy('created_at', 'desc')
-                ->get();
+                ->get()
+                ->map(fn($l) => [
+                    'id' => $l->id,
+                    'leave_type' => $l->leaveType?->name,
+                    'start_date' => $l->start_date,
+                    'end_date' => $l->end_date,
+                    'total_days' => $l->total_days,
+                    'reason' => $l->reason,
+                    'status' => $l->status,
+                ]);
 
             // Summary stats for selected month
             $summary = [
@@ -100,12 +109,12 @@ class EmployeeHistoryController extends Controller
             ->get()
             ->map(fn($log) => [
                 'id' => $log->id,
-                'date' => $log->date,
-                'check_in' => $log->check_in,
-                'check_out' => $log->check_out,
+                'date' => \Carbon\Carbon::parse($log->date)->format('Y-m-d'),
+                'check_in' => $log->check_in ? \Carbon\Carbon::parse($log->check_in)->setTimezone('Asia/Bangkok')->format('H:i') : null,
+                'check_out' => $log->check_out ? \Carbon\Carbon::parse($log->check_out)->setTimezone('Asia/Bangkok')->format('H:i') : null,
                 'status' => $log->check_in_status,
-                'late_minutes' => $log->late_minutes,
-                'note' => $log->note,
+                'late_minutes' => (int) ($log->late_minutes ?? 0),
+                'note' => $log->adjustment_note,
             ]);
 
         return response()->json([

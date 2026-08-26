@@ -4,6 +4,7 @@ import store from '../../store'
 import api from '@/services/api'
 
 const thMonths = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม']
+const thMonthsShort = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.']
 
 const loading = ref(false)
 const attendanceHistory = ref([])
@@ -65,6 +66,20 @@ function nextMonth() {
     statMonth.value++
   }
   loadHistory()
+}
+
+function fmtDate(d) {
+  if (!d) return '-'
+  const parts = d.split('-')
+  if (parts.length < 3) return d
+  const day = parseInt(parts[2])
+  const month = parseInt(parts[1]) - 1
+  return `${day} ${thMonthsShort[month]} ${parseInt(parts[0]) + 543}`
+}
+
+function fmtTime(t) {
+  if (!t) return '-'
+  return t.substring(0, 5)
 }
 </script>
 
@@ -154,9 +169,9 @@ function nextMonth() {
           </thead>
           <tbody class="divide-y divide-gray-200">
             <tr v-for="record in attendanceHistory" :key="record.id">
-              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ record.date }}</td>
-              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ record.check_in || '-' }}</td>
-              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ record.check_out || '-' }}</td>
+              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ fmtDate(record.date) }}</td>
+              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ fmtTime(record.check_in) }}</td>
+              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ fmtTime(record.check_out) }}</td>
               <td class="px-4 py-3 whitespace-nowrap text-sm text-center">
                 <span v-if="record.late_minutes > 0" class="text-amber-600 font-medium">{{ record.late_minutes }} นาที</span>
                 <span v-else class="text-gray-300">-</span>
@@ -187,8 +202,8 @@ function nextMonth() {
           </thead>
           <tbody class="divide-y divide-gray-200">
             <tr v-for="record in leaveHistory" :key="record.id">
-              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ record.leaveType?.name }}</td>
-              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ record.start_date }} - {{ record.end_date }}</td>
+              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ record.leave_type || record.leaveType?.name }}</td>
+              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ fmtDate(record.start_date) }} - {{ fmtDate(record.end_date) }}</td>
               <td class="px-4 py-3 text-sm text-gray-900">{{ record.reason || '-' }}</td>
               <td class="px-4 py-3 whitespace-nowrap text-sm">
                 <span :class="record.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : record.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'" class="px-2 py-0.5 rounded-full text-xs font-medium">
