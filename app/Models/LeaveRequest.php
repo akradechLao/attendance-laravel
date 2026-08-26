@@ -14,8 +14,11 @@ class LeaveRequest extends Model
         'leave_type_id',
         'start_date',
         'end_date',
+        'total_days',
         'reason',
         'status',
+        'supervisor_id',
+        'supervisor_note',
     ];
 
     protected $casts = [
