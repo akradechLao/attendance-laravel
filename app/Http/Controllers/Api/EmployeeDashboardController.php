@@ -80,15 +80,14 @@ class EmployeeDashboardController extends Controller
             $workingDays = $monthLogs->count();
             $lateDays = $monthLogs->where('check_in_status', 'late')->count();
             $onTimeDays = $monthLogs->where('check_in_status', 'on_time')->count();
-            $totalLateMinutes = $monthLogs->sum('late_minutes');
+            $totalLateMinutes = (int) $monthLogs->sum('late_minutes');
 
             // Absent days: only meaningful for current month or past months up to today
             $absentDays = 0;
             if ($monthStart->lte($today)) {
                 $effectiveEnd = $monthEnd->lte($today) ? $monthEnd : $today;
-                $totalDaysInPeriod = $monthStart->diffInDays($effectiveEnd) + 1;
-                $absentDays = $totalDaysInPeriod - $workingDays;
-                if ($absentDays < 0) $absentDays = 0;
+                $totalDaysInPeriod = (int) $monthStart->diffInDays($effectiveEnd) + 1;
+                $absentDays = max(0, (int) ($totalDaysInPeriod - $workingDays));
             }
 
             // Approved leave days in selected month
