@@ -52,18 +52,18 @@
           <div v-for="day in ['จ','อ','พ','พฤ','ศ','ส','อา']" :key="day" class="text-center text-xs text-gray-500 font-medium py-1">{{ day }}</div>
           <div v-for="(blank, i) in startDayBlanks" :key="'b'+i"></div>
           <button v-for="d in daysInMonth" :key="d.date"
-                  @click="d.isSaturday && !d.occupied && selectDate(d.date)"
-                  :disabled="!d.isSaturday || d.occupied || remaining === 0"
+                  @click="d.isSaturday && !occupiedMap[d.date] && selectDate(d.date)"
+                  :disabled="!d.isSaturday || occupiedMap[d.date] || remaining === 0"
                   :class="[
                     'p-2 rounded-lg text-center transition text-xs',
                     !d.isSaturday ? 'bg-gray-50 text-gray-300 cursor-not-allowed' :
-                    d.occupied ? 'bg-gray-100 text-gray-400 cursor-not-allowed' :
+                    occupiedMap[d.date] ? 'bg-gray-100 text-gray-400 cursor-not-allowed' :
                     d.isPast ? 'bg-gray-50 text-gray-300 cursor-not-allowed' :
                     selectedDate === d.date ? 'bg-blue-600 text-white' :
                     'bg-green-50 text-green-700 hover:bg-green-100'
                   ]">
             <div class="font-bold">{{ d.day }}</div>
-            <div v-if="d.occupied" class="text-[9px]">ไม่ว่าง</div>
+            <div v-if="occupiedMap[d.date]" class="text-[9px]">ไม่ว่าง</div>
           </button>
         </div>
         <p class="text-xs text-gray-400 text-center">เลือกวันที่ต้องการ WFH (สีเขียว = ว่าง)</p>
@@ -126,17 +126,17 @@ import { ref, onMounted, computed } from 'vue'
 import api from '@/services/api'
 import state from '@/store'
 
-const selectedMonth = ref(new Date().toISOString().slice(0, 7))
+const selectedMonth = ref(new Date().getFullYear() + '-' + String(new Date().getMonth() + 1).padStart(2, '0'))
 const selectedDate = ref(null)
 const reason = ref('')
 const loading = ref(true)
 const submitting = ref(false)
-const saturdays = ref([])
 const myRequests = ref([])
 const used = ref(0)
 const remaining = ref(1)
 const total = ref(1)
 const toast = ref(null)
+const occupiedMap = ref({})
 
 const user = computed(() => state.user)
 const employeeId = computed(() => user.value?.id)
@@ -147,14 +147,14 @@ const daysInMonth = computed(() => {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
   return Array.from({ length: daysCount }, (_, i) => {
+    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(i + 1).padStart(2, '0')}`
     const d = new Date(year, month - 1, i + 1)
     return {
-      date: d.toISOString().slice(0, 10),
+      date: dateStr,
       day: i + 1,
       isSaturday: d.getDay() === 6,
       isWeekend: d.getDay() === 0 || d.getDay() === 6,
       isPast: d < today,
-      occupied: false,
     }
   })
 })
@@ -167,8 +167,9 @@ const startDayBlanks = computed(() => {
 
 const formatSelectedDate = computed(() => {
   if (!selectedDate.value) return ''
-  const d = new Date(selectedDate.value)
-  return d.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+  const [y, m, d] = selectedDate.value.split('-').map(Number)
+  const dt = new Date(y, m - 1, d)
+  return dt.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
 })
 
 const loadData = async () => {
@@ -176,21 +177,22 @@ const loadData = async () => {
   try {
     const [satRes, myRes] = await Promise.all([
       api.get('/wfh/available-saturdays', { params: { month: selectedMonth.value } }),
-      api.get('/wfh/my-requests', { params: { emp_id: employeeId.value, month: selectedMonth.value } })
+      api.get('/wfh/my-requests', { params: { month: selectedMonth.value } })
     ])
-    saturdays.value = satRes.data.data
-    myRequests.value = myRes.data.data
-    used.value = myRes.data.used
-    remaining.value = myRes.data.remaining
+    myRequests.value = myRes.data.data || []
+    used.value = myRes.data.used || 0
+    remaining.value = myRes.data.remaining ?? 1
     total.value = myRes.data.quota || 1
 
-    // Mark occupied days on calendar
-    for (const day of daysInMonth.value) {
-      const match = satRes.data.data.find(d => d.date === day.date)
-      if (match) day.occupied = match.occupied
+    const newMap = {}
+    if (satRes.data.data) {
+      for (const sat of satRes.data.data) {
+        newMap[sat.date] = sat.occupied
+      }
     }
+    occupiedMap.value = newMap
   } catch (err) {
-    console.error(err)
+    console.error('WFH load error:', err)
   }
   loading.value = false
 }
@@ -204,7 +206,6 @@ const submitRequest = async () => {
   submitting.value = true
   try {
     await api.post('/wfh', {
-      emp_id: employeeId.value,
       date: selectedDate.value,
       reason: reason.value
     })
@@ -219,7 +220,10 @@ const submitRequest = async () => {
 }
 
 const formatDate = (date) => {
-  return new Date(date).toLocaleDateString('th-TH', { 
+  if (!date) return ''
+  const [y, m, d] = date.split('-').map(Number)
+  const dt = new Date(y, m - 1, d)
+  return dt.toLocaleDateString('th-TH', { 
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
   })
 }
