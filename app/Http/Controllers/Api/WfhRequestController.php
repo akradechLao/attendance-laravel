@@ -73,7 +73,7 @@ class WfhRequestController extends Controller
     public function store(Request $request): JsonResponse
     {
         $request->validate([
-            'date' => 'required|date',
+            'date' => 'required|date|after_or_equal:-30 days',
             'reason' => 'nullable|string',
         ]);
 

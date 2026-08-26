@@ -355,6 +355,13 @@ Route::middleware(['auth:sanctum', 'role:admin,super_admin'])->group(function ()
     Route::post('/manual/leave', [ManualEntryController::class, 'leaveStore']);
     Route::put('/manual/leave/{id}', [ManualEntryController::class, 'leaveUpdate']);
     Route::delete('/manual/leave/{id}', [ManualEntryController::class, 'leaveDestroy']);
+
+    // WFH manual entry
+    Route::get('/manual/wfh', [ManualEntryController::class, 'wfhIndex']);
+    Route::post('/manual/wfh', [ManualEntryController::class, 'wfhStore']);
+    Route::put('/manual/wfh/{id}', [ManualEntryController::class, 'wfhUpdate']);
+    Route::delete('/manual/wfh/{id}', [ManualEntryController::class, 'wfhDestroy']);
+
     Route::post('/manual/import-shift', [ManualEntryController::class, 'importShiftSchedule']);
 
     // Face registration

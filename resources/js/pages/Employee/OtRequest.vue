@@ -24,7 +24,7 @@
         <!-- วันที่ -->
         <div class="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
           <label class="block text-white font-semibold mb-3">วันที่ต้องการโอที</label>
-          <input v-model="form.date" type="date" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" required />
+          <input v-model="form.date" type="date" :min="minDate" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500" required />
         </div>
 
         <!-- เวลา -->
@@ -80,13 +80,19 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, onMounted, computed } from 'vue'
 import axios from 'axios'
 
 const loading = ref(false)
 const error = ref('')
 const success = ref(false)
 const otHistory = ref([])
+
+const minDate = computed(() => {
+  const d = new Date()
+  d.setDate(d.getDate() - 30)
+  return d.toISOString().slice(0, 10)
+})
 
 const form = reactive({
   date: '',

@@ -48,11 +48,11 @@
         <div class="grid grid-cols-2 gap-4">
           <div>
             <label class="block text-sm font-medium text-gray-700">วันที่เริ่ม</label>
-            <input type="date" v-model="form.start_date" class="w-full border rounded-lg p-2" />
+            <input type="date" v-model="form.start_date" :min="minDate" class="w-full border rounded-lg p-2" />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700">วันที่สิ้นสุด</label>
-            <input type="date" v-model="form.end_date" class="w-full border rounded-lg p-2" />
+            <input type="date" v-model="form.end_date" :min="form.start_date || minDate" class="w-full border rounded-lg p-2" />
           </div>
         </div>
         <div>
@@ -115,6 +115,12 @@ const submitting = ref(false)
 const toast = ref(null)
 
 const form = ref({ leave_type_id: '', start_date: '', end_date: '', reason: '' })
+
+const minDate = computed(() => {
+  const d = new Date()
+  d.setDate(d.getDate() - 30)
+  return d.toISOString().slice(0, 10)
+})
 
 const totalDays = computed(() => {
   if (!form.value.start_date || !form.value.end_date) return 0

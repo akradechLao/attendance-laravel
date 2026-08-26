@@ -50,7 +50,7 @@ class EmployeeRequestController extends Controller
         try {
             $request->validate([
                 'leave_type_id' => 'required|exists:leave_types,id',
-                'start_date' => 'required|date',
+                'start_date' => 'required|date|after_or_equal:-30 days',
                 'end_date' => 'required|date|after_or_equal:start_date',
                 'reason' => 'nullable|string',
             ]);
@@ -84,7 +84,7 @@ class EmployeeRequestController extends Controller
     {
         try {
             $request->validate([
-                'date' => 'required|date',
+                'date' => 'required|date|after_or_equal:-30 days',
                 'start_time' => 'required',
                 'end_time' => 'required|after:start_time',
                 'reason' => 'nullable|string',

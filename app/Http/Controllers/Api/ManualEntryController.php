@@ -9,6 +9,7 @@ use App\Models\LeaveRequest;
 use App\Models\LeaveType;
 use App\Models\OtRequest;
 use App\Models\ShiftSchedule;
+use App\Models\WfhRecord;
 use App\Services\AuditLogService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -410,6 +411,90 @@ class ManualEntryController extends Controller
         $leave->delete();
 
         return response()->json(['success' => true, 'message' => 'ลบข้อมูลลาสำเร็จ']);
+    }
+
+    // ============================================================
+    // WFH
+    // ============================================================
+
+    public function wfhIndex(Request $request): JsonResponse
+    {
+        $query = WfhRecord::with('employee:id,name,employee_code,department');
+
+        if ($request->emp_id) {
+            $query->where('emp_id', $request->emp_id);
+        }
+        if ($request->date_from) {
+            $query->where('date', '>=', $request->date_from);
+        }
+        if ($request->date_to) {
+            $query->where('date', '<=', $request->date_to);
+        }
+        if ($request->status) {
+            $query->where('status', $request->status);
+        }
+
+        $records = $query->orderBy('date', 'desc')
+            ->paginate($request->get('per_page', 30));
+
+        return response()->json(['success' => true, 'data' => $records]);
+    }
+
+    public function wfhStore(Request $request): JsonResponse
+    {
+        $validated = $request->validate([
+            'emp_id' => 'required|exists:employees,id',
+            'date' => 'required|date',
+            'reason' => 'nullable|string|max:500',
+            'status' => 'nullable|in:pending,approved',
+        ]);
+
+        $employee = Employee::find($validated['emp_id']);
+
+        $wfh = WfhRecord::create([
+            'emp_id' => $validated['emp_id'],
+            'date' => $validated['date'],
+            'reason' => $validated['reason'] ?? 'บันทึกโดย HR (Manual Entry)',
+            'status' => $validated['status'] ?? 'approved',
+            'supervisor_id' => $request->user()->id,
+            'supervisor_note' => 'บันทึกโดย HR (Manual Entry)',
+        ]);
+
+        AuditLogService::created($wfh, $request);
+
+        return response()->json([
+            'success' => true,
+            'data' => $wfh->load('employee'),
+            'message' => 'บันทึก WFH สำเร็จ',
+        ], 201);
+    }
+
+    public function wfhUpdate(Request $request, $id): JsonResponse
+    {
+        $wfh = WfhRecord::findOrFail($id);
+
+        $validated = $request->validate([
+            'date' => 'sometimes|date',
+            'reason' => 'nullable|string|max:500',
+            'status' => 'nullable|in:pending,approved,rejected',
+        ]);
+
+        $wfh->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'data' => $wfh->load('employee'),
+            'message' => 'แก้ไข WFH สำเร็จ',
+        ]);
+    }
+
+    public function wfhDestroy($id): JsonResponse
+    {
+        $wfh = WfhRecord::findOrFail($id);
+        AuditLogService::deleted($wfh);
+        $wfh->delete();
+
+        return response()->json(['success' => true, 'message' => 'ลบ WFH สำเร็จ']);
     }
 
     // ============================================================

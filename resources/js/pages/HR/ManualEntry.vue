@@ -228,6 +228,40 @@
       </table>
     </div>
 
+    <!-- WFH Table -->
+    <div v-if="activeTab === 'wfh'" class="bg-white rounded-lg shadow-sm overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50">
+          <tr>
+            <th class="px-4 py-3 text-left">รหัส</th>
+            <th class="px-4 py-3 text-left">ชื่อ</th>
+            <th class="px-4 py-3 text-left">วันที่</th>
+            <th class="px-4 py-3 text-left">เหตุผล</th>
+            <th class="px-4 py-3 text-left">สถานะ</th>
+            <th class="px-4 py-3 text-center">จัดการ</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr v-for="item in tableData" :key="item.id" class="border-t hover:bg-gray-50">
+            <td class="px-4 py-3">{{ item.employee?.employee_code }}</td>
+            <td class="px-4 py-3">{{ item.employee?.name }}</td>
+            <td class="px-4 py-3">{{ formatDate(item.date) }}</td>
+            <td class="px-4 py-3 text-xs max-w-[200px] truncate">{{ item.reason }}</td>
+            <td class="px-4 py-3">
+              <span :class="wfhStatusClass(item.status)">{{ wfhStatusLabel(item.status) }}</span>
+            </td>
+            <td class="px-4 py-3 text-center">
+              <button @click="openForm(item)" class="text-blue-500 hover:text-blue-700 mr-2">แก้ไข</button>
+              <button @click="confirmDelete('wfh', item.id)" class="text-red-500 hover:text-red-700">ลบ</button>
+            </td>
+          </tr>
+          <tr v-if="tableData.length === 0">
+            <td colspan="6" class="px-4 py-8 text-center text-gray-400">ไม่มีข้อมูล</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
     <!-- Pagination -->
     <div v-if="pagination.last_page > 1" class="flex justify-center gap-2 mt-4">
       <button v-for="p in pagination.last_page" :key="p"
@@ -400,6 +434,36 @@
             </div>
           </template>
 
+          <!-- WFH Form -->
+          <template v-if="activeTab === 'wfh'">
+            <div class="space-y-4">
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">พนักงาน *</label>
+                <select v-model="form.emp_id" :disabled="isEditing" class="w-full border rounded-lg px-3 py-2 text-sm">
+                  <option value="">เลือกพนักงาน</option>
+                  <option v-for="emp in employees" :key="emp.id" :value="emp.id">
+                    {{ emp.employee_code }} - {{ emp.name }}
+                  </option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">วันที่ (วันเสาร์) *</label>
+                <input type="date" v-model="form.date" class="w-full border rounded-lg px-3 py-2 text-sm" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">เหตุผล</label>
+                <input type="text" v-model="form.reason" class="w-full border rounded-lg px-3 py-2 text-sm" placeholder="บันทึกโดย HR (Manual Entry)" />
+              </div>
+              <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">สถานะ</label>
+                <select v-model="form.status" class="w-full border rounded-lg px-3 py-2 text-sm">
+                  <option value="approved">อนุมัติแล้ว</option>
+                  <option value="pending">รออนุมัติ</option>
+                </select>
+              </div>
+            </div>
+          </template>
+
           <!-- Error -->
           <div v-if="formError" class="mt-4 bg-red-50 text-red-600 px-4 py-3 rounded-lg text-sm">{{ formError }}</div>
 
@@ -438,6 +502,7 @@ const tabs = [
   { key: 'ot', label: 'OT', icon: '⏰' },
   { key: 'shift', label: 'กะ', icon: '🔄' },
   { key: 'leave', label: 'ลา', icon: '📅' },
+  { key: 'wfh', label: 'WFH', icon: '🏠' },
 ]
 
 const tabLabel = computed(() => tabs.find(t => t.key === activeTab.value)?.label || '')
@@ -547,6 +612,8 @@ function getDefaultForm() {
       return { emp_id: '', work_date: '', shift_code: 'WC0002', day_type: 'working' }
     case 'leave':
       return { emp_id: '', leave_type_id: '', start_date: '', end_date: '', reason: '', status: 'approved' }
+    case 'wfh':
+      return { emp_id: '', date: '', reason: '', status: 'approved' }
   }
 }
 
@@ -619,6 +686,13 @@ function leaveStatusClass(s) {
   return { approved: 'bg-green-100 text-green-700', pending: 'bg-yellow-100 text-yellow-700', rejected: 'bg-red-100 text-red-700' }[s] || 'bg-gray-100 text-gray-700'
 }
 function leaveStatusLabel(s) {
+  return { approved: 'อนุมัติ', pending: 'รออนุมัติ', rejected: 'ปฏิเสธ' }[s] || s || '-'
+}
+
+function wfhStatusClass(s) {
+  return { approved: 'bg-green-100 text-green-700', pending: 'bg-yellow-100 text-yellow-700', rejected: 'bg-red-100 text-red-700' }[s] || 'bg-gray-100 text-gray-700'
+}
+function wfhStatusLabel(s) {
   return { approved: 'อนุมัติ', pending: 'รออนุมัติ', rejected: 'ปฏิเสธ' }[s] || s || '-'
 }
 

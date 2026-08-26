@@ -52,13 +52,13 @@
           <div v-for="day in ['จ','อ','พ','พฤ','ศ','ส','อา']" :key="day" class="text-center text-xs text-gray-500 font-medium py-1">{{ day }}</div>
           <div v-for="(blank, i) in startDayBlanks" :key="'b'+i"></div>
           <button v-for="d in daysInMonth" :key="d.date"
-                  @click="d.isSaturday && !occupiedMap[d.date] && selectDate(d.date)"
-                  :disabled="!d.isSaturday || occupiedMap[d.date] || remaining === 0"
+                  @click="d.isSaturday && !occupiedMap[d.date] && !d.isTooOld && selectDate(d.date)"
+                  :disabled="!d.isSaturday || occupiedMap[d.date] || remaining === 0 || d.isTooOld"
                   :class="[
                     'p-2 rounded-lg text-center transition text-xs',
                     !d.isSaturday ? 'bg-gray-50 text-gray-300 cursor-not-allowed' :
                     occupiedMap[d.date] ? 'bg-gray-100 text-gray-400 cursor-not-allowed' :
-                    d.isPast ? 'bg-gray-50 text-gray-300 cursor-not-allowed' :
+                    d.isTooOld ? 'bg-gray-50 text-gray-300 cursor-not-allowed' :
                     selectedDate === d.date ? 'bg-blue-600 text-white' :
                     'bg-green-50 text-green-700 hover:bg-green-100'
                   ]">
@@ -66,7 +66,7 @@
             <div v-if="occupiedMap[d.date]" class="text-[9px]">ไม่ว่าง</div>
           </button>
         </div>
-        <p class="text-xs text-gray-400 text-center">เลือกวันที่ต้องการ WFH (สีเขียว = ว่าง)</p>
+        <p class="text-xs text-gray-400 text-center">เลือกวันที่ต้องการ WFH (สีเขียว = ว่าง, ลงได้ย้อนหลัง 30 วัน)</p>
       </div>
     </div>
 
@@ -146,6 +146,8 @@ const daysInMonth = computed(() => {
   const daysCount = new Date(year, month, 0).getDate()
   const today = new Date()
   today.setHours(0, 0, 0, 0)
+  const minDate = new Date(today)
+  minDate.setDate(minDate.getDate() - 30)
   return Array.from({ length: daysCount }, (_, i) => {
     const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(i + 1).padStart(2, '0')}`
     const d = new Date(year, month - 1, i + 1)
@@ -155,6 +157,7 @@ const daysInMonth = computed(() => {
       isSaturday: d.getDay() === 6,
       isWeekend: d.getDay() === 0 || d.getDay() === 6,
       isPast: d < today,
+      isTooOld: d < minDate,
     }
   })
 })
