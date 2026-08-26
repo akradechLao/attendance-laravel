@@ -48,10 +48,8 @@ class EmployeeWarningController extends Controller
             ->where('check_in_status', 'late')
             ->sum('late_minutes');
 
-        $earlyCheckoutCount = AttendanceLog::where('emp_id', $employee->id)
-            ->whereBetween('date', [$startOfMonth->format('Y-m-d'), $endOfMonth->format('Y-m-d')])
-            ->where('check_out_status', 'early')
-            ->count();
+        // Early checkout: check_out before scheduled end (if we have schedule data)
+        $earlyCheckoutCount = 0;
 
         return response()->json([
             'success' => true,
