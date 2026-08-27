@@ -140,10 +140,11 @@
         <div class="flex items-center justify-between">
           <div>
             <h3 class="text-sm font-semibold text-gray-700">นำเข้าตารางกะจาก CSV</h3>
-            <p class="text-xs text-gray-500 mt-1">คอลัมน์: employee_code, work_date (YYYY-MM-DD), shift_code, day_type</p>
+            <p class="text-xs text-gray-500 mt-1">คอลัมน์: employee_code, work_date (YYYY-MM-DD), shift_code, day_type (working/holiday/day_off)</p>
           </div>
           <div class="flex gap-2">
             <button @click="downloadShiftTemplate" class="px-3 py-1.5 text-xs bg-gray-200 rounded-lg hover:bg-gray-300">ดาวน์โหลด template</button>
+            <button @click="exportShiftsCSV" class="px-3 py-1.5 text-xs bg-green-600 text-white rounded-lg hover:bg-green-700">ส่งออก CSV</button>
             <label class="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer">
               เลือกไฟล์ CSV
               <input type="file" accept=".csv,.txt" class="hidden" @change="handleShiftImport" :disabled="importing" />
@@ -495,6 +496,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import axios from 'axios'
+import api from '@/services/api'
 
 const activeTab = ref('attendance')
 const tabs = [
@@ -701,11 +703,29 @@ const companyId = computed(() => {
 })
 
 function downloadShiftTemplate() {
-  const csv = 'employee_code,work_date,shift_code,day_type\nEMP001,2026-01-05,WC0002,working\nEMP001,2026-01-06,WC0002,holiday\n'
+  const csv = 'employee_code,work_date,shift_code,day_type\n001,2026-09-01,WC0002,working\n001,2026-09-02,WC0002,holiday\n001,2026-09-03,WC0002,day_off\n'
   const blob = new Blob([csv], { type: 'text/csv' })
   const link = document.createElement('a')
   link.href = URL.createObjectURL(blob)
   link.download = 'shift_schedule_template.csv'
+  link.click()
+}
+
+function exportShiftsCSV() {
+  if (!tableData.value.length) return alert('ไม่มีข้อมูลที่จะส่งออก')
+  const headers = ['employee_code', 'employee_name', 'work_date', 'shift_code', 'day_type']
+  const rows = tableData.value.map(r => [
+    r.employee?.employee_code || '',
+    r.employee?.name || '',
+    r.work_date?.slice(0, 10) || '',
+    r.shift_code || '',
+    r.day_type || ''
+  ])
+  const csv = [headers, ...rows].map(r => r.map(c => `"${c}"`).join(',')).join('\n')
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' })
+  const link = document.createElement('a')
+  link.href = URL.createObjectURL(blob)
+  link.download = `shifts_export_${new Date().toISOString().slice(0, 10)}.csv`
   link.click()
 }
 
@@ -718,7 +738,7 @@ async function handleShiftImport(event) {
     const formData = new FormData()
     formData.append('file', file)
     formData.append('company_id', companyId.value)
-    const res = await axios.post('/api/manual/import-shift', formData, {
+    const res = await api.post('/api/manual/import-shift', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
     importResult.value = res.data

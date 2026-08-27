@@ -16,6 +16,9 @@ return new class extends Migration
             if (Schema::hasColumn('shift_swaps', 'target_shift_id')) {
                 DB::statement('ALTER TABLE shift_swaps CHANGE COLUMN target_shift_id target_shift VARCHAR(50) NOT NULL');
             }
+            if (!Schema::hasColumn('shift_swaps', 'reason')) {
+                $table->text('reason')->nullable()->after('target_shift');
+            }
         });
     }
 
@@ -27,6 +30,9 @@ return new class extends Migration
             }
             if (Schema::hasColumn('shift_swaps', 'target_shift')) {
                 DB::statement('ALTER TABLE shift_swaps CHANGE COLUMN target_shift target_shift_id BIGINT UNSIGNED NOT NULL');
+            }
+            if (Schema::hasColumn('shift_swaps', 'reason')) {
+                $table->dropColumn('reason');
             }
         });
     }

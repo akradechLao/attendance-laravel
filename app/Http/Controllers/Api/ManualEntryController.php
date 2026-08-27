@@ -516,7 +516,7 @@ class ManualEntryController extends Controller
     public function importShiftSchedule(Request $request): JsonResponse
     {
         $request->validate([
-            'file' => 'required|file|mimes:csv,txt|max:5120',
+            'file' => 'required|file|max:5120',
             'company_id' => 'required|exists:companies,id',
         ]);
 
@@ -527,9 +527,10 @@ class ManualEntryController extends Controller
             return response()->json(['success' => false, 'message' => 'ไฟล์ว่างเปล่าหรือไม่มีข้อมูล'], 400);
         }
 
-        // Skip header row
         $header = array_map('strtolower', array_map('trim', $rows[0]));
         $dataRows = array_slice($rows, 1);
+
+        $validDayTypes = ['working', 'holiday', 'day_off'];
 
         $imported = 0;
         $skipped = 0;
@@ -545,15 +546,19 @@ class ManualEntryController extends Controller
 
             if (!$empCode || !$workDate) {
                 $skipped++;
-                $errors[] = "แถว " . ($i + 2) . ": 缺少 employee_code หรือ work_date";
+                $errors[] = "แถว " . ($i + 2) . ": ขาด employee_code หรือ work_date";
                 continue;
             }
 
-            // Find employee
-            $employee = Employee::where('employee_code', $empCode)
-                ->orWhere('id', $empCode)
-                ->where('company_id', $request->company_id)
-                ->first();
+            if (!in_array($dayType, $validDayTypes)) {
+                $skipped++;
+                $errors[] = "แถว " . ($i + 2) . ": day_type ไม่ถูกต้อง '{$dayType}' (ต้องเป็น working, holiday, หรือ day_off)";
+                continue;
+            }
+
+            $employee = Employee::where(function ($q) use ($empCode) {
+                $q->where('employee_code', $empCode)->orWhere('id', $empCode);
+            })->where('company_id', $request->company_id)->first();
 
             if (!$employee) {
                 $skipped++;
