@@ -55,6 +55,7 @@
               <p class="font-medium text-gray-800 text-sm">{{ day.fullDate }}</p>
               <p v-if="day.schedule" class="text-blue-600 text-xs font-medium mt-0.5">
                 {{ day.schedule.shift_code }}
+                <span v-if="day.schedule.start_time" class="text-gray-500"> {{ day.schedule.start_time?.substring(0, 5) }}-{{ day.schedule.end_time?.substring(0, 5) }}</span>
                 <span v-if="day.schedule.day_type" class="text-gray-400">({{ day.schedule.day_type }})</span>
               </p>
               <p v-else class="text-gray-400 text-xs mt-0.5">-</p>

@@ -160,30 +160,42 @@ function fmtTime(t) {
         <table class="min-w-full divide-y divide-gray-200">
           <thead class="bg-gray-50">
             <tr>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">วันที่</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">เข้า</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ออก</th>
-              <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">สาย</th>
-              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">สถานะ</th>
+              <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">วันที่</th>
+              <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">กะ</th>
+              <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">เข้า</th>
+              <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">ออก</th>
+              <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">สาย</th>
+              <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">สถานะ</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-gray-200">
             <tr v-for="record in attendanceHistory" :key="record.id">
-              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ fmtDate(record.date) }}</td>
-              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ fmtTime(record.check_in) }}</td>
-              <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ fmtTime(record.check_out) }}</td>
-              <td class="px-4 py-3 whitespace-nowrap text-sm text-center">
+              <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-900">{{ fmtDate(record.date) }}</td>
+              <td class="px-3 py-3 whitespace-nowrap text-sm">
+                <div v-if="record.shift_code" class="flex flex-col">
+                  <span class="text-blue-600 font-medium text-xs">{{ record.shift_code }}</span>
+                  <span class="text-[10px] text-gray-400">{{ fmtTime(record.schedule_start) }}-{{ fmtTime(record.schedule_end) }}</span>
+                </div>
+                <span v-else class="text-gray-300">-</span>
+              </td>
+              <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-900">
+                <span :class="record.check_in && record.schedule_start && record.check_in > record.schedule_start ? 'text-amber-600' : 'text-gray-900'">
+                  {{ fmtTime(record.check_in) }}
+                </span>
+              </td>
+              <td class="px-3 py-3 whitespace-nowrap text-sm text-gray-900">{{ fmtTime(record.check_out) }}</td>
+              <td class="px-3 py-3 whitespace-nowrap text-sm text-center">
                 <span v-if="record.late_minutes > 0" class="text-amber-600 font-medium">{{ record.late_minutes }} นาที</span>
                 <span v-else class="text-gray-300">-</span>
               </td>
-              <td class="px-4 py-3 whitespace-nowrap text-sm">
+              <td class="px-3 py-3 whitespace-nowrap text-sm">
                 <span :class="record.status === 'late' ? 'text-amber-600' : record.status === 'on_time' ? 'text-emerald-600' : 'text-gray-500'" class="font-medium">
                   {{ record.status === 'on_time' ? 'ปกติ' : record.status === 'late' ? 'สาย' : record.status || '-' }}
                 </span>
               </td>
             </tr>
             <tr v-if="attendanceHistory.length === 0">
-              <td colspan="5" class="px-4 py-8 text-center text-gray-400 text-sm">ไม่มีข้อมูล</td>
+              <td colspan="6" class="px-4 py-8 text-center text-gray-400 text-sm">ไม่มีข้อมูล</td>
             </tr>
           </tbody>
         </table>

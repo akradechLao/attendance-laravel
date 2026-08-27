@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Helpers\ShiftCodeHelper;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\AttendanceLog;
 use App\Models\LeaveRequest;
+use App\Models\ShiftSchedule;
 use Illuminate\Http\Request;
 
 class EmployeeHistoryController extends Controller
@@ -40,11 +42,10 @@ class EmployeeHistoryController extends Controller
             return response()->json(['success' => false, 'message' => 'Employee not found'], 404);
         }
 
-        $now = \Carbon\Carbon::now();
+        $now = \Carbon\Carbon::now('Asia/Bangkok');
         $statMonth = $request->input('month') ? (int) $request->input('month') : null;
         $statYear = $request->input('year') ? (int) $request->input('year') : null;
 
-        // If month/year provided, filter by that month; otherwise return recent records
         if ($statMonth && $statYear) {
             $monthStart = \Carbon\Carbon::createFromDate($statYear, $statMonth, 1)->startOfMonth();
             $monthEnd = $monthStart->copy()->endOfMonth();
@@ -52,16 +53,35 @@ class EmployeeHistoryController extends Controller
             $attendance = AttendanceLog::where('emp_id', $employee->id)
                 ->whereBetween('date', [$monthStart->format('Y-m-d'), $monthEnd->format('Y-m-d')])
                 ->orderBy('date', 'desc')
+                ->get();
+
+            // Get shift schedules for this month
+            $dateRange = collect(range(0, $monthEnd->diffInDays($monthStart)))
+                ->map(fn($i) => $monthStart->copy()->addDays($i)->format('Y-m-d'));
+            $shiftMap = ShiftSchedule::where('emp_id', $employee->id)
+                ->whereIn('work_date', $dateRange)
                 ->get()
-                ->map(fn($log) => [
+                ->keyBy('work_date');
+
+            $attendance = $attendance->map(function ($log) use ($shiftMap) {
+                $dateStr = \Carbon\Carbon::parse($log->date)->format('Y-m-d');
+                $schedule = $shiftMap->get($dateStr);
+                $shiftCode = $schedule ? $schedule->shift_code : null;
+                $times = $shiftCode ? ShiftCodeHelper::getTimes($shiftCode) : ['start' => null, 'end' => null];
+
+                return [
                     'id' => $log->id,
-                    'date' => \Carbon\Carbon::parse($log->date)->format('Y-m-d'),
+                    'date' => $dateStr,
                     'check_in' => $log->check_in ? \Carbon\Carbon::parse($log->check_in)->setTimezone('Asia/Bangkok')->format('H:i') : null,
                     'check_out' => $log->check_out ? \Carbon\Carbon::parse($log->check_out)->setTimezone('Asia/Bangkok')->format('H:i') : null,
                     'status' => $log->check_in_status,
                     'late_minutes' => (int) ($log->late_minutes ?? 0),
                     'note' => $log->adjustment_note,
-                ]);
+                    'shift_code' => $shiftCode,
+                    'schedule_start' => $times['start'],
+                    'schedule_end' => $times['end'],
+                ];
+            });
 
             $leave = LeaveRequest::with('leaveType:id,name,code')
                 ->where('emp_id', $employee->id)
@@ -81,7 +101,6 @@ class EmployeeHistoryController extends Controller
                     'status' => $l->status,
                 ]);
 
-            // Summary stats for selected month
             $summary = [
                 'total_days' => $attendance->count(),
                 'on_time' => $attendance->filter(fn($r) => $r['status'] === 'on_time')->count(),
@@ -102,20 +121,38 @@ class EmployeeHistoryController extends Controller
             ]);
         }
 
-        // No month filter: return recent records
+        // No month filter
         $attendance = AttendanceLog::where('emp_id', $employee->id)
             ->orderBy('date', 'desc')
             ->limit($request->get('limit', 30))
+            ->get();
+
+        // Get shift schedules for the date range
+        $dates = $attendance->map(fn($l) => \Carbon\Carbon::parse($l->date)->format('Y-m-d'))->toArray();
+        $shiftMap = ShiftSchedule::where('emp_id', $employee->id)
+            ->whereIn('work_date', $dates)
             ->get()
-            ->map(fn($log) => [
+            ->keyBy('work_date');
+
+        $attendance = $attendance->map(function ($log) use ($shiftMap) {
+            $dateStr = \Carbon\Carbon::parse($log->date)->format('Y-m-d');
+            $schedule = $shiftMap->get($dateStr);
+            $shiftCode = $schedule ? $schedule->shift_code : null;
+            $times = $shiftCode ? ShiftCodeHelper::getTimes($shiftCode) : ['start' => null, 'end' => null];
+
+            return [
                 'id' => $log->id,
-                'date' => \Carbon\Carbon::parse($log->date)->format('Y-m-d'),
+                'date' => $dateStr,
                 'check_in' => $log->check_in ? \Carbon\Carbon::parse($log->check_in)->setTimezone('Asia/Bangkok')->format('H:i') : null,
                 'check_out' => $log->check_out ? \Carbon\Carbon::parse($log->check_out)->setTimezone('Asia/Bangkok')->format('H:i') : null,
                 'status' => $log->check_in_status,
                 'late_minutes' => (int) ($log->late_minutes ?? 0),
                 'note' => $log->adjustment_note,
-            ]);
+                'shift_code' => $shiftCode,
+                'schedule_start' => $times['start'],
+                'schedule_end' => $times['end'],
+            ];
+        });
 
         return response()->json([
             'success' => true,

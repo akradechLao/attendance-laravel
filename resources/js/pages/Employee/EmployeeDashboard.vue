@@ -40,10 +40,47 @@
         <div class="bg-white rounded-2xl p-6 border border-gray-200 shadow-sm">
           <h2 class="text-sm font-bold text-gray-500 uppercase tracking-wide mb-4">สถานะวันนี้</h2>
 
-          <!-- Scheduled Work Hours -->
-          <div v-if="data.today.schedule_start" class="mb-4 p-3 bg-blue-50 rounded-xl border border-blue-200 text-center">
-            <p class="text-blue-600 text-xs font-medium mb-1">เวลาเข้างานที่กำหนด</p>
-            <p class="text-xl font-bold text-blue-700">{{ data.today.schedule_start?.substring(0, 5) }} - {{ data.today.schedule_end?.substring(0, 5) }} น.</p>
+          <!-- Today's Shift (from shift_schedules) -->
+          <div v-if="data.today.today_shift_code" class="mb-4 p-3 bg-blue-50 rounded-xl border border-blue-200">
+            <div class="flex items-center justify-between">
+              <div>
+                <p class="text-blue-600 text-xs font-medium">เข้างานวันนี้ (กะ {{ data.today.today_shift_code }})</p>
+                <p class="text-xl font-bold text-blue-700">{{ data.today.schedule_start }} - {{ data.today.schedule_end }} น.</p>
+              </div>
+              <span class="px-2 py-1 bg-blue-500 text-white text-[10px] font-bold rounded-full">วันนี้</span>
+            </div>
+          </div>
+
+          <!-- All Assigned Shifts -->
+          <div v-if="data.today.assigned_shifts?.length" class="mb-4">
+            <p class="text-xs font-medium text-gray-500 mb-2">กะที่ได้รับมอบหมาย</p>
+            <div class="space-y-2">
+              <div v-for="shift in data.today.assigned_shifts" :key="shift.shift_code"
+                class="flex items-center justify-between p-2 rounded-lg border transition-colors"
+                :class="shift.is_active ? 'bg-emerald-50 border-emerald-200' : 'bg-gray-50 border-gray-200 opacity-60'">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full" :class="shift.is_active ? 'bg-emerald-500' : 'bg-gray-400'"></span>
+                  <div>
+                    <p class="text-sm font-bold" :class="shift.is_active ? 'text-emerald-700' : 'text-gray-500'">
+                      {{ shift.shift_code }}: {{ shift.start_time?.substring(0, 5) }} - {{ shift.end_time?.substring(0, 5) }} น.
+                    </p>
+                    <p class="text-[10px]" :class="shift.is_active ? 'text-emerald-500' : 'text-gray-400'">
+                      {{ shift.work_hours }} ชม. | {{ shift.is_overnight ? 'ข้ามวัน' : 'ไม่ข้ามวัน' }}
+                      <template v-if="shift.start_date || shift.end_date">
+                        | {{ shift.start_date ? fmtDate(shift.start_date) : '...' }} - {{ shift.end_date ? fmtDate(shift.end_date) : '...' }}
+                      </template>
+                    </p>
+                  </div>
+                </div>
+                <span v-if="shift.is_active" class="px-2 py-0.5 bg-emerald-500 text-white text-[10px] font-bold rounded-full">ใช้งานอยู่</span>
+                <span v-else class="px-2 py-0.5 bg-gray-300 text-white text-[10px] font-bold rounded-full">ไม่ active</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- No shift assigned -->
+          <div v-if="!data.today.today_shift_code && !data.today.assigned_shifts?.length" class="mb-4 p-3 bg-gray-50 rounded-xl border border-gray-200 text-center">
+            <p class="text-gray-400 text-sm">ไม่มีข้อมูลกะ</p>
           </div>
 
           <div v-if="data.today.is_checked_in" class="space-y-4">
@@ -223,7 +260,7 @@ const now = new Date()
 const statMonth = ref(now.getMonth() + 1)
 const statYear = ref(now.getFullYear())
 const data = ref({
-  today: { check_in: null, check_out: null, status: null, late_minutes: null, is_checked_in: false, is_checked_out: false, schedule_start: null, schedule_end: null, worked_hours: null },
+  today: { check_in: null, check_out: null, status: null, late_minutes: null, is_checked_in: false, is_checked_out: false, schedule_start: null, schedule_end: null, today_shift_code: null, assigned_shifts: [], worked_hours: null },
   month: { working_days: 0, on_time: 0, late: 0, absent: 0, leave_days: 0, total_late_minutes: 0, ot_hours: 0 },
   pending: { leave: 0, ot: 0, wfh: 0 },
 })
@@ -246,6 +283,12 @@ function formatDateThai(dateStr) {
   const month = thMonths[parseInt(parts[1]) - 1]
   const day = parseInt(parts[2])
   return `${day} ${month} ${year}`
+}
+
+function fmtDate(d) {
+  if (!d) return ''
+  const parts = String(d).split('T')[0].split('-')
+  return `${parseInt(parts[2])}/${parseInt(parts[1])}`
 }
 
 async function fetchData() {

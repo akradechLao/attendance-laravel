@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Helpers\ShiftCodeHelper;
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceLog;
 use App\Models\LeaveRequest;
@@ -24,43 +25,51 @@ class EmployeeDashboardController extends Controller
 
             $today = Carbon::now('Asia/Bangkok')->today();
 
-            // Support optional month/year params for historical stats
             $statMonth = $request->input('month') ? (int) $request->input('month') : $today->month;
             $statYear = $request->input('year') ? (int) $request->input('year') : $today->year;
             $statDate = Carbon::createFromDate($statYear, $statMonth, 1)->setTimezone('Asia/Bangkok');
             $monthStart = $statDate->copy()->startOfMonth();
             $monthEnd = $statDate->copy()->endOfMonth();
 
-            // Today's attendance (always current day)
             $todayLog = AttendanceLog::where('emp_id', $employee->id)
                 ->where('date', $today->format('Y-m-d'))
                 ->first();
 
-            // Get schedule from workShifts or shift_schedules
-            $scheduleStart = null;
-            $scheduleEnd = null;
+            $todayStr = $today->format('Y-m-d');
+
+            // 1. Get today's actual shift from shift_schedules
+            $todaySchedule = ShiftSchedule::where('emp_id', $employee->id)
+                ->where('work_date', $todayStr)
+                ->first();
+
+            $todayShiftCode = $todaySchedule ? $todaySchedule->shift_code : null;
+            $todayTimes = $todayShiftCode ? ShiftCodeHelper::getTimes($todayShiftCode) : ['start' => null, 'end' => null];
+
+            // 2. Get ALL assigned work shifts with date ranges
+            $assignedShifts = [];
             try {
-                if ($employee->workShifts()->count() > 0) {
-                    $defaultShift = $employee->workShifts()->first();
-                    $scheduleStart = $defaultShift->start_time;
-                    $scheduleEnd = $defaultShift->end_time;
+                $employee->load('workShifts');
+                foreach ($employee->workShifts as $ws) {
+                    $pivot = $ws->pivot;
+                    $isActive = true;
+                    if ($pivot->start_date && $todayStr < $pivot->start_date) $isActive = false;
+                    if ($pivot->end_date && $todayStr > $pivot->end_date) $isActive = false;
+
+                    $assignedShifts[] = [
+                        'group_number' => $ws->group_number,
+                        'shift_code' => ShiftCodeHelper::codeFromGroup($ws->group_number) ?? "WC" . str_pad($ws->group_number + 1, 4, '0', STR_PAD_LEFT),
+                        'start_time' => $ws->start_time,
+                        'end_time' => $ws->end_time,
+                        'work_hours' => $ws->work_hours,
+                        'is_overnight' => $ws->is_overnight,
+                        'start_date' => $pivot->start_date,
+                        'end_date' => $pivot->end_date,
+                        'is_active' => $isActive,
+                    ];
                 }
-            } catch (\Exception $e) {
-            }
+            } catch (\Exception $e) {}
 
-            if (!$scheduleStart && !$scheduleEnd) {
-                try {
-                    $todaySchedule = ShiftSchedule::where('emp_id', $employee->id)
-                        ->where('work_date', $today->format('Y-m-d'))
-                        ->first();
-                    if ($todaySchedule && $todaySchedule->start_time) {
-                        $scheduleStart = $todaySchedule->start_time;
-                        $scheduleEnd = $todaySchedule->end_time;
-                    }
-                } catch (\Exception $e) {}
-            }
-
-            // Calculate worked hours
+            // 3. Calculate worked hours
             $workedHours = null;
             if ($todayLog && $todayLog->check_in && $todayLog->check_out) {
                 $in = Carbon::parse($todayLog->check_in);
@@ -72,7 +81,7 @@ class EmployeeDashboardController extends Controller
                 $workedHours = round($in->diffInMinutes($now) / 60, 1);
             }
 
-            // Monthly stats for selected month
+            // 4. Monthly stats
             $monthLogs = AttendanceLog::where('emp_id', $employee->id)
                 ->whereBetween('date', [$monthStart->format('Y-m-d'), $monthEnd->format('Y-m-d')])
                 ->get();
@@ -82,7 +91,6 @@ class EmployeeDashboardController extends Controller
             $onTimeDays = $monthLogs->where('check_in_status', 'on_time')->count();
             $totalLateMinutes = (int) $monthLogs->sum('late_minutes');
 
-            // Absent days: only meaningful for current month or past months up to today
             $absentDays = 0;
             if ($monthStart->lte($today)) {
                 $effectiveEnd = $monthEnd->lte($today) ? $monthEnd : $today;
@@ -90,7 +98,6 @@ class EmployeeDashboardController extends Controller
                 $absentDays = max(0, (int) ($totalDaysInPeriod - $workingDays));
             }
 
-            // Approved leave days in selected month
             $leaveDays = 0;
             try {
                 $leaveDays = LeaveRequest::where('emp_id', $employee->id)
@@ -100,17 +107,15 @@ class EmployeeDashboardController extends Controller
                     ->sum('total_days');
             } catch (\Exception $e) {}
 
-            // Approved OT hours in selected month
             $otHours = 0;
             try {
                 $otHours = OtRequest::where('emp_id', $employee->id)
                     ->where('status', 'approved')
-                    ->whereMonth('ot_date', $statMonth)
-                    ->whereYear('ot_date', $statYear)
+                    ->whereMonth('date', $statMonth)
+                    ->whereYear('date', $statYear)
                     ->sum('total_hours');
             } catch (\Exception $e) {}
 
-            // Pending requests (always current)
             $pendingLeave = 0;
             $pendingOt = 0;
             $pendingWfh = 0;
@@ -124,32 +129,26 @@ class EmployeeDashboardController extends Controller
                 $pendingWfh = WfhRecord::where('emp_id', $employee->id)->where('status', 'pending')->count();
             } catch (\Exception $e) {}
 
+            // Build today data
+            $todayData = [
+                'date' => $today->format('Y-m-d'),
+                'check_in' => $todayLog && $todayLog->check_in ? Carbon::parse($todayLog->check_in)->setTimezone('Asia/Bangkok')->format('H:i') : null,
+                'check_out' => $todayLog && $todayLog->check_out ? Carbon::parse($todayLog->check_out)->setTimezone('Asia/Bangkok')->format('H:i') : null,
+                'status' => $todayLog ? $todayLog->check_in_status : null,
+                'late_minutes' => $todayLog ? (int) ($todayLog->late_minutes ?? 0) : null,
+                'is_checked_in' => (bool) $todayLog,
+                'is_checked_out' => $todayLog && !is_null($todayLog->check_out),
+                'schedule_start' => $todayTimes['start'],
+                'schedule_end' => $todayTimes['end'],
+                'today_shift_code' => $todayShiftCode,
+                'worked_hours' => $workedHours,
+                'assigned_shifts' => $assignedShifts,
+            ];
+
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'today' => $todayLog ? [
-                        'date' => Carbon::parse($todayLog->date)->format('Y-m-d'),
-                        'check_in' => $todayLog->check_in ? Carbon::parse($todayLog->check_in)->setTimezone('Asia/Bangkok')->format('H:i') : null,
-                        'check_out' => $todayLog->check_out ? Carbon::parse($todayLog->check_out)->setTimezone('Asia/Bangkok')->format('H:i') : null,
-                        'status' => $todayLog->check_in_status,
-                        'late_minutes' => (int) ($todayLog->late_minutes ?? 0),
-                        'is_checked_in' => true,
-                        'is_checked_out' => !is_null($todayLog->check_out),
-                        'schedule_start' => $scheduleStart ? Carbon::parse($scheduleStart)->format('H:i') : null,
-                        'schedule_end' => $scheduleEnd ? Carbon::parse($scheduleEnd)->format('H:i') : null,
-                        'worked_hours' => $workedHours,
-                    ] : [
-                        'date' => $today->format('Y-m-d'),
-                        'check_in' => null,
-                        'check_out' => null,
-                        'status' => null,
-                        'late_minutes' => null,
-                        'is_checked_in' => false,
-                        'is_checked_out' => false,
-                        'schedule_start' => $scheduleStart ? Carbon::parse($scheduleStart)->format('H:i') : null,
-                        'schedule_end' => $scheduleEnd ? Carbon::parse($scheduleEnd)->format('H:i') : null,
-                        'worked_hours' => null,
-                    ],
+                    'today' => $todayData,
                     'month' => [
                         'working_days' => $workingDays,
                         'on_time' => $onTimeDays,

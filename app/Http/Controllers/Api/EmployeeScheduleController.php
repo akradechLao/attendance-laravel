@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Helpers\ShiftCodeHelper;
 use App\Http\Controllers\Controller;
 use App\Models\ShiftSchedule;
 use Illuminate\Http\JsonResponse;
@@ -24,11 +25,16 @@ class EmployeeScheduleController extends Controller
             ->whereBetween('work_date', [$startDate, $endDate])
             ->orderBy('work_date')
             ->get()
-            ->map(fn($s) => [
-                'date' => $s->work_date,
-                'shift_code' => $s->shift_code,
-                'day_type' => $s->day_type,
-            ]);
+            ->map(function ($s) {
+                $times = ShiftCodeHelper::getTimes($s->shift_code);
+                return [
+                    'date' => $s->work_date,
+                    'shift_code' => $s->shift_code,
+                    'day_type' => $s->day_type,
+                    'start_time' => $times['start'],
+                    'end_time' => $times['end'],
+                ];
+            });
 
         return response()->json([
             'success' => true,
