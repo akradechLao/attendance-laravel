@@ -140,6 +140,10 @@
                   <span>{{ loading ? 'กำลังเข้าสู่ระบบ...' : 'เข้าสู่ระบบ' }}</span>
                 </button>
               </form>
+
+              <div class="px-8 pb-2 text-center">
+                <router-link to="/forgot-password" class="text-blue-600 hover:text-blue-800 text-sm">ลืมรหัสผ่าน?</router-link>
+              </div>
             </div>
 
             <div class="px-8 pb-6 text-center">

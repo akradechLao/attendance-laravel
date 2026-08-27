@@ -142,6 +142,10 @@ Route::get('/employee/{employee}/office-location', function (\App\Models\Employe
 Route::post('/auth/login', [LoginController::class, 'login']);
 Route::post('/employee/auth/login', [EmployeeAuthController::class, 'login']);
 
+// Forgot / Reset Password (public)
+Route::post('/auth/forgot-password', [App\Http\Controllers\Auth\ForgotPasswordController::class, 'request']);
+Route::post('/auth/reset-password', [App\Http\Controllers\Auth\ForgotPasswordController::class, 'reset']);
+
 // ============================================================
 // AUTHENTICATED ROUTES (any logged-in user)
 // ============================================================
@@ -151,6 +155,8 @@ Route::middleware('auth:sanctum')->group(function () {
     // Auth
     Route::post('/auth/logout', [LoginController::class, 'logout']);
     Route::get('/auth/me', [LoginController::class, 'me']);
+    Route::get('/auth/profile', [App\Http\Controllers\Auth\AdminProfileController::class, 'show']);
+    Route::put('/auth/profile', [App\Http\Controllers\Auth\AdminProfileController::class, 'update']);
 
     // ---- Employee Self-Service (any role) ----
     Route::get('/employee/profile', [EmployeeProfileController::class, 'show']);

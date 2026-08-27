@@ -24,6 +24,18 @@ const routes = [
     component: () => import('./pages/Auth/AdminLogin.vue'),
     meta: { requiresAuth: false }
   },
+  {
+    path: '/forgot-password',
+    name: 'ForgotPassword',
+    component: () => import('./pages/Auth/ForgotPassword.vue'),
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/admin/profile',
+    name: 'AdminProfile',
+    component: () => import('./pages/Auth/AdminProfile.vue'),
+    meta: { requiresAuth: true }
+  },
   // ---- Employee Self-Service (any authenticated user) ----
   {
     path: '/employee/menu',
