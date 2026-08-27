@@ -10,7 +10,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('companies', function (Blueprint $table) {
-            $table->string('full_name_en')->nullable()->after('full_name');
+            if (!Schema::hasColumn('companies', 'full_name')) {
+                $table->string('full_name')->nullable()->after('name');
+            }
+            if (!Schema::hasColumn('companies', 'full_name_en')) {
+                $table->string('full_name_en')->nullable()->after('full_name');
+            }
         });
 
         DB::table('companies')->where('id', 1)->update([
@@ -34,7 +39,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('companies', function (Blueprint $table) {
-            $table->dropColumn('full_name_en');
+            $table->dropColumn(['full_name', 'full_name_en']);
         });
     }
 };
