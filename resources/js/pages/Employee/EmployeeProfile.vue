@@ -53,8 +53,8 @@
             <InfoRow label="บริษัท" :value="profile.company" />
             <InfoRow label="แผนก" :value="profile.department" />
             <InfoRow label="ตำแหน่ง" :value="profile.position" />
-            <InfoRow label="สถานะ" :value="profile.status === 'active' ? 'ปกติ' : 'ไม่ active'" />
-            <InfoRow label="วันที่เริ่มงาน" :value="profile.start_date" />
+            <InfoRow label="สถานะ" :value="profile.status === 'active' ? 'ปกติ' : profile.status || 'ปกติ'" />
+            <InfoRow label="วันที่เริ่มงาน" :value="fmtStartDate(profile.start_date)" />
             <InfoRow label="มี OT" :value="profile.has_ot ? 'ใช่' : 'ไม่'" />
           </div>
         </div>
@@ -126,13 +126,21 @@ const loading = ref(true)
 const profile = ref(null)
 const uploading = ref(false)
 
+const thMonthsShort = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.']
+
 const initials = computed(() => {
   const name = profile.value?.name || 'E'
   return name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
 })
 
-function InfoRow({ label, value }) {
-  return { label, value }
+function fmtStartDate(d) {
+  if (!d) return '-'
+  const parts = d.split('-')
+  if (parts.length < 3) return d
+  const day = parseInt(parts[2])
+  const month = parseInt(parts[1]) - 1
+  const year = parseInt(parts[0]) + 543
+  return `${day} ${thMonthsShort[month]} ${year}`
 }
 
 async function handlePhotoUpload(event) {

@@ -3,8 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Employee;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Carbon\Carbon;
 
 class EmployeeProfileController extends Controller
 {
@@ -32,14 +34,14 @@ class EmployeeProfileController extends Controller
                 'company' => $employee->company?->name,
                 'work_shifts' => $employee->workShifts->map(fn($s) => [
                     'group_number' => $s->group_number,
-                    'start_time' => $s->start_time,
-                    'end_time' => $s->end_time,
+                    'start_time' => Carbon::parse($s->start_time)->setTimezone('Asia/Bangkok')->format('H:i'),
+                    'end_time' => Carbon::parse($s->end_time)->setTimezone('Asia/Bangkok')->format('H:i'),
                     'work_hours' => $s->work_hours,
                 ]),
                 'office_location' => $employee->assignedOfficeLocations->first()?->name,
                 'has_ot' => $employee->has_ot,
-                'status' => $employee->status,
-                'start_date' => $employee->start_date,
+                'status' => $employee->status ?? 'active',
+                'start_date' => $employee->start_date ? Carbon::parse($employee->start_date)->format('Y-m-d') : null,
                 'face_data_count' => $employee->faceData->count(),
                 'photo' => $employee->photo,
             ],
