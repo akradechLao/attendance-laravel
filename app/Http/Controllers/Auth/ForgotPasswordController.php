@@ -13,7 +13,7 @@ use Illuminate\Support\Str;
 
 class ForgotPasswordController extends Controller
 {
-    public function request(Request $request): JsonResponse
+    public function handleRequest(Request $request): JsonResponse
     {
         $request->validate([
             'username' => 'required|string',

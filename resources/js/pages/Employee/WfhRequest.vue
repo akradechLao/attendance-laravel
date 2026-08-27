@@ -179,8 +179,8 @@ const loadData = async () => {
   loading.value = true
   try {
     const [satRes, myRes] = await Promise.all([
-      api.get('/wfh/available-saturdays', { params: { month: selectedMonth.value } }),
-      api.get('/wfh/my-requests', { params: { month: selectedMonth.value } })
+      api.get('/api/wfh/available-saturdays', { params: { month: selectedMonth.value } }),
+      api.get('/api/wfh/my-requests', { params: { month: selectedMonth.value } })
     ])
     myRequests.value = myRes.data.data || []
     used.value = myRes.data.used || 0
@@ -208,7 +208,7 @@ const submitRequest = async () => {
   if (!selectedDate.value) return
   submitting.value = true
   try {
-    await api.post('/wfh', {
+    await api.post('/api/wfh', {
       date: selectedDate.value,
       reason: reason.value
     })

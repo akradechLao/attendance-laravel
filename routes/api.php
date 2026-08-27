@@ -143,7 +143,7 @@ Route::post('/auth/login', [LoginController::class, 'login']);
 Route::post('/employee/auth/login', [EmployeeAuthController::class, 'login']);
 
 // Forgot / Reset Password (public)
-Route::post('/auth/forgot-password', [App\Http\Controllers\Auth\ForgotPasswordController::class, 'request']);
+Route::post('/auth/forgot-password', [App\Http\Controllers\Auth\ForgotPasswordController::class, 'handleRequest']);
 Route::post('/auth/reset-password', [App\Http\Controllers\Auth\ForgotPasswordController::class, 'reset']);
 
 // ============================================================

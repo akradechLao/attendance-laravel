@@ -28,7 +28,7 @@ onMounted(async () => {
 const loadHistory = async () => {
   loading.value = true
   try {
-    const response = await api.get('/employee/attendance/history', {
+    const response = await api.get('/api/employee/attendance/history', {
       params: { month: statMonth.value, year: statYear.value }
     })
     if (response.data.data && Array.isArray(response.data.data)) {
