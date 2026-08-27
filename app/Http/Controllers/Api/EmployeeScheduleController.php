@@ -28,7 +28,7 @@ class EmployeeScheduleController extends Controller
             ->map(function ($s) {
                 $times = ShiftCodeHelper::getTimes($s->shift_code);
                 return [
-                    'date' => $s->work_date,
+                    'date' => $s->work_date instanceof \Carbon\Carbon ? $s->work_date->format('Y-m-d') : $s->work_date,
                     'shift_code' => $s->shift_code,
                     'day_type' => $s->day_type,
                     'start_time' => $times['start'],

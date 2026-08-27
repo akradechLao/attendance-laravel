@@ -58,12 +58,12 @@ class EmployeeDashboardController extends Controller
                     $assignedShifts[] = [
                         'group_number' => $ws->group_number,
                         'shift_code' => ShiftCodeHelper::codeFromGroup($ws->group_number) ?? "WC" . str_pad($ws->group_number + 1, 4, '0', STR_PAD_LEFT),
-                        'start_time' => $ws->start_time,
-                        'end_time' => $ws->end_time,
+                        'start_time' => $ws->start_time instanceof \Carbon\Carbon ? $ws->start_time->format('H:i') : substr($ws->start_time, 0, 5),
+                        'end_time' => $ws->end_time instanceof \Carbon\Carbon ? $ws->end_time->format('H:i') : substr($ws->end_time, 0, 5),
                         'work_hours' => $ws->work_hours,
                         'is_overnight' => $ws->is_overnight,
-                        'start_date' => $pivot->start_date,
-                        'end_date' => $pivot->end_date,
+                        'start_date' => $pivot->start_date instanceof \Carbon\Carbon ? $pivot->start_date->format('Y-m-d') : $pivot->start_date,
+                        'end_date' => $pivot->end_date instanceof \Carbon\Carbon ? $pivot->end_date->format('Y-m-d') : $pivot->end_date,
                         'is_active' => $isActive,
                     ];
                 }
