@@ -8,6 +8,7 @@ use App\Models\LeaveType;
 use App\Models\OtRequest;
 use App\Models\WfhRecord;
 use App\Services\LeaveService;
+use App\Constants\PositionConstants;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -74,6 +75,9 @@ class EmployeeRequestController extends Controller
                 ], 400);
             }
 
+            $empLevel = PositionConstants::getLevel($employee->position);
+            $isAutoApprove = $empLevel <= PositionConstants::HIERARCHY['md'];
+
             $leave = LeaveRequest::create([
                 'company_id' => $employee->company_id,
                 'emp_id' => $employee->id,
@@ -82,8 +86,18 @@ class EmployeeRequestController extends Controller
                 'end_date' => $request->end_date,
                 'total_days' => $totalDays,
                 'reason' => $request->reason,
-                'status' => 'pending',
+                'status' => $isAutoApprove ? 'approved' : 'pending',
+                'supervisor_id' => $isAutoApprove ? $employee->id : null,
             ]);
+
+            if ($isAutoApprove) {
+                try {
+                    $year = $start->year;
+                    $leaveService->deductLeave($employee, $leaveType, $totalDays, $year);
+                } catch (\Exception $e) {
+                    \Log::warning('Failed to deduct leave balance on auto-approve: ' . $e->getMessage());
+                }
+            }
 
             $leave->load('leaveType');
 
@@ -122,6 +136,8 @@ class EmployeeRequestController extends Controller
             ]);
 
             $employee = $request->user();
+            $empLevel = PositionConstants::getLevel($employee->position);
+            $isAutoApprove = $empLevel <= PositionConstants::HIERARCHY['md'];
 
             $ot = OtRequest::create([
                 'company_id' => $employee->company_id,
@@ -130,7 +146,9 @@ class EmployeeRequestController extends Controller
                 'start_time' => $request->start_time,
                 'end_time' => $request->end_time,
                 'reason' => $request->reason,
-                'status' => 'pending_manager',
+                'status' => $isAutoApprove ? 'approved' : 'pending_manager',
+                'approved_by' => $isAutoApprove ? $employee->id : null,
+                'approved_at' => $isAutoApprove ? now() : null,
             ]);
 
             return response()->json([
@@ -198,11 +216,16 @@ class EmployeeRequestController extends Controller
                 ], 400);
             }
 
+            $empLevel = PositionConstants::getLevel($employee->position);
+            $isAutoApprove = $empLevel <= PositionConstants::HIERARCHY['md'];
+
             $wfh = WfhRecord::create([
                 'emp_id' => $employee->id,
                 'date' => $date->format('Y-m-d'),
                 'reason' => $request->reason,
-                'status' => 'pending',
+                'status' => $isAutoApprove ? 'approved' : 'pending',
+                'supervisor_id' => $isAutoApprove ? $employee->id : null,
+                'approved_date' => $isAutoApprove ? now() : null,
             ]);
 
             return response()->json([
