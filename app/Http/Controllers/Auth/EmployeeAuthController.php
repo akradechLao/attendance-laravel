@@ -71,7 +71,7 @@ class EmployeeAuthController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'user' => $employee->load('company'),
+                    'user' => $employee->load('company', 'workShifts'),
                     'token' => $token,
                 ],
                 'message' => 'เข้าสู่ระบบสำเร็จ',

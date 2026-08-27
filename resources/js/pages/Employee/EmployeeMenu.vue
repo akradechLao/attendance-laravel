@@ -172,7 +172,7 @@
         </router-link>
 
         <!-- ร้องขอเข้ากะ -->
-        <router-link to="/employee/shift-request" class="block group">
+        <router-link v-if="hasShifts" to="/employee/shift-request" class="block group">
           <div class="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-center">
             <div class="w-12 h-12 sm:w-14 sm:h-14 mx-auto rounded-2xl bg-indigo-500 flex items-center justify-center mb-3 shadow-lg group-hover:scale-110 transition-transform">
               <svg class="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
