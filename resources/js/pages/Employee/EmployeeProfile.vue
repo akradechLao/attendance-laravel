@@ -50,20 +50,44 @@
         <div class="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm">
           <h3 class="text-sm font-bold text-gray-500 mb-4 uppercase tracking-wide">ข้อมูลการทำงาน</h3>
           <div class="space-y-3">
-            <InfoRow label="บริษัท" :value="profile.company" />
-            <InfoRow label="แผนก" :value="profile.department" />
-            <InfoRow label="ตำแหน่ง" :value="profile.position" />
-            <InfoRow label="สถานะ" :value="profile.status === 'active' ? 'ปกติ' : profile.status || 'ปกติ'" />
-            <InfoRow label="วันที่เริ่มงาน" :value="fmtStartDate(profile.start_date)" />
-            <InfoRow label="มี OT" :value="profile.has_ot ? 'ใช่' : 'ไม่'" />
+            <div class="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
+              <span class="text-gray-500 text-sm">บริษัท</span>
+              <span class="text-gray-800 text-sm font-medium">{{ profile.company || '-' }}</span>
+            </div>
+            <div class="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
+              <span class="text-gray-500 text-sm">แผนก</span>
+              <span class="text-gray-800 text-sm font-medium">{{ profile.department || '-' }}</span>
+            </div>
+            <div class="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
+              <span class="text-gray-500 text-sm">ตำแหน่ง</span>
+              <span class="text-gray-800 text-sm font-medium">{{ profile.position || '-' }}</span>
+            </div>
+            <div class="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
+              <span class="text-gray-500 text-sm">สถานะ</span>
+              <span class="text-gray-800 text-sm font-medium">{{ profile.status === 'active' ? 'ปกติ' : profile.status || 'ปกติ' }}</span>
+            </div>
+            <div class="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
+              <span class="text-gray-500 text-sm">วันที่เริ่มงาน</span>
+              <span class="text-gray-800 text-sm font-medium">{{ fmtStartDate(profile.start_date) }}</span>
+            </div>
+            <div class="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
+              <span class="text-gray-500 text-sm">มี OT</span>
+              <span class="text-gray-800 text-sm font-medium">{{ profile.has_ot ? 'ใช่' : 'ไม่' }}</span>
+            </div>
           </div>
         </div>
 
         <div class="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm">
           <h3 class="text-sm font-bold text-gray-500 mb-4 uppercase tracking-wide">ข้อมูลติดต่อ</h3>
           <div class="space-y-3">
-            <InfoRow label="เบอร์โทร" :value="profile.phone || '-'" />
-            <InfoRow label="อีเมล" :value="profile.email || '-'" />
+            <div class="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
+              <span class="text-gray-500 text-sm">เบอร์โทร</span>
+              <span class="text-gray-800 text-sm font-medium">{{ profile.phone || '-' }}</span>
+            </div>
+            <div class="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
+              <span class="text-gray-500 text-sm">อีเมล</span>
+              <span class="text-gray-800 text-sm font-medium">{{ profile.email || '-' }}</span>
+            </div>
           </div>
         </div>
 
