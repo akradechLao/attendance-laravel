@@ -159,35 +159,47 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/auth/profile', [App\Http\Controllers\Auth\AdminProfileController::class, 'show']);
     Route::put('/auth/profile', [App\Http\Controllers\Auth\AdminProfileController::class, 'update']);
 
-    // ---- Employee Self-Service (any role) ----
-    Route::get('/employee/profile', [EmployeeProfileController::class, 'show']);
-    Route::put('/employee/profile', [EmployeeProfileController::class, 'update']);
-    Route::post('/employee/profile/photo', [EmployeeProfileController::class, 'uploadPhoto']);
-    Route::get('/employee/schedule', [EmployeeScheduleController::class, 'index']);
-    Route::get('/employee/warnings', [EmployeeWarningController::class, 'index']);
-    Route::get('/employee/holidays', [EmployeeHolidayController::class, 'index']);
-    Route::get('/employee/dashboard', [EmployeeDashboardController::class, 'index']);
-    Route::get('/employee/requests/pending-count', [EmployeeRequestController::class, 'pendingCount']);
-    Route::get('/employee/attendance/history', [EmployeeHistoryController::class, 'myHistory']);
-    Route::post('/employee/leave-requests', [EmployeeRequestController::class, 'storeLeave']);
-    Route::post('/employee/ot-requests', [EmployeeRequestController::class, 'storeOt']);
-    Route::post('/employee/wfh-requests', [EmployeeRequestController::class, 'storeWfh']);
-    Route::post('/employee/change-password', [EmployeeRequestController::class, 'changePassword']);
+    // ---- Employee Self-Service (employees only) ----
+    Route::middleware('employee')->group(function () {
+        Route::get('/employee/profile', [EmployeeProfileController::class, 'show']);
+        Route::put('/employee/profile', [EmployeeProfileController::class, 'update']);
+        Route::post('/employee/profile/photo', [EmployeeProfileController::class, 'uploadPhoto']);
+        Route::get('/employee/schedule', [EmployeeScheduleController::class, 'index']);
+        Route::get('/employee/warnings', [EmployeeWarningController::class, 'index']);
+        Route::get('/employee/holidays', [EmployeeHolidayController::class, 'index']);
+        Route::get('/employee/dashboard', [EmployeeDashboardController::class, 'index']);
+        Route::get('/employee/requests/pending-count', [EmployeeRequestController::class, 'pendingCount']);
+        Route::get('/employee/attendance/history', [EmployeeHistoryController::class, 'myHistory']);
+        Route::post('/employee/leave-requests', [EmployeeRequestController::class, 'storeLeave']);
+        Route::post('/employee/ot-requests', [EmployeeRequestController::class, 'storeOt']);
+        Route::post('/employee/wfh-requests', [EmployeeRequestController::class, 'storeWfh']);
+        Route::post('/employee/change-password', [EmployeeRequestController::class, 'changePassword']);
+        Route::get('/employee/payslip', [PayslipController::class, 'myPayslip']);
+        Route::get('/employee/payslip/history', [PayslipController::class, 'myHistory']);
+
+        // Shift Swap (employee self)
+        Route::get('/shift-swaps/my-requests', [ShiftSwapController::class, 'myRequests']);
+        Route::get('/shift-swaps/available-employees', [ShiftSwapController::class, 'availableEmployees']);
+        Route::post('/shift-swaps', [ShiftSwapController::class, 'store']);
+
+        // Shift Request (employee self)
+        Route::get('/shift-requests/available-shifts', [ShiftRequestController::class, 'availableShifts']);
+        Route::get('/shift-requests/my-requests', [ShiftRequestController::class, 'myRequests']);
+        Route::post('/shift-requests', [ShiftRequestController::class, 'store']);
+
+        // Leave requests (self service)
+        Route::get('/leave/my-requests', [LeaveRequestController::class, 'myRequests']);
+        Route::get('/leave/balance', [LeaveRequestController::class, 'balance']);
+        Route::post('/leave', [LeaveRequestController::class, 'store']);
+
+        // WFH requests (self service)
+        Route::get('/wfh/available-saturdays', [WfhRequestController::class, 'availableSaturdays']);
+        Route::get('/wfh/my-requests', [WfhRequestController::class, 'myRequests']);
+        Route::post('/wfh', [WfhRequestController::class, 'store']);
+    });
+
+    // Announcements (all authenticated users)
     Route::get('/announcements', [AnnouncementController::class, 'index']);
-
-    // Employee Payslip (self)
-    Route::get('/employee/payslip', [PayslipController::class, 'myPayslip']);
-    Route::get('/employee/payslip/history', [PayslipController::class, 'myHistory']);
-
-    // Shift Swap (employee self)
-    Route::get('/shift-swaps/my-requests', [ShiftSwapController::class, 'myRequests']);
-    Route::get('/shift-swaps/available-employees', [ShiftSwapController::class, 'availableEmployees']);
-    Route::post('/shift-swaps', [ShiftSwapController::class, 'store']);
-
-    // Shift Request (employee self)
-    Route::get('/shift-requests/available-shifts', [ShiftRequestController::class, 'availableShifts']);
-    Route::get('/shift-requests/my-requests', [ShiftRequestController::class, 'myRequests']);
-    Route::post('/shift-requests', [ShiftRequestController::class, 'store']);
 
     // Attendance (any authenticated user can read)
     Route::get('/attendance/today', [AttendanceController::class, 'today']);
@@ -235,24 +247,18 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/shift-requests/{id}/approve', [ShiftRequestController::class, 'approve']);
     Route::put('/shift-requests/{id}/reject', [ShiftRequestController::class, 'reject']);
 
-    // WFH request routes
+    // WFH request routes (admin/HR approvals)
     Route::prefix('wfh')->group(function () {
         Route::get('/', [WfhRequestController::class, 'index']);
-        Route::get('/available-saturdays', [WfhRequestController::class, 'availableSaturdays']);
-        Route::get('/my-requests', [WfhRequestController::class, 'myRequests']);
         Route::get('/team-requests', [WfhRequestController::class, 'teamRequests']);
-        Route::post('/', [WfhRequestController::class, 'store']);
         Route::put('/{id}/approve', [WfhRequestController::class, 'approve']);
         Route::put('/{id}/reject', [WfhRequestController::class, 'reject']);
         Route::delete('/{id}', [WfhRequestController::class, 'cancel']);
     });
 
-    // Leave request routes
+    // Leave request routes (admin/HR approvals)
     Route::prefix('leave')->group(function () {
-        Route::get('/balance', [LeaveRequestController::class, 'balance']);
-        Route::get('/my-requests', [LeaveRequestController::class, 'myRequests']);
         Route::get('/team-leaves', [LeaveRequestController::class, 'teamLeaves']);
-        Route::post('/', [LeaveRequestController::class, 'store']);
         Route::put('/{id}/approve', [LeaveRequestController::class, 'approve']);
         Route::put('/{id}/reject', [LeaveRequestController::class, 'reject']);
     });

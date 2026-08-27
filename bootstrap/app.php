@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'role' => \App\Http\Middleware\RoleMiddleware::class,
             'position' => \App\Http\Middleware\PositionMiddleware::class,
+            'employee' => \App\Http\Middleware\EmployeeOnly::class,
         ]);
 
         $middleware->throttleApi();
