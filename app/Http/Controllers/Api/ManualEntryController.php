@@ -577,12 +577,6 @@ class ManualEntryController extends Controller
             $imported++;
         }
 
-        AuditLogService::log('import', null, null, [
-            'file' => $file->getClientOriginalName(),
-            'imported' => $imported,
-            'skipped' => $skipped,
-        ], "Import shift schedule: {$imported} records imported, {$skipped} skipped", $request);
-
         return response()->json([
             'success' => true,
             'imported' => $imported,
