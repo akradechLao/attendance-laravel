@@ -31,7 +31,7 @@ class EmployeeProfileController extends Controller
                 'position' => $employee->position,
                 'phone' => $employee->phone,
                 'email' => $employee->email,
-                'company' => $employee->company?->name,
+                'company' => $employee->company?->full_name ?? $employee->company?->name,
                 'work_shifts' => $employee->workShifts->map(function ($s) {
                     $today = now()->format('Y-m-d');
                     $start = $s->pivot->start_date ? Carbon::parse($s->pivot->start_date)->format('Y-m-d') : null;
