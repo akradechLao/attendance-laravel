@@ -52,7 +52,7 @@
           <div class="space-y-3">
             <div class="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
               <span class="text-gray-500 text-sm">บริษัท</span>
-              <span class="text-gray-800 text-sm font-medium">{{ profile.company || '-' }}</span>
+              <span class="text-gray-800 text-sm font-medium text-right">{{ profile.company || '-' }}<br><span class="text-gray-400 text-xs">{{ profile.company_full_name_en || '' }}</span></span>
             </div>
             <div class="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
               <span class="text-gray-500 text-sm">แผนก</span>
