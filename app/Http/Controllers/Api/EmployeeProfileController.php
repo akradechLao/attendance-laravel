@@ -20,6 +20,8 @@ class EmployeeProfileController extends Controller
 
         $employee->load(['company', 'workShifts', 'assignedOfficeLocations', 'faceData']);
 
+        $scheduleType = $employee->workShifts->count() > 0 ? 'shift' : 'monthly';
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -34,15 +36,17 @@ class EmployeeProfileController extends Controller
                 'company' => $employee->company?->full_name ?? $employee->company?->name,
                 'company_name' => $employee->company?->name,
                 'company_full_name_en' => $employee->company?->full_name_en,
-                'work_shifts' => $employee->workShifts->map(function ($s) {
+                'schedule_type' => $scheduleType,
+                'work_shifts' => $employee->workShifts->map(function ($s) use ($scheduleType) {
                     $today = now()->format('Y-m-d');
                     $start = $s->pivot->start_date ? Carbon::parse($s->pivot->start_date)->format('Y-m-d') : null;
                     $end = $s->pivot->end_date ? Carbon::parse($s->pivot->end_date)->format('Y-m-d') : null;
                     $isActive = (!$start || $today >= $start) && (!$end || $today <= $end);
                     return [
                         'group_number' => $s->group_number,
-                        'start_time' => Carbon::parse($s->start_time)->setTimezone('Asia/Bangkok')->format('H:i'),
-                        'end_time' => Carbon::parse($s->end_time)->setTimezone('Asia/Bangkok')->format('H:i'),
+                        'shift_code' => \App\Helpers\ShiftCodeHelper::codeFromGroup($s->group_number) ?? 'WC' . str_pad($s->group_number + 1, 4, '0', STR_PAD_LEFT),
+                        'start_time' => \App\Helpers\ShiftCodeHelper::getStartTime(\App\Helpers\ShiftCodeHelper::codeFromGroup($s->group_number) ?? 'WC' . str_pad($s->group_number + 1, 4, '0', STR_PAD_LEFT)),
+                        'end_time' => \App\Helpers\ShiftCodeHelper::getEndTime(\App\Helpers\ShiftCodeHelper::codeFromGroup($s->group_number) ?? 'WC' . str_pad($s->group_number + 1, 4, '0', STR_PAD_LEFT)),
                         'work_hours' => $s->work_hours,
                         'pivot_start' => $start,
                         'pivot_end' => $end,

@@ -37,6 +37,10 @@ class EmployeeDashboardController extends Controller
 
             $todayStr = $today->format('Y-m-d');
 
+            // Determine schedule type: shift-based (has employee_shifts) or monthly (no employee_shifts)
+            $employee->load('workShifts');
+            $scheduleType = $employee->workShifts->count() > 0 ? 'shift' : 'monthly';
+
             // 1. Get today's resolved shift (shift_schedules → employee_shifts → office default)
             $resolved = ShiftResolver::resolve($employee, $todayStr);
             $todayShiftCode = $resolved['shift_code'];
@@ -47,7 +51,6 @@ class EmployeeDashboardController extends Controller
             $activeShiftCode = null;
             $activeShiftTimes = ['start' => null, 'end' => null];
             try {
-                $employee->load('workShifts');
                 foreach ($employee->workShifts as $ws) {
                     $pivot = $ws->pivot;
                     $isActive = true;
@@ -162,6 +165,7 @@ class EmployeeDashboardController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => [
+                    'schedule_type' => $scheduleType,
                     'today' => $todayData,
                     'month' => [
                         'working_days' => $workingDays,

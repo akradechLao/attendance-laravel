@@ -86,27 +86,36 @@ class ShiftResolver
                 ? $officeLocation->work_start_time->format('H:i')
                 : substr($officeLocation->work_start_time, 0, 5);
 
-            // Assume 8-hour work day for office default
-            $endCarbon = Carbon::parse($date . ' ' . $start)->addHours(8);
+            $end = $officeLocation->work_end_time instanceof Carbon
+                ? $officeLocation->work_end_time->format('H:i')
+                : ($officeLocation->work_end_time ? substr($officeLocation->work_end_time, 0, 5) : null);
+
+            $workHours = 8;
+            if ($start && $end) {
+                $startMin = (int) substr($start, 0, 2) * 60 + (int) substr($start, 3, 2);
+                $endMin = (int) substr($end, 0, 2) * 60 + (int) substr($end, 3, 2);
+                $workHours = round(($endMin - $startMin) / 60, 1);
+            }
+
             return [
                 'shift_code' => null,
                 'start_time' => $start,
-                'end_time' => $endCarbon->format('H:i'),
-                'work_hours' => 8,
+                'end_time' => $end,
+                'work_hours' => $workHours,
                 'is_overnight' => false,
                 'source' => 'office_default',
                 'work_shift_id' => null,
             ];
         }
 
-        // 4. No shift info
+        // 4. Hardcoded default: 08:00-17:00
         return [
             'shift_code' => null,
-            'start_time' => null,
-            'end_time' => null,
-            'work_hours' => null,
-            'is_overnight' => null,
-            'source' => 'none',
+            'start_time' => '08:00',
+            'end_time' => '17:00',
+            'work_hours' => 8,
+            'is_overnight' => false,
+            'source' => 'default',
             'work_shift_id' => null,
         ];
     }
