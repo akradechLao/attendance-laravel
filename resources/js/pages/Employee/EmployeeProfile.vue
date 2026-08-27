@@ -119,7 +119,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import axios from 'axios'
+import api from '@/services/api'
 import store from '../../store'
 
 const loading = ref(true)
@@ -156,7 +156,7 @@ async function handlePhotoUpload(event) {
   try {
     const formData = new FormData()
     formData.append('photo', file)
-    const res = await axios.post('/api/employee/profile/photo', formData, {
+    const res = await api.post('/api/employee/profile/photo', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
     if (res.data.success) {
@@ -172,7 +172,7 @@ async function handlePhotoUpload(event) {
 
 onMounted(async () => {
   try {
-    const res = await axios.get('/api/employee/profile')
+    const res = await api.get('/api/employee/profile')
     if (res.data.success) {
       profile.value = res.data.data
     }
