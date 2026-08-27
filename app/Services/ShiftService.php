@@ -10,7 +10,7 @@ class ShiftService
     public function getShiftSchedule(int $empId, string $date): ?ShiftSchedule
     {
         return ShiftSchedule::where('emp_id', $empId)
-            ->where('date', $date)
+            ->where('work_date', $date)
             ->first();
     }
 
@@ -19,15 +19,12 @@ class ShiftService
         return ShiftSchedule::updateOrCreate(
             [
                 'emp_id' => $data['emp_id'],
-                'date' => $data['date'],
+                'work_date' => $data['work_date'],
             ],
             [
                 'company_id' => $data['company_id'],
                 'shift_code' => $data['shift_code'],
-                'start_time' => $data['start_time'],
-                'end_time' => $data['end_time'],
-                'ot_approved' => $data['ot_approved'] ?? false,
-                'ot_hours' => $data['ot_hours'] ?? 0,
+                'day_type' => $data['day_type'] ?? 'working',
             ]
         );
     }

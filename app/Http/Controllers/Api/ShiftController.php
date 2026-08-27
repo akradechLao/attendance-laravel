@@ -13,11 +13,11 @@ class ShiftController extends Controller
         $query = ShiftSchedule::with('employee');
 
         if ($request->month) {
-            $query->whereMonth('date', substr($request->month, 5, 2));
-            $query->whereYear('date', substr($request->month, 0, 4));
+            $query->whereMonth('work_date', substr($request->month, 5, 2));
+            $query->whereYear('work_date', substr($request->month, 0, 4));
         }
 
-        $shifts = $query->orderBy('date')->get();
+        $shifts = $query->orderBy('work_date')->get();
 
         return response()->json(['data' => $shifts]);
     }
@@ -26,7 +26,7 @@ class ShiftController extends Controller
     {
         $validated = $request->validate([
             'emp_id' => 'required|exists:employees,id',
-            'date' => 'required|date',
+            'work_date' => 'required|date',
             'start_time' => 'required|string',
             'end_time' => 'required|string',
             'shift_code' => 'required|string',
