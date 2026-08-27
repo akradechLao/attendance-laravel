@@ -44,6 +44,7 @@ use App\Http\Controllers\Api\ShiftAssignmentController;
 use App\Http\Controllers\Api\MandatoryOtController;
 use App\Http\Controllers\Api\LeaveRequestController;
 use App\Http\Controllers\Api\ManualEntryController;
+use App\Http\Controllers\Api\ShiftRequestController;
 
 /*
 |--------------------------------------------------------------------------
@@ -183,6 +184,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/shift-swaps/available-employees', [ShiftSwapController::class, 'availableEmployees']);
     Route::post('/shift-swaps', [ShiftSwapController::class, 'store']);
 
+    // Shift Request (employee self)
+    Route::get('/shift-requests/available-shifts', [ShiftRequestController::class, 'availableShifts']);
+    Route::get('/shift-requests/my-requests', [ShiftRequestController::class, 'myRequests']);
+    Route::post('/shift-requests', [ShiftRequestController::class, 'store']);
+
     // Attendance (any authenticated user can read)
     Route::get('/attendance/today', [AttendanceController::class, 'today']);
     Route::get('/attendance/history/{employeeId}', [AttendanceController::class, 'history']);
@@ -223,6 +229,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/shift-swaps/team-swaps', [ShiftSwapController::class, 'teamSwaps']);
     Route::put('/shift-swaps/{id}/approve', [ShiftSwapController::class, 'approve']);
     Route::put('/shift-swaps/{id}/reject', [ShiftSwapController::class, 'reject']);
+
+    // Shift Request approvals
+    Route::get('/shift-requests/team-requests', [ShiftRequestController::class, 'teamRequests']);
+    Route::put('/shift-requests/{id}/approve', [ShiftRequestController::class, 'approve']);
+    Route::put('/shift-requests/{id}/reject', [ShiftRequestController::class, 'reject']);
 
     // WFH request routes
     Route::prefix('wfh')->group(function () {

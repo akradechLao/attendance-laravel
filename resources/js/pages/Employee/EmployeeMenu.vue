@@ -171,6 +171,19 @@
           </div>
         </router-link>
 
+        <!-- ร้องขอเข้ากะ -->
+        <router-link to="/employee/shift-request" class="block group">
+          <div class="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-center">
+            <div class="w-12 h-12 sm:w-14 sm:h-14 mx-auto rounded-2xl bg-indigo-500 flex items-center justify-center mb-3 shadow-lg group-hover:scale-110 transition-transform">
+              <svg class="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h2 class="font-bold text-gray-800 text-sm sm:text-base">ร้องขอเข้ากะ</h2>
+            <p class="text-gray-400 text-xs mt-1">ขอ/แก้/ลบกะ</p>
+          </div>
+        </router-link>
+
         <!-- ตารางเวร -->
         <router-link v-if="hasShifts" to="/employee/schedule" class="block group">
           <div class="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-center">

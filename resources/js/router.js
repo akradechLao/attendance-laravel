@@ -98,6 +98,12 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/employee/shift-request',
+    name: 'EmployeeShiftRequest',
+    component: () => import('./pages/Employee/EmployeeShiftRequest.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/employee/holidays',
     name: 'EmployeeHolidays',
     component: () => import('./pages/Employee/HolidayCalendar.vue'),
@@ -192,6 +198,12 @@ const routes = [
     path: '/shift-swap-approval',
     name: 'HrShiftSwapApproval',
     component: () => import('./pages/HR/ShiftSwapApproval.vue'),
+    meta: { requiresAuth: true, layout: 'app', requiresRole: 'admin' }
+  },
+  {
+    path: '/shift-request-approval',
+    name: 'HrShiftRequestApproval',
+    component: () => import('./pages/HR/ShiftRequestApproval.vue'),
     meta: { requiresAuth: true, layout: 'app', requiresRole: 'admin' }
   },
   {

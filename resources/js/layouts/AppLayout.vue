@@ -172,6 +172,7 @@ const navItems = [
   { path: '/leave-approval', label: 'อนุมัติลางาน', icon: '✅', minRole: 'admin' },
   { path: '/wfh-approval', label: 'อนุมัติ WFH', icon: '✅', minRole: 'admin' },
   { path: '/shift-swap-approval', label: 'อนุมัติสลับเวร', icon: '✅', minRole: 'admin' },
+  { path: '/shift-request-approval', label: 'อนุมัติร้องขอเข้ากะ', icon: '⏰', minRole: 'admin' },
   { section: 'เงินเดือน', minRole: 'admin' },
   { path: '/payslip-entry', label: 'กรอกสลิปเงินเดือน', icon: '💰', minRole: 'admin' },
   { section: 'ดูแลทีม', minRole: 'admin' },
