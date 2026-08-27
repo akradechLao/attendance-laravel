@@ -92,14 +92,23 @@
         </div>
 
         <div v-if="profile.work_shifts?.length" class="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm">
-          <h3 class="text-sm font-bold text-gray-500 mb-4 uppercase tracking-wide">เวรปัจจุบัน</h3>
+          <h3 class="text-sm font-bold text-gray-500 mb-4 uppercase tracking-wide">เวร</h3>
           <div class="space-y-3">
-            <div v-for="(shift, i) in profile.work_shifts" :key="i" class="flex justify-between items-center p-3 bg-gray-50 rounded-xl">
-              <div>
-                <p class="font-medium text-gray-800 text-sm">กลุ่ม {{ shift.group_number }}</p>
-                <p class="text-gray-400 text-xs">{{ shift.work_hours }} ชม.</p>
+            <div v-for="(shift, i) in profile.work_shifts" :key="i" class="p-3 rounded-xl" :class="shift.is_active ? 'bg-blue-50 border border-blue-200' : 'bg-gray-50 border border-gray-200 opacity-60'">
+              <div class="flex justify-between items-center mb-1">
+                <div class="flex items-center gap-2">
+                  <p class="font-medium text-gray-800 text-sm">กลุ่ม {{ shift.group_number }}</p>
+                  <span v-if="shift.is_active" class="px-1.5 py-0.5 bg-blue-500 text-white text-[10px] font-medium rounded-full">ใช้งานอยู่</span>
+                  <span v-else class="px-1.5 py-0.5 bg-gray-300 text-white text-[10px] font-medium rounded-full">ไม่ active</span>
+                </div>
+                <p class="text-blue-600 text-sm font-medium">{{ shift.start_time }} - {{ shift.end_time }}</p>
               </div>
-              <p class="text-blue-600 text-sm font-medium">{{ shift.start_time }} - {{ shift.end_time }}</p>
+              <div class="flex justify-between items-center">
+                <p class="text-gray-400 text-xs">{{ shift.work_hours }} ชม.</p>
+                <p v-if="shift.pivot_start || shift.pivot_end" class="text-gray-400 text-xs">
+                  {{ shift.pivot_start || '...' }} - {{ shift.pivot_end || '...' }}
+                </p>
+              </div>
             </div>
           </div>
         </div>

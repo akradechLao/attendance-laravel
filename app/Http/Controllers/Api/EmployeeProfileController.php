@@ -32,12 +32,21 @@ class EmployeeProfileController extends Controller
                 'phone' => $employee->phone,
                 'email' => $employee->email,
                 'company' => $employee->company?->name,
-                'work_shifts' => $employee->workShifts->map(fn($s) => [
-                    'group_number' => $s->group_number,
-                    'start_time' => Carbon::parse($s->start_time)->setTimezone('Asia/Bangkok')->format('H:i'),
-                    'end_time' => Carbon::parse($s->end_time)->setTimezone('Asia/Bangkok')->format('H:i'),
-                    'work_hours' => $s->work_hours,
-                ]),
+                'work_shifts' => $employee->workShifts->map(function ($s) {
+                    $today = now()->format('Y-m-d');
+                    $start = $s->pivot->start_date ? Carbon::parse($s->pivot->start_date)->format('Y-m-d') : null;
+                    $end = $s->pivot->end_date ? Carbon::parse($s->pivot->end_date)->format('Y-m-d') : null;
+                    $isActive = (!$start || $today >= $start) && (!$end || $today <= $end);
+                    return [
+                        'group_number' => $s->group_number,
+                        'start_time' => Carbon::parse($s->start_time)->setTimezone('Asia/Bangkok')->format('H:i'),
+                        'end_time' => Carbon::parse($s->end_time)->setTimezone('Asia/Bangkok')->format('H:i'),
+                        'work_hours' => $s->work_hours,
+                        'pivot_start' => $start,
+                        'pivot_end' => $end,
+                        'is_active' => $isActive,
+                    ];
+                }),
                 'office_location' => $employee->assignedOfficeLocations->first()?->name,
                 'has_ot' => $employee->has_ot,
                 'status' => $employee->status ?? 'active',
