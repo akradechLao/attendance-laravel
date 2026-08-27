@@ -129,7 +129,7 @@ class Employee extends Authenticatable
     public function workShifts()
     {
         return $this->belongsToMany(WorkShift::class, 'employee_shifts')
-            ->withPivot('start_date', 'end_date');
+            ->withPivot('start_date', 'end_date', 'override_start_time', 'override_end_time');
     }
 
     public function approvers()

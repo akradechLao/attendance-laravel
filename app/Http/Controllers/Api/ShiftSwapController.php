@@ -251,24 +251,7 @@ class ShiftSwapController extends Controller
 
     private function getShiftLabel(string $code): string
     {
-        $labels = [
-            'WC0001' => '07:30-16:30',
-            'WC0002' => '08:00-17:00',
-            'WC0003' => '16:00-01:00',
-            'WC0004' => '00:00-09:00',
-            'WC0005' => '09:00-18:00',
-            'WC0006' => '20:00-05:00',
-            'WC007'  => '21:00-06:00',
-            'WC008'  => '08:00-16:30',
-            'WC009'  => '16:00-00:30',
-            'WC010'  => '00:00-08:30',
-            'WC011'  => '08:00-20:00',
-            'WC012'  => '20:00-08:00',
-            'WC013'  => '16:00-00:00',
-            'WC014'  => '00:00-08:00',
-            'WC015'  => '07:00-16:00',
-            'WC016'  => '19:00-04:00',
-        ];
-        return $labels[$code] ?? $code;
+        $label = \App\Helpers\ShiftCodeHelper::getLabel($code);
+        return $label !== $code ? $label : $code;
     }
 }

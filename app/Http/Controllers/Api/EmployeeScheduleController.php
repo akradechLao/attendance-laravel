@@ -2,9 +2,8 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Helpers\ShiftCodeHelper;
 use App\Http\Controllers\Controller;
-use App\Models\ShiftSchedule;
+use App\Services\ShiftResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -21,20 +20,24 @@ class EmployeeScheduleController extends Controller
         $startDate = $request->get('start_date', now()->startOfWeek()->format('Y-m-d'));
         $endDate = $request->get('end_date', now()->endOfWeek()->format('Y-m-d'));
 
-        $schedules = ShiftSchedule::where('emp_id', $employee->id)
-            ->whereBetween('work_date', [$startDate, $endDate])
-            ->orderBy('work_date')
-            ->get()
-            ->map(function ($s) {
-                $times = ShiftCodeHelper::getTimes($s->shift_code);
-                return [
-                    'date' => $s->work_date instanceof \Carbon\Carbon ? $s->work_date->format('Y-m-d') : $s->work_date,
-                    'shift_code' => $s->shift_code,
-                    'day_type' => $s->day_type,
-                    'start_time' => $times['start'],
-                    'end_time' => $times['end'],
-                ];
-            });
+        // Generate date range and resolve shifts using ShiftResolver
+        $start = \Carbon\Carbon::parse($startDate);
+        $end = \Carbon\Carbon::parse($endDate);
+        $days = (int) $start->diffInDays($end) + 1;
+
+        $schedules = collect();
+        for ($i = 0; $i < $days; $i++) {
+            $date = $start->copy()->addDays($i)->format('Y-m-d');
+            $resolved = ShiftResolver::resolve($employee, $date);
+
+            $schedules->push([
+                'date' => $date,
+                'shift_code' => $resolved['shift_code'],
+                'day_type' => $resolved['day_type'],
+                'start_time' => $resolved['start_time'],
+                'end_time' => $resolved['end_time'],
+            ]);
+        }
 
         return response()->json([
             'success' => true,

@@ -8,7 +8,7 @@ use App\Models\AttendanceLog;
 use App\Models\LeaveRequest;
 use App\Models\OtRequest;
 use App\Models\WfhRecord;
-use App\Models\ShiftSchedule;
+use App\Services\ShiftResolver;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -37,13 +37,10 @@ class EmployeeDashboardController extends Controller
 
             $todayStr = $today->format('Y-m-d');
 
-            // 1. Get today's actual shift from shift_schedules
-            $todaySchedule = ShiftSchedule::where('emp_id', $employee->id)
-                ->where('work_date', $todayStr)
-                ->first();
-
-            $todayShiftCode = $todaySchedule ? $todaySchedule->shift_code : null;
-            $todayTimes = $todayShiftCode ? ShiftCodeHelper::getTimes($todayShiftCode) : ['start' => null, 'end' => null];
+            // 1. Get today's resolved shift (shift_schedules → employee_shifts → office default)
+            $resolved = ShiftResolver::resolve($employee, $todayStr);
+            $todayShiftCode = $resolved['shift_code'];
+            $todayTimes = ['start' => $resolved['start_time'], 'end' => $resolved['end_time']];
 
             // 2. Get ALL assigned work shifts with date ranges
             $assignedShifts = [];
@@ -58,8 +55,8 @@ class EmployeeDashboardController extends Controller
                     if ($pivot->end_date && $todayStr > $pivot->end_date) $isActive = false;
 
                     $code = ShiftCodeHelper::codeFromGroup($ws->group_number) ?? "WC" . str_pad($ws->group_number + 1, 4, '0', STR_PAD_LEFT);
-                    $sTime = $ws->start_time instanceof \Carbon\Carbon ? $ws->start_time->format('H:i') : substr($ws->start_time, 0, 5);
-                    $eTime = $ws->end_time instanceof \Carbon\Carbon ? $ws->end_time->format('H:i') : substr($ws->end_time, 0, 5);
+                    $sTime = ShiftCodeHelper::getStartTime($code);
+                    $eTime = ShiftCodeHelper::getEndTime($code);
 
                     if ($isActive && !$activeShiftCode) {
                         $activeShiftCode = $code;
@@ -72,7 +69,7 @@ class EmployeeDashboardController extends Controller
                         'start_time' => $sTime,
                         'end_time' => $eTime,
                         'work_hours' => $ws->work_hours,
-                        'is_overnight' => $ws->is_overnight,
+                        'is_overnight' => ShiftCodeHelper::isOvernight($code),
                         'start_date' => $pivot->start_date instanceof \Carbon\Carbon ? $pivot->start_date->format('Y-m-d') : $pivot->start_date,
                         'end_date' => $pivot->end_date instanceof \Carbon\Carbon ? $pivot->end_date->format('Y-m-d') : $pivot->end_date,
                         'is_active' => $isActive,

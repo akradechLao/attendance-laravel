@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceLog;
 use App\Helpers\AttendanceCalculator;
+use App\Services\ShiftResolver;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -49,18 +50,12 @@ class AttendanceVerificationController extends Controller
 
                 $employee = $log->employee;
                 $logDate = $log->date instanceof Carbon ? $log->date->toDateString() : $log->date;
-                $shift = $employee->workShifts()->where(function ($q) use ($logDate) {
-                    $q->whereNull('start_date')->orWhere('start_date', '<=', $logDate);
-                })->where(function ($q) use ($logDate) {
-                    $q->whereNull('end_date')->orWhere('end_date', '>=', $logDate);
-                })->first();
+                $resolved = ShiftResolver::resolve($employee, $logDate);
 
                 $shiftTime = '-';
-                $shiftStart = null;
-                $shiftEnd = null;
-                if ($shift) {
-                    $shiftStart = $shift->start_time instanceof Carbon ? $shift->start_time->format('H:i') : $shift->start_time;
-                    $shiftEnd = $shift->end_time instanceof Carbon ? $shift->end_time->format('H:i') : $shift->end_time;
+                $shiftStart = $resolved['start_time'];
+                $shiftEnd = $resolved['end_time'];
+                if ($shiftStart && $shiftEnd) {
                     $shiftTime = $shiftStart . '-' . $shiftEnd;
                 }
 

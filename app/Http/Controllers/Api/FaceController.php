@@ -90,6 +90,7 @@ class FaceController extends Controller
                 $shiftInfo = $this->getEmployeeShiftInfo($employee, $now);
                 $shiftStartDate = $shiftInfo['shift_start_date'];
                 $isOvernight = $shiftInfo['is_overnight'];
+                $resolvedShift = $shiftInfo['resolved'];
 
                 // ตรวจสอบรอบที่ยังไม่ได้เช็คเอาท์
                 $activeRound = AttendanceLog::where('emp_id', $employee->id)
@@ -114,7 +115,18 @@ class FaceController extends Controller
                 $officeLocation = $employee->getAssignedOfficeLocation();
 
                 // ─── คำนวณเวลาเข้างานจริงของกะ ───
-                $workStartTime = $this->getWorkStartTime($employee, $shiftStartDate, $shiftInfo['shift']);
+                $workStartTime = $resolved['start_time']
+                    ? Carbon::parse($shiftStartDate->toDateString() . ' ' . $resolved['start_time'])
+                    : null;
+
+                // Fallback to office location
+                if (!$workStartTime && $officeLocation && $officeLocation->work_start_time) {
+                    $time = $officeLocation->work_start_time instanceof Carbon
+                        ? $officeLocation->work_start_time->format('H:i')
+                        : $officeLocation->work_start_time;
+                    $workStartTime = Carbon::parse($shiftStartDate->toDateString() . ' ' . $time);
+                }
+
                 $lateMinutes = 0;
                 $originalStatus = 'on_time';
 
@@ -479,84 +491,39 @@ class FaceController extends Controller
     /**
      * หาข้อมูลกะของพนักงาน + วันที่เริ่มกะ (รองรับข้ามคืน)
      *
-     * @return array{shift: ?WorkShift, shift_start_date: Carbon, is_overnight: bool}
+     * @return array{resolved: array, shift_start_date: Carbon, is_overnight: bool}
      */
     private function getEmployeeShiftInfo(Employee $employee, Carbon $now): array
     {
-        // หา กะที่ 1: กะของวันนี้
-        $shiftToday = $this->findShiftForDate($employee, $now);
+        $todayStr = $now->toDateString();
+        $resolvedToday = \App\Services\ShiftResolver::resolve($employee, $todayStr);
 
-        if ($shiftToday && $shiftToday->is_overnight) {
-            // กะข้ามคืน: ถ้ายังไม่เลยเวลาสิ้นสุดกะ → เริ่มเมื่อวาน
-            $endTime = $shiftToday->end_time instanceof Carbon
-                ? $shiftToday->end_time->format('H:i')
-                : $shiftToday->end_time;
-
-            $endCarbon = Carbon::parse($endTime);
-
-            if ($now->format('H:i') < $endCarbon->format('H:i')) {
-                // ยังอยู่ในช่วงเวลาสิ้นสุดกะ (เช่น 03:00 กะสิ้นสุด 04:00)
-                // → กะเริ่มเมื่อวาน
-                $shiftYesterday = $this->findShiftForDate($employee, Carbon::yesterday());
-                return [
-                    'shift' => $shiftYesterday ?? $shiftToday,
-                    'shift_start_date' => Carbon::yesterday(),
-                    'is_overnight' => true,
-                ];
+        // Handle overnight shifts
+        if ($resolvedToday['is_overnight'] ?? false) {
+            $endTime = $resolvedToday['end_time'] ?? null;
+            if ($endTime) {
+                $endCarbon = Carbon::parse($endTime);
+                if ($now->format('H:i') < $endCarbon->format('H:i')) {
+                    $yesterdayStr = Carbon::yesterday()->toDateString();
+                    $resolvedYesterday = \App\Services\ShiftResolver::resolve($employee, $yesterdayStr);
+                    return [
+                        'resolved' => $resolvedYesterday['start_time'] ? $resolvedYesterday : $resolvedToday,
+                        'shift_start_date' => Carbon::yesterday(),
+                        'is_overnight' => true,
+                    ];
+                }
             }
         }
 
-        // กะปกติ หรือ กะข้ามคืนที่เลยเวลาสิ้นสุดแล้ว
         return [
-            'shift' => $shiftToday,
+            'resolved' => $resolvedToday,
             'shift_start_date' => $now->copy()->startOfDay(),
-            'is_overnight' => $shiftToday?->is_overnight ?? false,
+            'is_overnight' => $resolvedToday['is_overnight'] ?? false,
         ];
     }
 
     /**
-     * ค้นหากะของพนักงานสำหรับวันที่กำหนด
-     */
-    private function findShiftForDate(Employee $employee, Carbon $date): ?\App\Models\WorkShift
-    {
-        $dateStr = $date->toDateString();
-
-        return $employee->workShifts()
-            ->where(function ($q) use ($dateStr) {
-                $q->whereNull('start_date')
-                    ->orWhere('start_date', '<=', $dateStr);
-            })
-            ->where(function ($q) use ($dateStr) {
-                $q->whereNull('end_date')
-                    ->orWhere('end_date', '>=', $dateStr);
-            })
-            ->first();
-    }
-
-    /**
-     * หาเวลาเข้างานจากกะของพนักงาน (รองรับข้ามคืน)
-     */
-    private function getWorkStartTime(Employee $employee, Carbon $shiftStartDate, ?\App\Models\WorkShift $shift): ?Carbon
-    {
-        if ($shift && $shift->start_time) {
-            $time = $shift->start_time instanceof Carbon
-                ? $shift->start_time->format('H:i')
-                : $shift->start_time;
-            return Carbon::parse($shiftStartDate->toDateString() . ' ' . $time);
-        }
-
-        $officeLocation = $employee->getAssignedOfficeLocation();
-        if ($officeLocation && $officeLocation->work_start_time) {
-            $time = $officeLocation->work_start_time instanceof Carbon
-                ? $officeLocation->work_start_time->format('H:i')
-                : $officeLocation->work_start_time;
-            return Carbon::parse($shiftStartDate->toDateString() . ' ' . $time);
-        }
-
-        return null;
-    }
-
-    /**
+     * หาเวลาเข้างานจากกะ (ค้ำด้วย ShiftResolver)
      * ตรวจสอบว่าพนักงานมีลามาแล้วหรือยัง
      */
     private function checkExistingLeave(Employee $employee, Carbon $date): ?LeaveRequest

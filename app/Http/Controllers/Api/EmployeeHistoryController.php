@@ -7,7 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\AttendanceLog;
 use App\Models\LeaveRequest;
-use App\Models\ShiftSchedule;
+use App\Services\ShiftResolver;
 use Illuminate\Http\Request;
 
 class EmployeeHistoryController extends Controller
@@ -55,19 +55,10 @@ class EmployeeHistoryController extends Controller
                 ->orderBy('date', 'desc')
                 ->get();
 
-            // Get shift schedules for this month
-            $dateRange = collect(range(0, $monthEnd->diffInDays($monthStart)))
-                ->map(fn($i) => $monthStart->copy()->addDays($i)->format('Y-m-d'));
-            $shiftMap = ShiftSchedule::where('emp_id', $employee->id)
-                ->whereIn('work_date', $dateRange)
-                ->get()
-                ->keyBy('work_date');
-
-            $attendance = $attendance->map(function ($log) use ($shiftMap) {
+            // Resolve shifts using ShiftResolver
+            $attendance = $attendance->map(function ($log) use ($employee) {
                 $dateStr = \Carbon\Carbon::parse($log->date)->format('Y-m-d');
-                $schedule = $shiftMap->get($dateStr);
-                $shiftCode = $schedule ? $schedule->shift_code : null;
-                $times = $shiftCode ? ShiftCodeHelper::getTimes($shiftCode) : ['start' => null, 'end' => null];
+                $resolved = ShiftResolver::resolve($employee, $dateStr);
 
                 return [
                     'id' => $log->id,
@@ -77,9 +68,9 @@ class EmployeeHistoryController extends Controller
                     'status' => $log->check_in_status,
                     'late_minutes' => (int) ($log->late_minutes ?? 0),
                     'note' => $log->adjustment_note,
-                    'shift_code' => $shiftCode,
-                    'schedule_start' => $times['start'],
-                    'schedule_end' => $times['end'],
+                    'shift_code' => $resolved['shift_code'],
+                    'schedule_start' => $resolved['start_time'],
+                    'schedule_end' => $resolved['end_time'],
                 ];
             });
 
@@ -127,18 +118,10 @@ class EmployeeHistoryController extends Controller
             ->limit($request->get('limit', 30))
             ->get();
 
-        // Get shift schedules for the date range
-        $dates = $attendance->map(fn($l) => \Carbon\Carbon::parse($l->date)->format('Y-m-d'))->toArray();
-        $shiftMap = ShiftSchedule::where('emp_id', $employee->id)
-            ->whereIn('work_date', $dates)
-            ->get()
-            ->keyBy('work_date');
-
-        $attendance = $attendance->map(function ($log) use ($shiftMap) {
+        // Resolve shifts using ShiftResolver
+        $attendance = $attendance->map(function ($log) use ($employee) {
             $dateStr = \Carbon\Carbon::parse($log->date)->format('Y-m-d');
-            $schedule = $shiftMap->get($dateStr);
-            $shiftCode = $schedule ? $schedule->shift_code : null;
-            $times = $shiftCode ? ShiftCodeHelper::getTimes($shiftCode) : ['start' => null, 'end' => null];
+            $resolved = ShiftResolver::resolve($employee, $dateStr);
 
             return [
                 'id' => $log->id,
@@ -148,9 +131,9 @@ class EmployeeHistoryController extends Controller
                 'status' => $log->check_in_status,
                 'late_minutes' => (int) ($log->late_minutes ?? 0),
                 'note' => $log->adjustment_note,
-                'shift_code' => $shiftCode,
-                'schedule_start' => $times['start'],
-                'schedule_end' => $times['end'],
+                'shift_code' => $resolved['shift_code'],
+                'schedule_start' => $resolved['start_time'],
+                'schedule_end' => $resolved['end_time'],
             ];
         });
 

@@ -9,6 +9,7 @@ use App\Models\Company;
 use App\Models\LateForcedLeave;
 use App\Models\OtRequest;
 use App\Helpers\AttendanceCalculator;
+use App\Services\ShiftResolver;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -205,15 +206,9 @@ class DashboardController extends Controller
 
                 $employee = $log->employee;
 
-                // ค้นหากะ (รองรับข้ามคืน)
+                // Resolve shift using ShiftResolver
                 $logDate = $log->date instanceof Carbon ? $log->date->toDateString() : $log->date;
-                $shift = $employee->workShifts()->where(function ($q) use ($logDate) {
-                    $q->whereNull('start_date')
-                        ->orWhere('start_date', '<=', $logDate);
-                })->where(function ($q) use ($logDate) {
-                    $q->whereNull('end_date')
-                        ->orWhere('end_date', '>=', $logDate);
-                })->first();
+                $resolved = ShiftResolver::resolve($employee, $logDate);
 
                 return [
                     'id' => $log->id,
@@ -233,8 +228,11 @@ class DashboardController extends Controller
                     'has_forced_leave' => $log->lateForcedLeave()->exists(),
                     'work_minutes' => $workMinutes,
                     'work_hours_display' => $workHoursDisplay,
-                    'shift_group' => $shift ? $shift->group_number : null,
-                    'shift_time' => $shift ? ($shift->start_time->format('H:i') . '-' . $shift->end_time->format('H:i')) : '-',
+                    'shift_group' => $resolved['group_number'],
+                    'shift_code' => $resolved['shift_code'],
+                    'shift_time' => ($resolved['start_time'] && $resolved['end_time'])
+                        ? $resolved['start_time'] . '-' . $resolved['end_time']
+                        : '-',
                 ];
             });
 
