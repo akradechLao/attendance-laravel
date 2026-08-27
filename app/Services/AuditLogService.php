@@ -11,7 +11,7 @@ class AuditLogService
 {
     public static function log(
         string $action,
-        Model $model,
+        ?Model $model,
         ?array $oldValues = null,
         ?array $newValues = null,
         ?string $description = null,
@@ -44,7 +44,7 @@ class AuditLogService
         }
 
         if (!$description) {
-            $description = self::generateDescription($action, $model);
+            $description = $model ? self::generateDescription($action, $model) : $action;
         }
 
         return AuditLog::create([
@@ -52,8 +52,8 @@ class AuditLogService
             'user_id' => $userId,
             'user_name' => $userName,
             'action' => $action,
-            'auditable_type' => get_class($model),
-            'auditable_id' => $model->getKey(),
+            'auditable_type' => $model ? get_class($model) : null,
+            'auditable_id' => $model ? $model->getKey() : null,
             'old_values' => $oldValues,
             'new_values' => $newValues,
             'description' => $description,
