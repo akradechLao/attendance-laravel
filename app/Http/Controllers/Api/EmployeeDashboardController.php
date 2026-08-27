@@ -47,6 +47,8 @@ class EmployeeDashboardController extends Controller
 
             // 2. Get ALL assigned work shifts with date ranges
             $assignedShifts = [];
+            $activeShiftCode = null;
+            $activeShiftTimes = ['start' => null, 'end' => null];
             try {
                 $employee->load('workShifts');
                 foreach ($employee->workShifts as $ws) {
@@ -55,11 +57,20 @@ class EmployeeDashboardController extends Controller
                     if ($pivot->start_date && $todayStr < $pivot->start_date) $isActive = false;
                     if ($pivot->end_date && $todayStr > $pivot->end_date) $isActive = false;
 
+                    $code = ShiftCodeHelper::codeFromGroup($ws->group_number) ?? "WC" . str_pad($ws->group_number + 1, 4, '0', STR_PAD_LEFT);
+                    $sTime = $ws->start_time instanceof \Carbon\Carbon ? $ws->start_time->format('H:i') : substr($ws->start_time, 0, 5);
+                    $eTime = $ws->end_time instanceof \Carbon\Carbon ? $ws->end_time->format('H:i') : substr($ws->end_time, 0, 5);
+
+                    if ($isActive && !$activeShiftCode) {
+                        $activeShiftCode = $code;
+                        $activeShiftTimes = ['start' => $sTime, 'end' => $eTime];
+                    }
+
                     $assignedShifts[] = [
                         'group_number' => $ws->group_number,
-                        'shift_code' => ShiftCodeHelper::codeFromGroup($ws->group_number) ?? "WC" . str_pad($ws->group_number + 1, 4, '0', STR_PAD_LEFT),
-                        'start_time' => $ws->start_time instanceof \Carbon\Carbon ? $ws->start_time->format('H:i') : substr($ws->start_time, 0, 5),
-                        'end_time' => $ws->end_time instanceof \Carbon\Carbon ? $ws->end_time->format('H:i') : substr($ws->end_time, 0, 5),
+                        'shift_code' => $code,
+                        'start_time' => $sTime,
+                        'end_time' => $eTime,
                         'work_hours' => $ws->work_hours,
                         'is_overnight' => $ws->is_overnight,
                         'start_date' => $pivot->start_date instanceof \Carbon\Carbon ? $pivot->start_date->format('Y-m-d') : $pivot->start_date,
@@ -68,6 +79,12 @@ class EmployeeDashboardController extends Controller
                     ];
                 }
             } catch (\Exception $e) {}
+
+            // 3. Fallback: if no shift_schedules entry, use active employee_shifts
+            if (!$todayShiftCode && $activeShiftCode) {
+                $todayShiftCode = $activeShiftCode;
+                $todayTimes = $activeShiftTimes;
+            }
 
             // 3. Calculate worked hours
             $workedHours = null;
