@@ -179,14 +179,18 @@ class ShiftSwapController extends Controller
 
     public function teamSwaps(Request $request): JsonResponse
     {
-        $employee = $request->user();
+        $user = $request->user();
 
-        if (!$employee) {
-            return response()->json(['success' => false, 'message' => 'Employee not found'], 404);
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'User not found'], 404);
         }
 
-        $employeeIds = $employee->getAllSubordinateIds();
-        $employeeIds[] = $employee->id;
+        if (method_exists($user, 'getAllSubordinateIds')) {
+            $employeeIds = $user->getAllSubordinateIds();
+            $employeeIds[] = $user->id;
+        } else {
+            $employeeIds = \App\Models\Employee::where('company_id', $user->company_id)->pluck('id')->toArray();
+        }
 
         $swaps = ShiftSwap::whereIn('requester_id', $employeeIds)
             ->with(['requester', 'target'])

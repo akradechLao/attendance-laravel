@@ -181,8 +181,12 @@ class ShiftRequestController extends Controller
     public function teamRequests(Request $request): JsonResponse
     {
         try {
-            $employee = $request->user();
-            $subordinateIds = $employee->getAllSubordinateIds();
+            $user = $request->user();
+            if (method_exists($user, 'getAllSubordinateIds')) {
+                $subordinateIds = $user->getAllSubordinateIds();
+            } else {
+                $subordinateIds = \App\Models\Employee::where('company_id', $user->company_id)->pluck('id')->toArray();
+            }
 
             $requests = ShiftRequest::with(['employee', 'workShift'])
                 ->whereIn('emp_id', $subordinateIds)

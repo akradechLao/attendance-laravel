@@ -196,13 +196,17 @@ class LeaveRequestController extends Controller
 
     public function teamLeaves(Request $request): JsonResponse
     {
-        $employee = $request->user();
+        $user = $request->user();
 
-        if (!$employee) {
-            return response()->json(['success' => false, 'message' => 'Employee not found'], 404);
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'User not found'], 404);
         }
 
-        $employeeIds = $employee->getAllSubordinateIds();
+        if (method_exists($user, 'getAllSubordinateIds')) {
+            $employeeIds = $user->getAllSubordinateIds();
+        } else {
+            $employeeIds = \App\Models\Employee::where('company_id', $user->company_id)->pluck('id')->toArray();
+        }
 
         if (empty($employeeIds)) {
             return response()->json(['success' => true, 'data' => []]);

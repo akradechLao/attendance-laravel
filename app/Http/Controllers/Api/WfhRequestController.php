@@ -298,14 +298,18 @@ class WfhRequestController extends Controller
 
     public function teamRequests(Request $request): JsonResponse
     {
-        $employee = $request->user();
+        $user = $request->user();
 
-        if (!$employee) {
-            return response()->json(['success' => false, 'message' => 'Employee not found'], 404);
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'User not found'], 404);
         }
 
         $month = $request->get('month', now()->setTimezone('Asia/Bangkok')->format('Y-m'));
-        $employeeIds = $employee->getAllSubordinateIds();
+        if (method_exists($user, 'getAllSubordinateIds')) {
+            $employeeIds = $user->getAllSubordinateIds();
+        } else {
+            $employeeIds = \App\Models\Employee::where('company_id', $user->company_id)->pluck('id')->toArray();
+        }
 
         if (empty($employeeIds)) {
             return response()->json(['success' => true, 'data' => []]);

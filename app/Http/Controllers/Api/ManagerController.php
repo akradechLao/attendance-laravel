@@ -14,13 +14,16 @@ class ManagerController extends Controller
     public function leaveApproval(Request $request)
     {
         $user = $request->user();
-        $employee = $request->user();
 
-        if (!$employee) {
-            return response()->json(['success' => false, 'message' => 'Employee not found'], 404);
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'User not found'], 404);
         }
 
-        $subordinateIds = $employee->getAllSubordinateIds();
+        if (method_exists($user, 'getAllSubordinateIds')) {
+            $subordinateIds = $user->getAllSubordinateIds();
+        } else {
+            $subordinateIds = Employee::where('company_id', $user->company_id)->pluck('id')->toArray();
+        }
 
         if (empty($subordinateIds)) {
             return response()->json(['data' => []]);
@@ -42,13 +45,16 @@ class ManagerController extends Controller
     public function otApproval(Request $request)
     {
         $user = $request->user();
-        $employee = $request->user();
 
-        if (!$employee) {
-            return response()->json(['success' => false, 'message' => 'Employee not found'], 404);
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'User not found'], 404);
         }
 
-        $subordinateIds = $employee->getAllSubordinateIds();
+        if (method_exists($user, 'getAllSubordinateIds')) {
+            $subordinateIds = $user->getAllSubordinateIds();
+        } else {
+            $subordinateIds = Employee::where('company_id', $user->company_id)->pluck('id')->toArray();
+        }
 
         if (empty($subordinateIds)) {
             return response()->json(['data' => []]);
