@@ -52,34 +52,46 @@
           <div v-for="day in ['จ','อ','พ','พฤ','ศ','ส','อา']" :key="day" class="text-center text-xs text-gray-500 font-medium py-1">{{ day }}</div>
           <div v-for="(blank, i) in startDayBlanks" :key="'b'+i"></div>
           <button v-for="d in daysInMonth" :key="d.date"
-                  @click="d.isSaturday && !occupiedMap[d.date] && !d.isTooOld && selectDate(d.date)"
+                  @click="selectDate(d.date, d)"
                   :disabled="!d.isSaturday || occupiedMap[d.date] || remaining === 0 || d.isTooOld"
                   :class="[
-                    'p-2 rounded-lg text-center transition text-xs',
+                    'p-2 rounded-lg text-center transition-all text-xs font-medium',
                     !d.isSaturday ? 'bg-gray-50 text-gray-300 cursor-not-allowed' :
-                    occupiedMap[d.date] ? 'bg-gray-100 text-gray-400 cursor-not-allowed' :
+                    occupiedMap[d.date] ? 'bg-gray-100 text-gray-400 cursor-not-allowed line-through' :
                     d.isTooOld ? 'bg-gray-50 text-gray-300 cursor-not-allowed' :
-                    selectedDate === d.date ? 'bg-blue-600 text-white' :
-                    'bg-green-50 text-green-700 hover:bg-green-100'
+                    selectedDate === d.date ? 'bg-blue-600 text-white shadow-lg scale-110 ring-2 ring-blue-300' :
+                    'bg-green-50 text-green-700 hover:bg-green-100 active:scale-95 cursor-pointer'
                   ]">
             <div class="font-bold">{{ d.day }}</div>
             <div v-if="occupiedMap[d.date]" class="text-[9px]">ไม่ว่าง</div>
           </button>
         </div>
-        <p class="text-xs text-gray-400 text-center">เลือกวันที่ต้องการ WFH (สีเขียว = ว่าง, ลงได้ย้อนหลัง 30 วัน)</p>
+        <p class="text-xs text-gray-400 text-center">เลือกวันเสาร์ที่ต้องการ WFH (สีเขียว = ว่าง)</p>
       </div>
     </div>
 
-    <!-- Reason Form -->
-    <div v-if="selectedDate" class="bg-white rounded-xl shadow p-4">
-      <h2 class="font-semibold text-[#0f172a] mb-3">วันที่เลือก: {{ formatSelectedDate }}</h2>
-      <textarea v-model="reason" rows="3" placeholder="เช่น ต้องไปทำธุระ..."
-                class="w-full border rounded-lg p-2" />
-      
-      <button @click="submitRequest" :disabled="submitting"
-              class="mt-4 w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50">
-        {{ submitting ? 'กำลังส่ง...' : 'ส่งคำขอ WFH' }}
-      </button>
+    <!-- Selected Date Confirmation -->
+    <div v-if="selectedDate" id="wfh-confirm" class="bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl shadow p-5 border-2 border-blue-300">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center">
+          <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+        </div>
+        <div>
+          <h2 class="font-bold text-blue-800 text-lg">วันที่เลือก</h2>
+          <p class="text-blue-600 font-medium">{{ formatSelectedDate }}</p>
+        </div>
+      </div>
+      <textarea v-model="reason" rows="3" placeholder="เช่น ต้องไปทำธุระ..." ref="reasonInput"
+                class="w-full border border-blue-200 rounded-xl p-3 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none resize-none mb-4" />
+      <div class="flex gap-3">
+        <button @click="selectedDate = null; reason = ''" class="flex-1 py-3 bg-gray-100 text-gray-600 rounded-xl font-semibold hover:bg-gray-200 transition-colors">ยกเลิก</button>
+        <button @click="submitRequest" :disabled="submitting"
+                class="flex-[2] py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
+          <svg v-if="!submitting" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+          <div v-else class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+          {{ submitting ? 'กำลังส่ง...' : 'ยืนยันส่งคำขอ WFH' }}
+        </button>
+      </div>
     </div>
 
     <!-- My Requests This Month -->
@@ -122,7 +134,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue'
+import { ref, onMounted, computed, nextTick } from 'vue'
 import api from '@/services/api'
 import state from '@/store'
 
@@ -200,8 +212,15 @@ const loadData = async () => {
   loading.value = false
 }
 
-const selectDate = (date) => {
+const selectDate = (date, dayObj) => {
+  if (!dayObj.isSaturday || occupiedMap.value[date] || dayObj.isTooOld || remaining.value === 0) return
   selectedDate.value = date
+  nextTick(() => {
+    const el = document.getElementById('wfh-confirm')
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    const ta = document.querySelector('#wfh-confirm textarea')
+    if (ta) setTimeout(() => ta.focus(), 400)
+  })
 }
 
 const submitRequest = async () => {
