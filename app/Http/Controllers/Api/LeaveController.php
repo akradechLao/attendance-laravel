@@ -23,6 +23,22 @@ class LeaveController extends Controller
                 ->orderBy('created_at', 'desc')
                 ->paginate($request->get('per_page', 15));
 
+            $leaves->getCollection()->transform(fn($l) => [
+                'id' => $l->id,
+                'emp_id' => $l->emp_id,
+                'leave_type_id' => $l->leave_type_id,
+                'start_date' => Carbon::parse($l->start_date)->format('Y-m-d'),
+                'end_date' => Carbon::parse($l->end_date)->format('Y-m-d'),
+                'total_days' => (int) ($l->total_days ?? 0),
+                'reason' => $l->reason,
+                'status' => $l->status,
+                'supervisor_note' => $l->supervisor_note,
+                'rejection_reason' => $l->rejection_reason,
+                'created_at' => $l->created_at ? Carbon::parse($l->created_at)->setTimezone('Asia/Bangkok')->format('Y-m-d H:i') : null,
+                'employee' => $l->employee ? ['id' => $l->employee->id, 'employee_code' => $l->employee->employee_code, 'first_name' => $l->employee->first_name, 'last_name' => $l->employee->last_name] : null,
+                'leave_type' => $l->leaveType ? ['id' => $l->leaveType->id, 'name' => $l->leaveType->name, 'code' => $l->leaveType->code] : null,
+            ]);
+
             return response()->json([
                 'success' => true,
                 'data' => $leaves,
@@ -125,7 +141,16 @@ class LeaveController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $leave->load(['employee', 'leaveType']),
+                'data' => [
+                    'id' => $leave->id,
+                    'emp_id' => $leave->emp_id,
+                    'start_date' => Carbon::parse($leave->start_date)->format('Y-m-d'),
+                    'end_date' => Carbon::parse($leave->end_date)->format('Y-m-d'),
+                    'total_days' => (int) ($leave->total_days ?? 0),
+                    'status' => $leave->status,
+                    'employee' => $leave->employee ? ['id' => $leave->employee->id, 'employee_code' => $leave->employee->employee_code, 'first_name' => $leave->employee->first_name, 'last_name' => $leave->employee->last_name] : null,
+                    'leave_type' => $leave->leaveType ? ['id' => $leave->leaveType->id, 'name' => $leave->leaveType->name] : null,
+                ],
                 'message' => 'Leave request approved successfully.',
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
@@ -181,9 +206,20 @@ class LeaveController extends Controller
             // Send Telegram notification
             $this->sendLeaveNotification($leave, 'rejected');
 
+            $leave->load(['employee', 'leaveType']);
+
             return response()->json([
                 'success' => true,
-                'data' => $leave->load(['employee', 'leaveType']),
+                'data' => [
+                    'id' => $leave->id,
+                    'emp_id' => $leave->emp_id,
+                    'start_date' => Carbon::parse($leave->start_date)->format('Y-m-d'),
+                    'end_date' => Carbon::parse($leave->end_date)->format('Y-m-d'),
+                    'total_days' => (int) ($leave->total_days ?? 0),
+                    'status' => $leave->status,
+                    'employee' => $leave->employee ? ['id' => $leave->employee->id, 'employee_code' => $leave->employee->employee_code, 'first_name' => $leave->employee->first_name, 'last_name' => $leave->employee->last_name] : null,
+                    'leave_type' => $leave->leaveType ? ['id' => $leave->leaveType->id, 'name' => $leave->leaveType->name] : null,
+                ],
                 'message' => 'Leave request rejected successfully.',
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {

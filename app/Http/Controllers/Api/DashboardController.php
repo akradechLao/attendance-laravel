@@ -20,8 +20,8 @@ class DashboardController extends Controller
     {
         try {
             $companyId = $request->get('company_id');
-            $today = Carbon::today()->toDateString();
-            $yesterday = Carbon::yesterday()->toDateString();
+            $today = Carbon::now('Asia/Bangkok')->today()->toDateString();
+            $yesterday = Carbon::now('Asia/Bangkok')->yesterday()->toDateString();
 
             $employeeQuery = Employee::where('is_active', true);
             if ($companyId) {
@@ -64,8 +64,8 @@ class DashboardController extends Controller
             $forcedLeavesPending = (clone $forcedLeaveQuery)->where('status', 'pending')->count();
             $forcedLeavesApproved = (clone $forcedLeaveQuery)->where('status', 'approved')->count();
 
-            $monthStart = Carbon::now()->startOfMonth()->toDateString();
-            $monthEnd = Carbon::now()->endOfMonth()->toDateString();
+            $monthStart = Carbon::now('Asia/Bangkok')->startOfMonth()->toDateString();
+            $monthEnd = Carbon::now('Asia/Bangkok')->endOfMonth()->toDateString();
 
             $monthlyQuery = AttendanceLog::whereBetween('date', [$monthStart, $monthEnd])
                 ->whereHas('employee', function ($q) use ($companyId) {

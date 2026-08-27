@@ -437,6 +437,18 @@ class ManualEntryController extends Controller
         $records = $query->orderBy('date', 'desc')
             ->paginate($request->get('per_page', 30));
 
+        $records->getCollection()->transform(fn($r) => [
+            'id' => $r->id,
+            'emp_id' => $r->emp_id,
+            'date' => Carbon::parse($r->date)->format('Y-m-d'),
+            'approved_date' => $r->approved_date ? Carbon::parse($r->approved_date)->format('Y-m-d') : null,
+            'reason' => $r->reason,
+            'supervisor_note' => $r->supervisor_note,
+            'status' => $r->status,
+            'created_at' => $r->created_at ? Carbon::parse($r->created_at)->setTimezone('Asia/Bangkok')->format('Y-m-d H:i') : null,
+            'employee' => $r->employee ? ['id' => $r->employee->id, 'name' => $r->employee->name, 'employee_code' => $r->employee->employee_code, 'department' => $r->employee->department] : null,
+        ]);
+
         return response()->json(['success' => true, 'data' => $records]);
     }
 
