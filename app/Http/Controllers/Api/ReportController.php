@@ -434,40 +434,55 @@ class ReportController extends Controller
     {
         $rows = '';
         foreach ($logs as $i => $log) {
+            $empCode = $log->employee?->employee_code ?? '-';
             $empName = $log->employee?->name ?? '-';
             $company = $log->employee?->company?->name ?? '-';
-            $checkIn = $log->check_in ? Carbon::parse($log->check_in)->format('d/m/Y H:i') : '-';
-            $checkOut = $log->check_out ? Carbon::parse($log->check_out)->format('d/m/Y H:i') : '-';
+            $checkIn = $log->check_in ? Carbon::parse($log->check_in)->setTimezone('Asia/Bangkok')->format('H:i') : '-';
+            $checkOut = $log->check_out ? Carbon::parse($log->check_out)->setTimezone('Asia/Bangkok')->format('H:i') : '-';
             $status = match($log->check_in_status) {
-                'late' => '<span style="color:#d97706;font-weight:bold">สาย</span>',
-                'on_time' => '<span style="color:#16a34a">ปกติ</span>',
+                'late' => 'สาย',
+                'on_time' => 'ปกติ',
                 default => '-',
             };
-            $late = $log->late_minutes ? $log->late_minutes . ' นาที' : '-';
+            $workHours = '-';
+            if ($log->check_in && $log->check_out) {
+                $in = Carbon::parse($log->check_in);
+                $out = Carbon::parse($log->check_out);
+                $mins = $in->diffInMinutes($out);
+                $h = intdiv($mins, 60);
+                $m = $mins % 60;
+                $workHours = $h . 'ชม.' . ($m > 0 ? $m . 'น.' : '');
+            }
+            $dateStr = $log->date ? Carbon::parse($log->date)->format('d/m/Y') : '-';
             $rows .= "<tr>
-                <td style='border:1px solid #ddd;padding:6px'>{$i}</td>
-                <td style='border:1px solid #ddd;padding:6px'>{$empName}</td>
-                <td style='border:1px solid #ddd;padding:6px'>{$company}</td>
-                <td style='border:1px solid #ddd;padding:6px'>{$checkIn}</td>
-                <td style='border:1px solid #ddd;padding:6px'>{$checkOut}</td>
-                <td style='border:1px solid #ddd;padding:6px'>{$status}</td>
-                <td style='border:1px solid #ddd;padding:6px'>{$late}</td>
+                <td style='border:1px solid #ddd;padding:4px;font-size:10px'>{$dateStr}</td>
+                <td style='border:1px solid #ddd;padding:4px;font-size:10px'>{$empCode}</td>
+                <td style='border:1px solid #ddd;padding:4px;font-size:10px'>{$empName}</td>
+                <td style='border:1px solid #ddd;padding:4px;font-size:10px'>{$company}</td>
+                <td style='border:1px solid #ddd;padding:4px;font-size:10px'>{$checkIn}</td>
+                <td style='border:1px solid #ddd;padding:4px;font-size:10px'>{$checkOut}</td>
+                <td style='border:1px solid #ddd;padding:4px;font-size:10px'>{$workHours}</td>
+                <td style='border:1px solid #ddd;padding:4px;font-size:10px'>{$status}</td>
             </tr>";
         }
 
-        return "<html><head><meta charset='utf-8'></head><body>
+        return "<html><head><meta charset='utf-8'><style>
+            @font-face { font-family: 'Thai'; src: url('file://" . public_path('fonts/NotoSansThai-Regular.ttf') . "'); }
+            body { font-family: 'Thai', sans-serif; }
+        </style></head><body>
             <h2 style='text-align:center'>รายงานเข้างาน</h2>
             <p style='text-align:center'>วันที่ {$startDate} - {$endDate}</p>
             <p style='text-align:center'>รวม {$logs->count()} รายการ</p>
-            <table style='width:100%;border-collapse:collapse;font-size:11px'>
+            <table style='width:100%;border-collapse:collapse'>
                 <thead><tr style='background:#f3f4f6'>
-                    <th style='border:1px solid #ddd;padding:6px'>#</th>
-                    <th style='border:1px solid #ddd;padding:6px'>ชื่อ</th>
-                    <th style='border:1px solid #ddd;padding:6px'>บริษัท</th>
-                    <th style='border:1px solid #ddd;padding:6px'>เช็คอิน</th>
-                    <th style='border:1px solid #ddd;padding:6px'>เช็คเอาท์</th>
-                    <th style='border:1px solid #ddd;padding:6px'>สถานะ</th>
-                    <th style='border:1px solid #ddd;padding:6px'>สาย</th>
+                    <th style='border:1px solid #ddd;padding:4px;font-size:10px'>วันที่</th>
+                    <th style='border:1px solid #ddd;padding:4px;font-size:10px'>รหัส</th>
+                    <th style='border:1px solid #ddd;padding:4px;font-size:10px'>ชื่อ</th>
+                    <th style='border:1px solid #ddd;padding:4px;font-size:10px'>บริษัท</th>
+                    <th style='border:1px solid #ddd;padding:4px;font-size:10px'>เช็คอิน</th>
+                    <th style='border:1px solid #ddd;padding:4px;font-size:10px'>เช็คเอาท์</th>
+                    <th style='border:1px solid #ddd;padding:4px;font-size:10px'>ชั่วโมงทำงาน</th>
+                    <th style='border:1px solid #ddd;padding:4px;font-size:10px'>สถานะ</th>
                 </tr></thead>
                 <tbody>{$rows}</tbody>
             </table></body></html>";
@@ -498,20 +513,23 @@ class ReportController extends Controller
             </tr>";
         }
 
-        return "<html><head><meta charset='utf-8'></head><body>
+        return "<html><head><meta charset='utf-8'><style>
+            @font-face { font-family: 'Thai'; src: url('file://" . public_path('fonts/NotoSansThai-Regular.ttf') . "'); }
+            body { font-family: 'Thai', sans-serif; }
+        </style></head><body>
             <h2 style='text-align:center'>รายงานการลา</h2>
             <p style='text-align:center'>วันที่ {$startDate} - {$endDate}</p>
             <p style='text-align:center'>รวม {$leaves->count()} รายการ</p>
-            <table style='width:100%;border-collapse:collapse;font-size:11px'>
+            <table style='width:100%;border-collapse:collapse'>
                 <thead><tr style='background:#f3f4f6'>
-                    <th style='border:1px solid #ddd;padding:6px'>#</th>
-                    <th style='border:1px solid #ddd;padding:6px'>ชื่อ</th>
-                    <th style='border:1px solid #ddd;padding:6px'>บริษัท</th>
-                    <th style='border:1px solid #ddd;padding:6px'>ประเภทลา</th>
-                    <th style='border:1px solid #ddd;padding:6px'>วันเริ่ม</th>
-                    <th style='border:1px solid #ddd;padding:6px'>วันสิ้นสุด</th>
-                    <th style='border:1px solid #ddd;padding:6px'>จำนวนวัน</th>
-                    <th style='border:1px solid #ddd;padding:6px'>สถานะ</th>
+                    <th style='border:1px solid #ddd;padding:4px;font-size:10px'>#</th>
+                    <th style='border:1px solid #ddd;padding:4px;font-size:10px'>ชื่อ</th>
+                    <th style='border:1px solid #ddd;padding:4px;font-size:10px'>บริษัท</th>
+                    <th style='border:1px solid #ddd;padding:4px;font-size:10px'>ประเภทลา</th>
+                    <th style='border:1px solid #ddd;padding:4px;font-size:10px'>วันเริ่ม</th>
+                    <th style='border:1px solid #ddd;padding:4px;font-size:10px'>วันสิ้นสุด</th>
+                    <th style='border:1px solid #ddd;padding:4px;font-size:10px'>จำนวนวัน</th>
+                    <th style='border:1px solid #ddd;padding:4px;font-size:10px'>สถานะ</th>
                 </tr></thead>
                 <tbody>{$rows}</tbody>
             </table></body></html>";
@@ -540,19 +558,22 @@ class ReportController extends Controller
             </tr>";
         }
 
-        return "<html><head><meta charset='utf-8'></head><body>
+        return "<html><head><meta charset='utf-8'><style>
+            @font-face { font-family: 'Thai'; src: url('file://" . public_path('fonts/NotoSansThai-Regular.ttf') . "'); }
+            body { font-family: 'Thai', sans-serif; }
+        </style></head><body>
             <h2 style='text-align:center'>รายงาน OT</h2>
             <p style='text-align:center'>วันที่ {$startDate} - {$endDate}</p>
             <p style='text-align:center'>รวม {$ots->count()} รายการ</p>
-            <table style='width:100%;border-collapse:collapse;font-size:11px'>
+            <table style='width:100%;border-collapse:collapse'>
                 <thead><tr style='background:#f3f4f6'>
-                    <th style='border:1px solid #ddd;padding:6px'>#</th>
-                    <th style='border:1px solid #ddd;padding:6px'>ชื่อ</th>
-                    <th style='border:1px solid #ddd;padding:6px'>บริษัท</th>
-                    <th style='border:1px solid #ddd;padding:6px'>วันที่</th>
-                    <th style='border:1px solid #ddd;padding:6px'>เวลา</th>
-                    <th style='border:1px solid #ddd;padding:6px'>ชั่วโมง</th>
-                    <th style='border:1px solid #ddd;padding:6px'>สถานะ</th>
+                    <th style='border:1px solid #ddd;padding:4px;font-size:10px'>#</th>
+                    <th style='border:1px solid #ddd;padding:4px;font-size:10px'>ชื่อ</th>
+                    <th style='border:1px solid #ddd;padding:4px;font-size:10px'>บริษัท</th>
+                    <th style='border:1px solid #ddd;padding:4px;font-size:10px'>วันที่</th>
+                    <th style='border:1px solid #ddd;padding:4px;font-size:10px'>เวลา</th>
+                    <th style='border:1px solid #ddd;padding:4px;font-size:10px'>ชั่วโมง</th>
+                    <th style='border:1px solid #ddd;padding:4px;font-size:10px'>สถานะ</th>
                 </tr></thead>
                 <tbody>{$rows}</tbody>
             </table></body></html>";

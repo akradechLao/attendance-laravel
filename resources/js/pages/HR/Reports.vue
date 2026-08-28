@@ -126,6 +126,7 @@
                     <th class="text-left px-6 py-3 text-sm font-semibold text-gray-600">บริษัท</th>
                     <th class="text-center px-6 py-3 text-sm font-semibold text-gray-600">เวลาเข้า</th>
                     <th class="text-center px-6 py-3 text-sm font-semibold text-gray-600">เวลาออก</th>
+                    <th class="text-center px-6 py-3 text-sm font-semibold text-gray-600">ชั่วโมงทำงาน</th>
                     <th class="text-center px-6 py-3 text-sm font-semibold text-gray-600">สถานะ</th>
                   </tr>
                 </thead>
@@ -133,24 +134,27 @@
                   <tr v-for="(record, index) in paginatedRecords" :key="index" class="hover:bg-gray-50">
                     <td class="px-6 py-4 text-gray-600">{{ formatDate(record.date) }}</td>
                     <td class="px-6 py-4 font-medium text-navy">{{ record.employee?.name }}</td>
-                    <td class="px-6 py-4 text-gray-600">{{ record.employee?.code }}</td>
+                    <td class="px-6 py-4 text-gray-600">{{ record.employee?.employee_code }}</td>
                     <td class="px-6 py-4 text-gray-600">{{ record.employee?.company?.name }}</td>
                     <td class="px-6 py-4 text-center">
-                      <span :class="record.is_late ? 'text-yellow-600' : 'text-green-600'">
+                      <span :class="record.check_in_status === 'late' ? 'text-yellow-600' : 'text-green-600'">
                         {{ record.check_in ? formatTime(record.check_in) : '-' }}
                       </span>
                     </td>
                     <td class="px-6 py-4 text-center text-gray-600">
                       {{ record.check_out ? formatTime(record.check_out) : '-' }}
                     </td>
+                    <td class="px-6 py-4 text-center text-gray-600">
+                      {{ calcWorkHours(record.check_in, record.check_out) }}
+                    </td>
                     <td class="px-6 py-4 text-center">
                       <span
                         :class="[
                           'px-2 py-1 rounded-full text-xs font-medium',
-                          record.is_late ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'
+                          record.check_in_status === 'late' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'
                         ]"
                       >
-                        {{ record.is_late ? 'สาย' : 'ปกติ' }}
+                        {{ record.check_in_status === 'late' ? 'สาย' : 'ปกติ' }}
                       </span>
                     </td>
                   </tr>
@@ -406,6 +410,24 @@ function formatDateDisplay(dateStr) {
 }
 
 const formatDate = formatDateDisplay
+
+function calcWorkHours(checkIn, checkOut) {
+  if (!checkIn || !checkOut) return '-'
+  const parseTime = (t) => {
+    const s = String(t)
+    if (s.includes('T')) {
+      const p = s.split('T')[1].substring(0, 5).split(':')
+      return parseInt(p[0]) * 60 + parseInt(p[1])
+    }
+    const p = s.substring(0, 5).split(':')
+    return parseInt(p[0]) * 60 + parseInt(p[1])
+  }
+  const diff = parseTime(checkOut) - parseTime(checkIn)
+  if (diff < 0) return '-'
+  const h = Math.floor(diff / 60)
+  const m = diff % 60
+  return h + ' ชม. ' + (m > 0 ? m + ' น.' : '')
+}
 
 function formatTime(timeStr) {
   if (!timeStr) return '-'
