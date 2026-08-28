@@ -228,7 +228,6 @@ class DashboardController extends Controller
                     'has_forced_leave' => $log->lateForcedLeave()->exists(),
                     'work_minutes' => $workMinutes,
                     'work_hours_display' => $workHoursDisplay,
-                    'shift_group' => $resolved['group_number'],
                     'shift_code' => $resolved['shift_code'],
                     'shift_time' => ($resolved['start_time'] && $resolved['end_time'])
                         ? $resolved['start_time'] . '-' . $resolved['end_time']
