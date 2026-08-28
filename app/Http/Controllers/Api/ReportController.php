@@ -29,7 +29,9 @@ class ReportController extends Controller
             ]);
 
             if ($request->filled('company_id')) {
-                $query->where('company_id', $request->company_id);
+                $query->whereHas('employee', function ($q) use ($request) {
+                    $q->where('company_id', $request->company_id);
+                });
             }
 
             $logs = $query->with('employee.company')
@@ -95,7 +97,9 @@ class ReportController extends Controller
                 ->where('is_active', true)
                 ->count();
 
-            $attendance = AttendanceLog::where('company_id', $request->company_id)
+            $attendance = AttendanceLog::whereHas('employee', function ($q) use ($request) {
+                    $q->where('company_id', $request->company_id);
+                })
                 ->whereBetween('check_in', [$startDate, $endDate])
                 ->get();
 
@@ -224,7 +228,9 @@ class ReportController extends Controller
             ]);
 
             if ($request->filled('company_id')) {
-                $query->where('company_id', $request->company_id);
+                $query->whereHas('employee', function ($q) use ($request) {
+                    $q->where('company_id', $request->company_id);
+                });
             }
 
             $logs = $query->with('employee.company')
@@ -371,7 +377,9 @@ class ReportController extends Controller
         ]);
 
         if ($request->filled('company_id')) {
-            $query->where('company_id', $request->company_id);
+            $query->whereHas('employee', function ($q) use ($request) {
+                $q->where('company_id', $request->company_id);
+            });
         }
 
         $logs = $query->with('employee.company')->orderBy('check_in', 'asc')->get();
