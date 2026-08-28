@@ -29,9 +29,7 @@ class ReportController extends Controller
             ]);
 
             if ($request->filled('company_id')) {
-                $query->whereHas('employee', function ($q) use ($request) {
-                    $q->where('company_id', $request->company_id);
-                });
+                $query->where('company_id', $request->company_id);
             }
 
             $logs = $query->with('employee.company')
@@ -39,8 +37,8 @@ class ReportController extends Controller
                 ->get();
 
             $totalRecords = $logs->count();
-            $lateCount = $logs->where('status', 'late')->count();
-            $onTimeCount = $logs->where('status', 'on_time')->count();
+            $lateCount = $logs->where('check_in_status', 'late')->count();
+            $onTimeCount = $logs->where('check_in_status', 'on_time')->count();
 
             $startDate = Carbon::parse($request->start_date);
             $endDate = Carbon::parse($request->end_date);
@@ -228,9 +226,7 @@ class ReportController extends Controller
             ]);
 
             if ($request->filled('company_id')) {
-                $query->whereHas('employee', function ($q) use ($request) {
-                    $q->where('company_id', $request->company_id);
-                });
+                $query->where('company_id', $request->company_id);
             }
 
             $logs = $query->with('employee.company')
@@ -377,9 +373,7 @@ class ReportController extends Controller
         ]);
 
         if ($request->filled('company_id')) {
-            $query->whereHas('employee', function ($q) use ($request) {
-                $q->where('company_id', $request->company_id);
-            });
+            $query->where('company_id', $request->company_id);
         }
 
         $logs = $query->with('employee.company')->orderBy('check_in', 'asc')->get();

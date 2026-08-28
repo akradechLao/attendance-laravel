@@ -173,6 +173,7 @@ class FaceController extends Controller
 
                 $log = AttendanceLog::create([
                     'emp_id' => $employee->id,
+                    'company_id' => $employee->company_id,
                     'date' => $shiftStartDate,
                     'round_no' => $nextRound,
                     'check_in' => $now,

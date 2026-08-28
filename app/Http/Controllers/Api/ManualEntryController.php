@@ -69,6 +69,7 @@ class ManualEntryController extends Controller
 
         $log = AttendanceLog::create([
             'emp_id' => $validated['emp_id'],
+            'company_id' => $employee->company_id,
             'date' => $validated['date'],
             'check_in' => $validated['check_in'],
             'check_out' => $validated['check_out'] ?? null,

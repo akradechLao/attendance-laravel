@@ -118,6 +118,7 @@ class AttendanceController extends Controller
             // Create log
             $log = AttendanceLog::create([
                 'emp_id' => $employee->id,
+                'company_id' => $employee->company_id,
                 'date' => $today,
                 'check_in' => $checkInTime->format('H:i:s'),
                 'check_in_status' => $status,
