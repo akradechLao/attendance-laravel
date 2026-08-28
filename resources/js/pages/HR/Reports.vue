@@ -405,6 +405,8 @@ function formatDateDisplay(dateStr) {
   return day + ' ' + month + ' ' + year
 }
 
+const formatDate = formatDateDisplay
+
 function formatTime(timeStr) {
   if (!timeStr) return '-'
   const str = String(timeStr)
