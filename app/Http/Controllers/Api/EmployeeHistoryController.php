@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Helpers\AttendanceHelper;
 use App\Helpers\ShiftCodeHelper;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
@@ -55,24 +56,28 @@ class EmployeeHistoryController extends Controller
                 ->orderBy('date', 'desc')
                 ->get();
 
-            // Resolve shifts using ShiftResolver
-            $attendance = $attendance->map(function ($log) use ($employee) {
-                $dateStr = \Carbon\Carbon::parse($log->date)->format('Y-m-d');
+            // Resolve shifts using ShiftResolver - group by date, combine rounds
+            $grouped = $attendance->groupBy(fn($log) => \Carbon\Carbon::parse($log->date)->format('Y-m-d'));
+            $attendance = $grouped->map(function ($logs, $dateStr) use ($employee) {
                 $resolved = ShiftResolver::resolve($employee, $dateStr);
+                $firstIn = AttendanceHelper::getFirstCheckIn($employee->id, $dateStr);
+                $lastOut = AttendanceHelper::getLastCheckOut($employee->id, $dateStr);
+                $workedHours = AttendanceHelper::calculateWorkedHours($employee->id, $dateStr);
+                $lateMinutes = $logs->min('late_minutes') ?? 0;
+                $status = $logs->firstWhere('check_in_status', 'late') ? 'late' : 'on_time';
 
                 return [
-                    'id' => $log->id,
                     'date' => $dateStr,
-                    'check_in' => $log->check_in ? \Carbon\Carbon::parse($log->check_in)->setTimezone('Asia/Bangkok')->format('H:i') : null,
-                    'check_out' => $log->check_out ? \Carbon\Carbon::parse($log->check_out)->setTimezone('Asia/Bangkok')->format('H:i') : null,
-                    'status' => $log->check_in_status,
-                    'late_minutes' => (int) ($log->late_minutes ?? 0),
-                    'note' => $log->adjustment_note,
+                    'check_in' => $firstIn ? \Carbon\Carbon::parse($firstIn)->setTimezone('Asia/Bangkok')->format('H:i') : null,
+                    'check_out' => $lastOut ? \Carbon\Carbon::parse($lastOut)->setTimezone('Asia/Bangkok')->format('H:i') : null,
+                    'status' => $status,
+                    'late_minutes' => (int) $lateMinutes,
                     'shift_code' => $resolved['shift_code'],
                     'schedule_start' => $resolved['start_time'],
                     'schedule_end' => $resolved['end_time'],
+                    'worked_hours' => $workedHours,
                 ];
-            });
+            })->values();
 
             $leave = LeaveRequest::with('leaveType:id,name,code')
                 ->where('emp_id', $employee->id)
@@ -118,24 +123,28 @@ class EmployeeHistoryController extends Controller
             ->limit($request->get('limit', 30))
             ->get();
 
-        // Resolve shifts using ShiftResolver
-        $attendance = $attendance->map(function ($log) use ($employee) {
-            $dateStr = \Carbon\Carbon::parse($log->date)->format('Y-m-d');
+        // Resolve shifts using ShiftResolver - group by date, combine rounds
+        $grouped = $attendance->groupBy(fn($log) => \Carbon\Carbon::parse($log->date)->format('Y-m-d'));
+        $attendance = $grouped->map(function ($logs, $dateStr) use ($employee) {
             $resolved = ShiftResolver::resolve($employee, $dateStr);
+            $firstIn = AttendanceHelper::getFirstCheckIn($employee->id, $dateStr);
+            $lastOut = AttendanceHelper::getLastCheckOut($employee->id, $dateStr);
+            $workedHours = AttendanceHelper::calculateWorkedHours($employee->id, $dateStr);
+            $lateMinutes = $logs->min('late_minutes') ?? 0;
+            $status = $logs->firstWhere('check_in_status', 'late') ? 'late' : 'on_time';
 
             return [
-                'id' => $log->id,
                 'date' => $dateStr,
-                'check_in' => $log->check_in ? \Carbon\Carbon::parse($log->check_in)->setTimezone('Asia/Bangkok')->format('H:i') : null,
-                'check_out' => $log->check_out ? \Carbon\Carbon::parse($log->check_out)->setTimezone('Asia/Bangkok')->format('H:i') : null,
-                'status' => $log->check_in_status,
-                'late_minutes' => (int) ($log->late_minutes ?? 0),
-                'note' => $log->adjustment_note,
+                'check_in' => $firstIn ? \Carbon\Carbon::parse($firstIn)->setTimezone('Asia/Bangkok')->format('H:i') : null,
+                'check_out' => $lastOut ? \Carbon\Carbon::parse($lastOut)->setTimezone('Asia/Bangkok')->format('H:i') : null,
+                'status' => $status,
+                'late_minutes' => (int) $lateMinutes,
                 'shift_code' => $resolved['shift_code'],
                 'schedule_start' => $resolved['start_time'],
                 'schedule_end' => $resolved['end_time'],
+                'worked_hours' => $workedHours,
             ];
-        });
+        })->values();
 
         return response()->json([
             'success' => true,

@@ -9,6 +9,7 @@ use App\Models\Company;
 use App\Models\LateForcedLeave;
 use App\Models\OtRequest;
 use App\Helpers\AttendanceCalculator;
+use App\Helpers\AttendanceHelper;
 use App\Services\ShiftResolver;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -175,67 +176,55 @@ class DashboardController extends Controller
                 ->orderBy('round_no', 'asc')
                 ->orderBy('check_in', 'desc');
 
-            $records = $query->get()->map(function ($log) {
-                $checkIn = $log->check_in;
-                $checkOut = $log->check_out;
+            $logs = $query->get();
 
-                $checkInRaw = null;
-                $checkOutRaw = null;
+            // Group by employee, combine rounds
+            $grouped = $logs->groupBy('emp_id');
+            $records = $grouped->map(function ($empLogs) {
+                $first = $empLogs->first();
+                $employee = $first->employee;
+                $logDate = $first->date instanceof Carbon ? $first->date->toDateString() : $first->date;
 
-                if ($checkIn instanceof Carbon) {
-                    $checkInRaw = $checkIn->copy();
-                    $checkIn = $checkIn->format('H:i');
-                } elseif (is_string($checkIn) && str_contains($checkIn, 'T')) {
-                    $checkInRaw = Carbon::parse($checkIn)->setTimezone('Asia/Bangkok');
-                    $checkIn = $checkInRaw->format('H:i');
-                }
-                if ($checkOut instanceof Carbon) {
-                    $checkOutRaw = $checkOut->copy();
-                    $checkOut = $checkOut->format('H:i');
-                } elseif (is_string($checkOut) && str_contains($checkOut, 'T')) {
-                    $checkOutRaw = Carbon::parse($checkOut)->setTimezone('Asia/Bangkok');
-                    $checkOut = $checkOutRaw->format('H:i');
-                }
+                $firstIn = AttendanceHelper::getFirstCheckIn($employee->id, $logDate);
+                $lastOut = AttendanceHelper::getLastCheckOut($employee->id, $logDate);
+                $workedHours = AttendanceHelper::calculateWorkHours($employee->id, $logDate);
+                $hasLate = $empLogs->contains('check_in_status', 'late') ||
+                           $empLogs->contains('original_status', 'late');
+                $lateMinutes = $empLogs->min('late_minutes') ?? 0;
 
-                $workMinutes = 0;
-                $workHoursDisplay = '-';
-                if ($checkInRaw && $checkOutRaw) {
-                    $workMinutes = AttendanceCalculator::calculateWorkMinutes($checkInRaw, $checkOutRaw);
-                    $workHoursDisplay = AttendanceCalculator::formatMinutes($workMinutes);
-                }
+                $checkInFormatted = $firstIn
+                    ? Carbon::parse($firstIn)->setTimezone('Asia/Bangkok')->format('H:i')
+                    : '-';
+                $checkOutFormatted = $lastOut
+                    ? Carbon::parse($lastOut)->setTimezone('Asia/Bangkok')->format('H:i')
+                    : '-';
 
-                $employee = $log->employee;
-
-                // Resolve shift using ShiftResolver
-                $logDate = $log->date instanceof Carbon ? $log->date->toDateString() : $log->date;
                 $resolved = ShiftResolver::resolve($employee, $logDate);
 
                 return [
-                    'id' => $log->id,
+                    'id' => $first->id,
                     'employee_name' => $employee->name ?? '-',
                     'employee_code' => $employee->employee_code ?? '-',
                     'company_name' => $employee->company->name ?? '-',
                     'company_code' => $employee->company->code_prefix ?? '-',
-                    'date' => $log->date,
-                    'round_no' => $log->round_no ?? 1,
-                    'check_in' => $checkIn,
-                    'check_out' => $checkOut,
-                    'original_status' => $log->original_status ?? $log->check_in_status,
-                    'final_status' => $log->final_status ?? $log->original_status ?? $log->check_in_status,
-                    'late_minutes' => $log->late_minutes,
-                    'scan_type' => $log->scan_type,
-                    'is_late' => ($log->final_status ?? $log->original_status ?? $log->check_in_status) === 'late',
-                    'has_forced_leave' => $log->lateForcedLeave()->exists(),
-                    'work_minutes' => $workMinutes,
-                    'work_hours_display' => $workHoursDisplay,
+                    'date' => $first->date,
+                    'check_in' => $checkInFormatted,
+                    'check_out' => $checkOutFormatted,
+                    'original_status' => $hasLate ? 'late' : 'on_time',
+                    'final_status' => $hasLate ? 'late' : 'on_time',
+                    'late_minutes' => $lateMinutes,
+                    'scan_type' => $first->scan_type,
+                    'is_late' => $hasLate,
+                    'has_forced_leave' => $first->lateForcedLeave()->exists(),
+                    'work_hours_display' => $workedHours !== null ? AttendanceCalculator::formatMinutes((int) ($workedHours * 60)) : '-',
                     'shift_code' => $resolved['shift_code'],
                     'shift_time' => ($resolved['start_time'] && $resolved['end_time'])
                         ? $resolved['start_time'] . '-' . $resolved['end_time']
                         : '-',
                 ];
-            });
+            })->values();
 
-            $present = $records->pluck('employee_name')->unique()->count();
+            $present = $records->count();
 
             $totalQuery = Employee::where('is_active', true);
             if ($companyId) {

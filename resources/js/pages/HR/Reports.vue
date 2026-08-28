@@ -145,7 +145,7 @@
                       {{ record.check_out ? formatTime(record.check_out) : '-' }}
                     </td>
                     <td class="px-6 py-4 text-center text-gray-600">
-                      {{ calcWorkHours(record.check_in, record.check_out) }}
+                      {{ record.calculated_work_hours != null ? formatWorkHours(record.calculated_work_hours) : calcWorkHours(record.check_in, record.check_out) }}
                     </td>
                     <td class="px-6 py-4 text-center">
                       <span
@@ -427,6 +427,13 @@ function calcWorkHours(checkIn, checkOut) {
   const h = Math.floor(diff / 60)
   const m = diff % 60
   return h + ' ชม. ' + (m > 0 ? m + ' น.' : '')
+}
+
+function formatWorkHours(hours) {
+  if (hours == null) return '-'
+  const h = Math.floor(hours)
+  const m = Math.round((hours - h) * 60)
+  return h + ' ชม.' + (m > 0 ? ' ' + m + ' น.' : '')
 }
 
 function formatTime(timeStr) {

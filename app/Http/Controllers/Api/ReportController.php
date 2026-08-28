@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Helpers\AttendanceHelper;
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceLog;
 use App\Models\Employee;
@@ -34,12 +35,33 @@ class ReportController extends Controller
 
             $logs = $query->with('employee.company')
                 ->orderBy('date', 'desc')
-                ->orderBy('check_in', 'desc')
+                ->orderBy('check_in', 'asc')
                 ->get();
 
-            $totalRecords = $logs->count();
-            $lateCount = $logs->where('check_in_status', 'late')->count();
-            $onTimeCount = $logs->where('check_in_status', 'on_time')->count();
+            // Group by date + employee, combine rounds
+            $grouped = $logs->groupBy(fn($log) => $log->date . '_' . $log->emp_id);
+            $combined = $grouped->map(function ($group) {
+                $first = $group->first();
+                $empId = $first->emp_id;
+                $dateStr = \Carbon\Carbon::parse($first->date)->format('Y-m-d');
+                $firstIn = AttendanceHelper::getFirstCheckIn($empId, $dateStr);
+                $lastOut = AttendanceHelper::getLastCheckOut($empId, $dateStr);
+                $workedHours = AttendanceHelper::calculateWorkedHours($empId, $dateStr);
+                $hasLate = $group->contains('check_in_status', 'late');
+                $lateMinutes = $group->min('late_minutes') ?? 0;
+
+                $first->check_in = $firstIn;
+                $first->check_out = $lastOut;
+                $first->check_in_status = $hasLate ? 'late' : 'on_time';
+                $first->late_minutes = $lateMinutes;
+                $first->calculated_work_hours = $workedHours;
+
+                return $first;
+            })->values();
+
+            $totalRecords = $combined->count();
+            $lateCount = $combined->where('check_in_status', 'late')->count();
+            $onTimeCount = $combined->where('check_in_status', 'on_time')->count();
 
             $startDate = Carbon::parse($request->start_date);
             $endDate = Carbon::parse($request->end_date);
@@ -53,7 +75,7 @@ class ReportController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'records' => $logs,
+                    'records' => $combined,
                     'summary' => [
                         'total_days' => $totalWorkingDays,
                         'on_time' => $onTimeCount,
@@ -445,10 +467,16 @@ class ReportController extends Controller
                 default => '-',
             };
             $workHours = '-';
-            if ($log->check_in && $log->check_out) {
+            if (isset($log->calculated_work_hours) && $log->calculated_work_hours !== null) {
+                $totalMins = (int) ($log->calculated_work_hours * 60);
+                $h = intdiv($totalMins, 60);
+                $m = $totalMins % 60;
+                $workHours = $h . 'ชม.' . ($m > 0 ? $m . 'น.' : '');
+            } elseif ($log->check_in && $log->check_out) {
                 $in = Carbon::parse($log->check_in);
                 $out = Carbon::parse($log->check_out);
-                $mins = $in->diffInMinutes($out);
+                $mins = $in->diffInMinutes($out) - 60;
+                $mins = max(0, $mins);
                 $h = intdiv($mins, 60);
                 $m = $mins % 60;
                 $workHours = $h . 'ชม.' . ($m > 0 ? $m . 'น.' : '');

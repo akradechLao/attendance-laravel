@@ -165,6 +165,7 @@ function fmtTime(t) {
               <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">เข้า</th>
               <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">ออก</th>
               <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">สาย</th>
+              <th class="px-3 py-3 text-center text-xs font-medium text-gray-500 uppercase">ชั่วโมงทำงาน</th>
               <th class="px-3 py-3 text-left text-xs font-medium text-gray-500 uppercase">สถานะ</th>
             </tr>
           </thead>
@@ -188,6 +189,10 @@ function fmtTime(t) {
                 <span v-if="record.late_minutes > 0" class="text-amber-600 font-medium">{{ record.late_minutes }} นาที</span>
                 <span v-else class="text-gray-300">-</span>
               </td>
+              <td class="px-3 py-3 whitespace-nowrap text-sm text-center">
+                <span v-if="record.worked_hours != null" class="text-blue-600 font-medium">{{ record.worked_hours }} ชม.</span>
+                <span v-else class="text-gray-300">-</span>
+              </td>
               <td class="px-3 py-3 whitespace-nowrap text-sm">
                 <span :class="record.status === 'late' ? 'text-amber-600' : record.status === 'on_time' ? 'text-emerald-600' : 'text-gray-500'" class="font-medium">
                   {{ record.status === 'on_time' ? 'ปกติ' : record.status === 'late' ? 'สาย' : record.status || '-' }}
@@ -195,7 +200,7 @@ function fmtTime(t) {
               </td>
             </tr>
             <tr v-if="attendanceHistory.length === 0">
-              <td colspan="6" class="px-4 py-8 text-center text-gray-400 text-sm">ไม่มีข้อมูล</td>
+              <td colspan="7" class="px-4 py-8 text-center text-gray-400 text-sm">ไม่มีข้อมูล</td>
             </tr>
           </tbody>
         </table>

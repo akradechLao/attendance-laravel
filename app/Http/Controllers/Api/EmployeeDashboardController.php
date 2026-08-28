@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Helpers\AttendanceHelper;
 use App\Helpers\ShiftCodeHelper;
 use App\Http\Controllers\Controller;
 use App\Models\AttendanceLog;
@@ -86,17 +87,28 @@ class EmployeeDashboardController extends Controller
                 $todayTimes = $activeShiftTimes;
             }
 
-            // 3. Calculate worked hours
+            // 3. Calculate worked hours (combine all rounds, minus 1hr break)
             $workedHours = null;
-            if ($todayLog && $todayLog->check_in && $todayLog->check_out) {
-                $in = Carbon::parse($todayLog->check_in);
-                $out = Carbon::parse($todayLog->check_out);
-                $workedHours = round($in->diffInMinutes($out) / 60, 1);
-            } elseif ($todayLog && $todayLog->check_in && !$todayLog->check_out) {
-                $in = Carbon::parse($todayLog->check_in);
-                $now = Carbon::now();
-                $workedHours = round($in->diffInMinutes($now) / 60, 1);
+            if ($todayLog) {
+                $hasAnyCheckIn = AttendanceLog::where('emp_id', $employee->id)
+                    ->where('date', $today->format('Y-m-d'))
+                    ->whereNotNull('check_in')
+                    ->exists();
+                if ($hasAnyCheckIn) {
+                    $hasCheckout = AttendanceLog::where('emp_id', $employee->id)
+                        ->where('date', $today->format('Y-m-d'))
+                        ->whereNotNull('check_out')
+                        ->exists();
+                    if ($hasCheckout) {
+                        $workedHours = AttendanceHelper::calculateWorkedHours($employee->id, $today->format('Y-m-d'));
+                    } else {
+                        $workedHours = AttendanceHelper::calculateWorkedHours($employee->id, $today->format('Y-m-d'), Carbon::now('Asia/Bangkok')->toDateTimeString());
+                    }
+                }
             }
+
+            $firstCheckIn = AttendanceHelper::getFirstCheckIn($employee->id, $today->format('Y-m-d'));
+            $lastCheckOut = AttendanceHelper::getLastCheckOut($employee->id, $today->format('Y-m-d'));
 
             // 4. Monthly stats
             $monthLogs = AttendanceLog::where('emp_id', $employee->id)
@@ -149,8 +161,8 @@ class EmployeeDashboardController extends Controller
             // Build today data
             $todayData = [
                 'date' => $today->format('Y-m-d'),
-                'check_in' => $todayLog && $todayLog->check_in ? Carbon::parse($todayLog->check_in)->setTimezone('Asia/Bangkok')->format('H:i') : null,
-                'check_out' => $todayLog && $todayLog->check_out ? Carbon::parse($todayLog->check_out)->setTimezone('Asia/Bangkok')->format('H:i') : null,
+                'check_in' => $firstCheckIn ? Carbon::parse($firstCheckIn)->setTimezone('Asia/Bangkok')->format('H:i') : null,
+                'check_out' => $lastCheckOut ? Carbon::parse($lastCheckOut)->setTimezone('Asia/Bangkok')->format('H:i') : null,
                 'status' => $todayLog ? $todayLog->check_in_status : null,
                 'late_minutes' => $todayLog ? (int) ($todayLog->late_minutes ?? 0) : null,
                 'is_checked_in' => (bool) $todayLog,
