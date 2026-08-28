@@ -289,8 +289,9 @@ class FaceController extends Controller
 
                 // ─── ตรวจจับ OT หลังเวลา (กลับช้า ≥ 1 ชม.) ───
                 $shiftInfo = $this->getEmployeeShiftInfo($employee, $now);
-                if ($shiftInfo['shift'] && $employee->has_ot) {
-                    $this->detectAfterShiftOt($employee, $log, $shiftStartDate, $shiftInfo['shift'], $now);
+                $resolvedShift = $shiftInfo['resolved'];
+                if ($resolvedShift && $resolvedShift['end_time'] && $employee->has_ot) {
+                    $this->detectAfterShiftOt($employee, $log, $shiftStartDate, $resolvedShift['end_time'], $now);
                 }
 
                 $roundLabel = $log->round_no > 1 ? ' (รอบที่ ' . $log->round_no . ')' : '';
@@ -657,7 +658,7 @@ class FaceController extends Controller
         Employee $employee,
         AttendanceLog $log,
         Carbon $shiftStartDate,
-        \App\Models\WorkShift $shift,
+        string $endTime,
         Carbon $checkOutTime
     ): void {
         $existing = AutoOtRecord::where('emp_id', $employee->id)
@@ -666,9 +667,6 @@ class FaceController extends Controller
             ->exists();
         if ($existing) return;
 
-        $endTime = $shift->end_time instanceof Carbon
-            ? $shift->end_time->format('H:i')
-            : $shift->end_time;
         $shiftEnd = Carbon::parse($shiftStartDate->toDateString() . ' ' . $endTime);
 
         // ถ้าเลิกงานช้ากว่าเวลาจบทะ ≥ 60 นาที
