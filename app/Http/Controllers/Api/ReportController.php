@@ -33,6 +33,7 @@ class ReportController extends Controller
             }
 
             $logs = $query->with('employee.company')
+                ->orderBy('date', 'desc')
                 ->orderBy('check_in', 'desc')
                 ->get();
 
@@ -158,6 +159,7 @@ class ReportController extends Controller
                     Carbon::parse($request->start_date)->startOfDay(),
                     Carbon::parse($request->end_date)->endOfDay(),
                 ])
+                ->orderBy('date', 'desc')
                 ->orderBy('check_in', 'desc')
                 ->get();
 

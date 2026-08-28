@@ -546,21 +546,32 @@ function exportCSV() {
   setTimeout(() => { exporting.value = false }, 500)
 }
 
-function exportPDF() {
+async function exportPDF() {
   if (records.value.length === 0) return
   exporting.value = true
-  const params = new URLSearchParams({
-    start_date: filters.startDate,
-    end_date: filters.endDate,
-  })
-  if (filters.companyId) params.append('company_id', filters.companyId)
-  const urls = {
-    attendance: '/api/reports/export-attendance-pdf',
-    leave: '/api/reports/export-leave-pdf',
-    ot: '/api/reports/export-ot-pdf',
+  try {
+    const params = {
+      start_date: filters.startDate,
+      end_date: filters.endDate,
+    }
+    if (filters.companyId) params.company_id = filters.companyId
+    const urls = {
+      attendance: '/api/reports/export-attendance-pdf',
+      leave: '/api/reports/export-leave-pdf',
+      ot: '/api/reports/export-ot-pdf',
+    }
+    const response = await api.get(urls[activeTab.value], { params, responseType: 'blob' })
+    const blob = new Blob([response.data], { type: 'application/pdf' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = activeTab.value + '-report-' + filters.startDate + '_' + filters.endDate + '.pdf'
+    link.click()
+    URL.revokeObjectURL(link.href)
+  } catch (error) {
+    console.error('PDF export error:', error)
+  } finally {
+    exporting.value = false
   }
-  window.location.href = urls[activeTab.value] + '?' + params.toString()
-  setTimeout(() => { exporting.value = false }, 2000)
 }
 
 onMounted(() => {
