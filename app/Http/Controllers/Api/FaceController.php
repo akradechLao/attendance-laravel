@@ -115,8 +115,8 @@ class FaceController extends Controller
                 $officeLocation = $employee->getAssignedOfficeLocation();
 
                 // ─── คำนวณเวลาเข้างานจริงของกะ ───
-                $workStartTime = $resolved['start_time']
-                    ? Carbon::parse($shiftStartDate->toDateString() . ' ' . $resolved['start_time'])
+                $workStartTime = $resolvedShift['start_time']
+                    ? Carbon::parse($shiftStartDate->toDateString() . ' ' . $resolvedShift['start_time'])
                     : null;
 
                 // Fallback to office location
