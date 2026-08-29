@@ -496,7 +496,7 @@ class ReportController extends Controller
 
         return "<html><head><meta charset='utf-8'><style>
             @font-face { font-family: 'Thai'; src: url('file://" . public_path('fonts/NotoSansThai-Regular.ttf') . "'); }
-            body, h2, p, th, td { font-family: 'Thai', sans-serif; }
+            * { font-family: 'Thai', sans-serif !important; }
         </style></head><body>
             <h2 style='text-align:center'>รายงานเข้างาน</h2>
             <p style='text-align:center'>วันที่ {$startDate} - {$endDate}</p>
@@ -543,7 +543,7 @@ class ReportController extends Controller
 
         return "<html><head><meta charset='utf-8'><style>
             @font-face { font-family: 'Thai'; src: url('file://" . public_path('fonts/NotoSansThai-Regular.ttf') . "'); }
-            body, h2, p, th, td { font-family: 'Thai', sans-serif; }
+            * { font-family: 'Thai', sans-serif !important; }
         </style></head><body>
             <h2 style='text-align:center'>รายงานการลา</h2>
             <p style='text-align:center'>วันที่ {$startDate} - {$endDate}</p>
@@ -588,7 +588,7 @@ class ReportController extends Controller
 
         return "<html><head><meta charset='utf-8'><style>
             @font-face { font-family: 'Thai'; src: url('file://" . public_path('fonts/NotoSansThai-Regular.ttf') . "'); }
-            body, h2, p, th, td { font-family: 'Thai', sans-serif; }
+            * { font-family: 'Thai', sans-serif !important; }
         </style></head><body>
             <h2 style='text-align:center'>รายงาน OT</h2>
             <p style='text-align:center'>วันที่ {$startDate} - {$endDate}</p>

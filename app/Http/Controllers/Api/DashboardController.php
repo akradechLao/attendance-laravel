@@ -183,11 +183,12 @@ class DashboardController extends Controller
             $records = $grouped->map(function ($empLogs) {
                 $first = $empLogs->first();
                 $employee = $first->employee;
+                if (!$employee) return null;
                 $logDate = $first->date instanceof Carbon ? $first->date->toDateString() : $first->date;
 
                 $firstIn = AttendanceHelper::getFirstCheckIn($employee->id, $logDate);
                 $lastOut = AttendanceHelper::getLastCheckOut($employee->id, $logDate);
-                $workedHours = AttendanceHelper::calculateWorkHours($employee->id, $logDate);
+                $workedHours = AttendanceHelper::calculateWorkedHours($employee->id, $logDate);
                 $hasLate = $empLogs->contains('check_in_status', 'late') ||
                            $empLogs->contains('original_status', 'late');
                 $lateMinutes = $empLogs->min('late_minutes') ?? 0;
@@ -215,14 +216,14 @@ class DashboardController extends Controller
                     'late_minutes' => $lateMinutes,
                     'scan_type' => $first->scan_type,
                     'is_late' => $hasLate,
-                    'has_forced_leave' => $first->lateForcedLeave()->exists(),
+                    'has_forced_leave' => method_exists($first, 'lateForcedLeave') ? $first->lateForcedLeave()->exists() : false,
                     'work_hours_display' => $workedHours !== null ? AttendanceCalculator::formatMinutes((int) ($workedHours * 60)) : '-',
                     'shift_code' => $resolved['shift_code'],
                     'shift_time' => ($resolved['start_time'] && $resolved['end_time'])
                         ? $resolved['start_time'] . '-' . $resolved['end_time']
                         : '-',
                 ];
-            })->values();
+            })->filter()->values();
 
             $present = $records->count();
 
