@@ -402,7 +402,7 @@ class ReportController extends Controller
             $query->where('company_id', $request->company_id);
         }
 
-        $logs = $query->with('employee.company')->orderBy('check_in', 'asc')->get();
+        $logs = $query->with('employee.company')->orderBy('date', 'desc')->orderBy('check_in', 'asc')->get();
 
         $html = $this->buildAttendancePdfHtml($logs, $request->start_date, $request->end_date);
 
