@@ -104,7 +104,25 @@
               </select>
             </div>
 
-            <!-- Employee search -->
+            <!-- Division -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">ฝ่าย</label>
+              <select v-model="form.division" class="input-field" @change="onDivisionChange" :disabled="!form.company_id">
+                <option value="">ทุกฝ่าย</option>
+                <option v-for="d in divisions" :key="d" :value="d">{{ d }}</option>
+              </select>
+            </div>
+
+            <!-- Department -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">แผนก</label>
+              <select v-model="form.department" class="input-field" @change="onDepartmentChange" :disabled="!form.company_id">
+                <option value="">ทุกแผนก</option>
+                <option v-for="d in departments" :key="d" :value="d">{{ d }}</option>
+              </select>
+            </div>
+
+            <!-- Employee dropdown -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">พนักงาน *</label>
               <div v-if="form.employee_id && selectedEmployeeName" class="flex items-center gap-2 p-2 bg-blue-50 rounded-lg">
@@ -112,14 +130,14 @@
                 <button type="button" @click="clearEmployee" class="text-xs text-red-500 hover:text-red-700">เปลี่ยน</button>
               </div>
               <div v-else>
-                <input v-model="employeeSearch" @input="searchEmployees" type="text" class="input-field w-full" placeholder="พิมพ์ชื่อหรือรหัสพนักงาน..." />
-                <div v-if="employeeResults.length > 0" class="mt-1 border rounded-lg divide-y max-h-48 overflow-y-auto bg-white shadow-lg">
-                  <button v-for="emp in employeeResults" :key="emp.id" type="button" @click="selectEmployee(emp)" class="w-full text-left px-4 py-2 hover:bg-blue-50 text-sm">
-                    <span class="font-medium">{{ emp.name }}</span>
-                    <span class="text-gray-500 ml-2">{{ emp.employee_code }}</span>
-                    <span v-if="emp.division" class="text-gray-400 ml-2">({{ emp.division }})</span>
-                  </button>
-                </div>
+                <select v-model="form.employee_id" class="input-field" @change="onEmployeeSelect" :disabled="!form.company_id || filteredEmployees.length === 0">
+                  <option value="">
+                    {{ !form.company_id ? 'เลือกบริษัทก่อน' : filteredEmployees.length === 0 ? 'ไม่พบพนักงาน' : 'เลือกพนักงาน' }}
+                  </option>
+                  <option v-for="emp in filteredEmployees" :key="emp.id" :value="emp.id">
+                    {{ emp.employee_code }} - {{ emp.name }}{{ emp.division ? ' (' + emp.division + ')' : '' }}
+                  </option>
+                </select>
               </div>
             </div>
 
@@ -174,15 +192,29 @@ const filter = ref({ status: '', company_id: '' })
 const form = ref({
   employee_id: '',
   company_id: '',
+  division: '',
+  department: '',
   start_date: '',
   end_date: '',
   destination: '',
   reason: '',
 })
 
-const employeeSearch = ref('')
-const employeeResults = ref([])
+const allCompanyEmployees = ref([])
+const divisions = ref([])
+const departments = ref([])
 const selectedEmployeeName = ref('')
+
+const filteredEmployees = computed(() => {
+  let list = allCompanyEmployees.value
+  if (form.value.division) {
+    list = list.filter(e => e.division === form.value.division)
+  }
+  if (form.value.department) {
+    list = list.filter(e => e.department === form.value.department)
+  }
+  return list
+})
 
 const stats = computed(() => {
   const now = new Date()
@@ -212,44 +244,71 @@ async function loadAssignments() {
 }
 
 function openCreateModal() {
-  form.value = { employee_id: '', company_id: '', start_date: '', end_date: '', destination: '', reason: '' }
-  employeeSearch.value = ''
-  employeeResults.value = []
+  form.value = { employee_id: '', company_id: '', division: '', department: '', start_date: '', end_date: '', destination: '', reason: '' }
+  allCompanyEmployees.value = []
+  divisions.value = []
+  departments.value = []
   selectedEmployeeName.value = ''
   showCreateModal.value = true
 }
 
 async function onCompanyChange() {
   form.value.employee_id = ''
+  form.value.division = ''
+  form.value.department = ''
   selectedEmployeeName.value = ''
-  employeeSearch.value = ''
-  employeeResults.value = []
-}
+  allCompanyEmployees.value = []
+  divisions.value = []
+  departments.value = []
 
-let searchTimeout = null
-async function searchEmployees() {
-  clearTimeout(searchTimeout)
-  if (!employeeSearch.value || employeeSearch.value.length < 2) {
-    employeeResults.value = []
-    return
+  if (!form.value.company_id) return
+
+  try {
+    const res = await api.get('/api/employees', { params: { company_id: form.value.company_id, per_page: 9999 } })
+    const raw = res.data.data?.data || res.data.data || []
+    allCompanyEmployees.value = raw.filter(e => e.is_active !== false)
+
+    const divSet = new Set()
+    const deptSet = new Set()
+    allCompanyEmployees.value.forEach(e => {
+      if (e.division) divSet.add(e.division)
+      if (e.department) deptSet.add(e.department)
+    })
+    divisions.value = [...divSet].sort()
+    departments.value = [...deptSet].sort()
+  } catch (e) {
+    console.error('Error fetching employees:', e)
   }
-  searchTimeout = setTimeout(async () => {
-    try {
-      const params = { search: employeeSearch.value }
-      if (form.value.company_id) params.company_id = form.value.company_id
-      const res = await api.get('/api/employees', { params })
-      employeeResults.value = res.data.data || []
-    } catch (e) {
-      employeeResults.value = []
-    }
-  }, 300)
 }
 
-function selectEmployee(emp) {
-  form.value.employee_id = emp.id
-  selectedEmployeeName.value = `${emp.name} (${emp.employee_code})`
-  employeeSearch.value = ''
-  employeeResults.value = []
+function onDivisionChange() {
+  form.value.employee_id = ''
+  form.value.department = ''
+  selectedEmployeeName.value = ''
+
+  if (form.value.division) {
+    const deptSet = new Set()
+    allCompanyEmployees.value
+      .filter(e => e.division === form.value.division)
+      .forEach(e => { if (e.department) deptSet.add(e.department) })
+    departments.value = [...deptSet].sort()
+  } else {
+    const deptSet = new Set()
+    allCompanyEmployees.value.forEach(e => { if (e.department) deptSet.add(e.department) })
+    departments.value = [...deptSet].sort()
+  }
+}
+
+function onDepartmentChange() {
+  form.value.employee_id = ''
+  selectedEmployeeName.value = ''
+}
+
+function onEmployeeSelect() {
+  const emp = allCompanyEmployees.value.find(e => e.id === form.value.employee_id)
+  if (emp) {
+    selectedEmployeeName.value = `${emp.name} (${emp.employee_code})`
+  }
 }
 
 function clearEmployee() {
