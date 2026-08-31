@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import api from '@/services/api'
+import AppLayout from '@/layouts/AppLayout.vue'
 
 const loading = ref(false)
 const importing = ref(false)
@@ -127,9 +128,10 @@ const deleteHoliday = async (id) => {
 </script>
 
 <template>
-  <div class="space-y-6">
-    <!-- Header -->
-    <div class="flex items-center justify-between flex-wrap gap-4">
+  <AppLayout>
+    <div class="space-y-6 p-4 sm:p-6">
+      <!-- Header -->
+      <div class="flex items-center justify-between flex-wrap gap-4">
       <div>
         <h1 class="text-2xl font-bold text-gray-900">Holiday Management</h1>
         <p class="text-gray-500">จัดการวันหยุดราชการ</p>
@@ -230,5 +232,5 @@ const deleteHoliday = async (id) => {
         </div>
       </div>
     </div>
-  </div>
+  </AppLayout>
 </template>
