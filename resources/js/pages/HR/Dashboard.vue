@@ -194,7 +194,7 @@ const onTimePercent = computed(() => stats.total > 0 ? Math.round((stats.on_time
 const latePercent = computed(() => stats.total > 0 ? Math.round((stats.late / stats.total) * 100) : 0)
 
 const companyColors = {
-  ETC1992: 'background: linear-gradient(135deg, #10b981, #047857)',
+  ETC: 'background: linear-gradient(135deg, #10b981, #047857)',
   STC: 'background: linear-gradient(135deg, #a855f7, #7e22ce)',
   ETECH: 'background: linear-gradient(135deg, #f97316, #c2410c)',
   NTC: 'background: linear-gradient(135deg, #3b82f6, #1d4ed8)',
