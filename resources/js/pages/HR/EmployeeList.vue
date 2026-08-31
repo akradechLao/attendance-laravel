@@ -298,8 +298,9 @@ async function fetchEmployees() {
       company_id: selectedCompany.value || undefined
     }
     const response = await api.get('/api/employees', { params })
-    employees.value = response.data.data?.data || response.data.data || response.data
-    totalItems.value = response.data.total || employees.value.length
+    const paginated = response.data.data
+    employees.value = paginated?.data || paginated || []
+    totalItems.value = paginated?.total || employees.value.length
   } catch (error) {
     console.error('Error fetching employees:', error)
   } finally {
