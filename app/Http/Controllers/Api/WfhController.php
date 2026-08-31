@@ -5,7 +5,9 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\WfhRecord;
 use App\Models\Employee;
+use App\Models\RemoteAssignment;
 use App\Constants\RoleConstants;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 
 class WfhController extends Controller
@@ -59,6 +61,28 @@ class WfhController extends Controller
             'approved_date' => now(),
         ]);
 
+        // ─── สร้าง RemoteAssignment อัตโนมัติ ───
+        $employee = $record->employee;
+        if ($employee) {
+            $wfhDate = Carbon::parse($record->date ?? $record->start_date)->format('Y-m-d');
+            RemoteAssignment::where('emp_id', $record->emp_id)
+                ->where('start_date', $wfhDate)
+                ->where('end_date', $wfhDate)
+                ->delete();
+
+            RemoteAssignment::create([
+                'emp_id' => $record->emp_id,
+                'company_id' => $employee->company_id,
+                'start_date' => $wfhDate,
+                'end_date' => $wfhDate,
+                'destination' => 'WFH',
+                'reason' => $record->reason ?: 'ปฏิบัติงานนอกสถานที่ (WFH)',
+                'status' => 'approved',
+                'approved_by' => auth()->id(),
+                'approved_at' => now(),
+            ]);
+        }
+
         return response()->json(['message' => 'อนุมัติสำเร็จ']);
     }
 
@@ -79,6 +103,17 @@ class WfhController extends Controller
             'status' => 'rejected',
             'rejection_reason' => $request->reason,
         ]);
+
+        // ─── ลบ RemoteAssignment ของวัน WFH นี้ (ถ้ามี) ───
+        $employee = $record->employee;
+        if ($employee) {
+            $wfhDate = Carbon::parse($record->date ?? $record->start_date)->format('Y-m-d');
+            RemoteAssignment::where('emp_id', $record->emp_id)
+                ->where('start_date', $wfhDate)
+                ->where('end_date', $wfhDate)
+                ->where('destination', 'WFH')
+                ->delete();
+        }
 
         return response()->json(['message' => 'ไม่อนุมัติสำเร็จ']);
     }

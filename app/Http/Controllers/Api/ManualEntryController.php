@@ -10,6 +10,7 @@ use App\Models\LeaveType;
 use App\Models\OtRequest;
 use App\Models\ShiftSchedule;
 use App\Models\WfhRecord;
+use App\Models\RemoteAssignment;
 use App\Services\AuditLogService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -463,15 +464,37 @@ class ManualEntryController extends Controller
         ]);
 
         $employee = Employee::find($validated['emp_id']);
+        $status = $validated['status'] ?? 'approved';
 
         $wfh = WfhRecord::create([
             'emp_id' => $validated['emp_id'],
             'date' => $validated['date'],
             'reason' => $validated['reason'] ?? 'บันทึกโดย HR (Manual Entry)',
-            'status' => $validated['status'] ?? 'approved',
+            'status' => $status,
             'supervisor_id' => $request->user()->id,
             'supervisor_note' => 'บันทึกโดย HR (Manual Entry)',
         ]);
+
+        // ─── ถ้า approved ให้สร้าง RemoteAssignment อัตโนมัติ ───
+        if ($status === 'approved' && $employee) {
+            $wfhDate = Carbon::parse($validated['date'])->format('Y-m-d');
+            RemoteAssignment::where('emp_id', $employee->id)
+                ->where('start_date', $wfhDate)
+                ->where('end_date', $wfhDate)
+                ->delete();
+
+            RemoteAssignment::create([
+                'emp_id' => $employee->id,
+                'company_id' => $employee->company_id,
+                'start_date' => $wfhDate,
+                'end_date' => $wfhDate,
+                'destination' => 'WFH',
+                'reason' => $validated['reason'] ?: 'ปฏิบัติงานนอกสถานที่ (WFH)',
+                'status' => 'approved',
+                'approved_by' => $request->user()->id,
+                'approved_at' => now(),
+            ]);
+        }
 
         AuditLogService::created($wfh, $request);
 
@@ -492,7 +515,42 @@ class ManualEntryController extends Controller
             'status' => 'nullable|in:pending,approved,rejected',
         ]);
 
+        $oldStatus = $wfh->status;
         $wfh->update($validated);
+        $newStatus = $wfh->status;
+        $employee = $wfh->employee;
+
+        // ─── จัดการ RemoteAssignment เมื่อสถานะเปลี่ยน ───
+        if ($employee) {
+            $wfhDate = Carbon::parse($wfh->date)->format('Y-m-d');
+
+            if ($newStatus === 'approved' && $oldStatus !== 'approved') {
+                // สถานะเปลี่ยนเป็น approved → สร้าง RemoteAssignment
+                RemoteAssignment::where('emp_id', $employee->id)
+                    ->where('start_date', $wfhDate)
+                    ->where('end_date', $wfhDate)
+                    ->delete();
+
+                RemoteAssignment::create([
+                    'emp_id' => $employee->id,
+                    'company_id' => $employee->company_id,
+                    'start_date' => $wfhDate,
+                    'end_date' => $wfhDate,
+                    'destination' => 'WFH',
+                    'reason' => $wfh->reason ?: 'ปฏิบัติงานนอกสถานที่ (WFH)',
+                    'status' => 'approved',
+                    'approved_by' => $request->user()->id,
+                    'approved_at' => now(),
+                ]);
+            } elseif ($newStatus !== 'approved' && $oldStatus === 'approved') {
+                // สถานะเปลี่ยนจาก approved → ลบ RemoteAssignment
+                RemoteAssignment::where('emp_id', $employee->id)
+                    ->where('start_date', $wfhDate)
+                    ->where('end_date', $wfhDate)
+                    ->where('destination', 'WFH')
+                    ->delete();
+            }
+        }
 
         return response()->json([
             'success' => true,
@@ -504,6 +562,18 @@ class ManualEntryController extends Controller
     public function wfhDestroy($id): JsonResponse
     {
         $wfh = WfhRecord::findOrFail($id);
+
+        // ─── ลบ RemoteAssignment ของวัน WFH นี้ (ถ้ามี) ───
+        $employee = $wfh->employee;
+        if ($employee) {
+            $wfhDate = Carbon::parse($wfh->date)->format('Y-m-d');
+            RemoteAssignment::where('emp_id', $employee->id)
+                ->where('start_date', $wfhDate)
+                ->where('end_date', $wfhDate)
+                ->where('destination', 'WFH')
+                ->delete();
+        }
+
         AuditLogService::deleted($wfh);
         $wfh->delete();
 

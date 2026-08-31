@@ -228,6 +228,21 @@ class EmployeeRequestController extends Controller
                 'approved_date' => $isAutoApprove ? now() : null,
             ]);
 
+            // ─── ถ้า auto-approved ให้สร้าง RemoteAssignment อัตโนมัติ ───
+            if ($isAutoApprove) {
+                \App\Models\RemoteAssignment::create([
+                    'emp_id' => $employee->id,
+                    'company_id' => $employee->company_id,
+                    'start_date' => $date->format('Y-m-d'),
+                    'end_date' => $date->format('Y-m-d'),
+                    'destination' => 'WFH',
+                    'reason' => $request->reason ?: 'ปฏิบัติงานนอกสถานที่ (WFH)',
+                    'status' => 'approved',
+                    'approved_by' => $employee->id,
+                    'approved_at' => now(),
+                ]);
+            }
+
             return response()->json([
                 'success' => true,
                 'data' => [

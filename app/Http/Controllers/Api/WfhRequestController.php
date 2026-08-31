@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\WfhRecord;
+use App\Models\RemoteAssignment;
 use App\Constants\RoleConstants;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -195,6 +196,30 @@ class WfhRequestController extends Controller
             'status' => 'approved',
         ]);
 
+        // ─── สร้าง RemoteAssignment อัตโนมัติ เพื่อให้พนักงาน remote scan ได้ ───
+        $employee = $record->employee;
+        if ($employee) {
+            $approvedDateStr = Carbon::parse($approvedDate)->format('Y-m-d');
+
+            // ลบ RemoteAssignment เดิมของวันนี้ (ถ้ามี)
+            RemoteAssignment::where('emp_id', $record->emp_id)
+                ->where('start_date', $approvedDateStr)
+                ->where('end_date', $approvedDateStr)
+                ->delete();
+
+            RemoteAssignment::create([
+                'emp_id' => $record->emp_id,
+                'company_id' => $employee->company_id,
+                'start_date' => $approvedDateStr,
+                'end_date' => $approvedDateStr,
+                'destination' => 'WFH',
+                'reason' => $record->reason ?: 'ปฏิบัติงานนอกสถานที่ (WFH)',
+                'status' => 'approved',
+                'approved_by' => $request->get('supervisor_id'),
+                'approved_at' => now(),
+            ]);
+        }
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -231,6 +256,14 @@ class WfhRequestController extends Controller
             'status' => 'rejected',
         ]);
 
+        // ─── ลบ RemoteAssignment ของวัน WFH นี้ (ถ้ามี) ───
+        $wfhDate = Carbon::parse($record->date)->format('Y-m-d');
+        RemoteAssignment::where('emp_id', $record->emp_id)
+            ->where('start_date', $wfhDate)
+            ->where('end_date', $wfhDate)
+            ->where('destination', 'WFH')
+            ->delete();
+
         return response()->json([
             'success' => true,
             'data' => $record,
@@ -249,6 +282,14 @@ class WfhRequestController extends Controller
                 return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
             }
         }
+
+        // ─── ลบ RemoteAssignment ของวัน WFH นี้ (ถ้ามี) ───
+        $wfhDate = Carbon::parse($record->date)->format('Y-m-d');
+        RemoteAssignment::where('emp_id', $record->emp_id)
+            ->where('start_date', $wfhDate)
+            ->where('end_date', $wfhDate)
+            ->where('destination', 'WFH')
+            ->delete();
 
         $record->delete();
 
