@@ -132,20 +132,16 @@ const deleteHoliday = async (id) => {
     <div class="space-y-6 p-4 sm:p-6">
       <!-- Header -->
       <div class="flex items-center justify-between flex-wrap gap-4">
-      <div>
-        <h1 class="text-2xl font-bold text-gray-900">Holiday Management</h1>
-        <p class="text-gray-500">จัดการวันหยุดราชการ</p>
-        <div class="flex items-center gap-3 mt-2 text-[10px]">
-          <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-500"></span> ราชการ</span>
-          <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> บริษัท</span>
-          <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-500"></span> พิเศษ</span>
+        <div>
+          <h1 class="text-2xl font-bold text-gray-900">จัดการวันหยุด</h1>
+          <p class="text-gray-500">จัดการวันหยุดราชการและวันหยุดบริษัท</p>
+          <div class="flex items-center gap-3 mt-2 text-[10px]">
+            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-500"></span> ราชการ</span>
+            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500"></span> บริษัท</span>
+            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-500"></span> พิเศษ</span>
+          </div>
         </div>
-      </div>
-      <div>
-        <h1 class="text-2xl font-bold text-gray-900">Holiday Management</h1>
-        <p class="text-gray-500">จัดการวันหยุดราชการ</p>
-      </div>
-      <div class="flex gap-3 items-center flex-wrap">
+        <div class="flex gap-3 items-center flex-wrap">
         <div class="flex gap-2 items-center">
           <select v-model="importYear" class="px-3 py-2 border rounded-lg">
             <option v-for="year in yearOptions" :key="year" :value="year">{{ year }}</option>
@@ -231,6 +227,7 @@ const deleteHoliday = async (id) => {
           </div>
         </div>
       </div>
+    </div>
     </div>
   </AppLayout>
 </template>
