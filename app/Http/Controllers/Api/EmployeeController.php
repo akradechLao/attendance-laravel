@@ -77,7 +77,7 @@ class EmployeeController extends Controller
         try {
             $validated = $request->validate([
                 'company_id' => 'required|exists:companies,id',
-                'code' => 'required|string|max:50|unique:employees,code',
+                'employee_code' => 'required|string|max:50|unique:employees,employee_code',
                 'name' => 'required|string|max:255',
                 'position' => 'nullable|string|max:255',
                 'department' => 'nullable|string|max:255',
@@ -121,7 +121,7 @@ class EmployeeController extends Controller
 
             $validated = $request->validate([
                 'company_id' => 'sometimes|exists:companies,id',
-                'code' => 'sometimes|string|max:50|unique:employees,code,' . $id,
+                'employee_code' => 'sometimes|string|max:50|unique:employees,employee_code,' . $id,
                 'name' => 'sometimes|string|max:255',
                 'position' => 'nullable|string|max:255',
                 'department' => 'nullable|string|max:255',

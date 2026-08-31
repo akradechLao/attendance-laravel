@@ -72,7 +72,7 @@
                       <span class="font-medium text-navy">{{ employee.name }}</span>
                     </div>
                   </td>
-                  <td class="px-6 py-4 text-gray-600">{{ employee.code }}</td>
+                   <td class="px-6 py-4 text-gray-600">{{ employee.employee_code }}</td>
                   <td class="px-6 py-4 text-gray-600">{{ employee.company?.name }}</td>
                   <td class="px-6 py-4 text-gray-600">{{ employee.position }}</td>
                   <td class="px-6 py-4 text-gray-600">{{ employee.department }}</td>
@@ -179,7 +179,7 @@
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">รหัสพนักงาน</label>
-            <input v-model="form.code" type="text" class="input-field" required />
+            <input v-model="form.employee_code" type="text" class="input-field" required />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">บริษัท</label>
@@ -264,7 +264,7 @@ const editId = ref(null)
 
 const form = reactive({
   name: '',
-  code: '',
+  employee_code: '',
   company_id: '',
   position: '',
   department: ''
@@ -321,7 +321,7 @@ function editEmployee(employee) {
   editId.value = employee.id
   Object.assign(form, {
     name: employee.name,
-    code: employee.code,
+    employee_code: employee.employee_code,
     company_id: employee.company_id,
     position: employee.position,
     department: employee.department
@@ -370,7 +370,7 @@ function closeModal() {
   showAddModal.value = false
   showEditModal.value = false
   editId.value = null
-  Object.assign(form, { name: '', code: '', company_id: '', position: '', department: '', id_card: '', social_security: '', education: '' })
+  Object.assign(form, { name: '', employee_code: '', company_id: '', position: '', department: '', id_card: '', social_security: '', education: '' })
 }
 
 async function resetPassword(employee) {
