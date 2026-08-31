@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import api from '@/services/api'
+import AppLayout from '@/layouts/AppLayout.vue'
 
 const loading = ref(false)
 const shifts = ref([])
@@ -76,7 +77,8 @@ const deleteShift = async (id) => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <AppLayout>
+    <div class="p-4 sm:p-6 space-y-6">
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
@@ -159,5 +161,6 @@ const deleteShift = async (id) => {
         </div>
       </div>
     </div>
-  </div>
+    </div>
+  </AppLayout>
 </template>

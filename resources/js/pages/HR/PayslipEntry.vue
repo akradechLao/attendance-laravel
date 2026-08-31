@@ -1,5 +1,6 @@
 <template>
-  <div class="space-y-6">
+  <AppLayout>
+    <div class="p-4 sm:p-6 space-y-6">
     <div class="flex items-center justify-between flex-wrap gap-4">
       <div>
         <h1 class="text-2xl font-bold text-gray-900">กรอกสลิปเงินเดือน</h1>
@@ -197,12 +198,14 @@
         </tbody>
       </table>
     </div>
-  </div>
+    </div>
+  </AppLayout>
 </template>
 
 <script setup>
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import axios from 'axios'
+import AppLayout from '@/layouts/AppLayout.vue'
 
 const months = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม']
 

@@ -1,5 +1,6 @@
 <template>
-  <div class="space-y-6">
+  <AppLayout>
+    <div class="p-4 sm:p-6 space-y-6">
     <div class="flex items-center justify-between">
       <div>
         <h1 class="text-2xl font-bold text-navy">ติดตามเส้นทางปฏิบัติงาน</h1>
@@ -80,13 +81,15 @@
         </div>
       </div>
     </div>
-  </div>
+    </div>
+  </AppLayout>
 </template>
 
 <script setup>
 import { ref, onMounted, onUnmounted, watch, nextTick } from 'vue'
 import api from '../../services/api'
 import L from 'leaflet'
+import AppLayout from '@/layouts/AppLayout.vue'
 
 const mapContainer = ref(null)
 const remoteEmployees = ref([])

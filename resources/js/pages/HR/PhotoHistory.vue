@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import api from '../../services/api'
+import AppLayout from '@/layouts/AppLayout.vue'
 
 const loading = ref(false)
 const employees = ref([])
@@ -47,7 +48,8 @@ const registeredPct = computed(() => filteredEmployees.value.length > 0 ? Math.r
 </script>
 
 <template>
-  <div class="space-y-6">
+  <AppLayout>
+    <div class="p-4 sm:p-6 space-y-6">
     <div>
       <h1 class="text-2xl font-bold text-navy">สถานะลงทะเบียนใบหน้า</h1>
       <p class="text-gray-500">ตรวจสอบพนักงานที่ลงทะเบียนใบหน้าแล้ว / ยังไม่ลงทะเบียน</p>
@@ -119,5 +121,6 @@ const registeredPct = computed(() => filteredEmployees.value.length > 0 ? Math.r
         </table>
       </div>
     </div>
-  </div>
+    </div>
+  </AppLayout>
 </template>

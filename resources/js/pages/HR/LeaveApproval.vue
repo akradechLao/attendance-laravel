@@ -1,5 +1,6 @@
 <template>
-  <div class="p-4 space-y-6">
+  <AppLayout>
+    <div class="p-4 sm:p-6 space-y-6">
     <h1 class="text-2xl font-bold text-[#0f172a]">อนุมัติลา</h1>
 
     <!-- Pending -->
@@ -46,13 +47,15 @@
 
     <div v-if="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-lg text-white text-sm"
          :class="toast.type==='success' ? 'bg-green-600' : 'bg-red-600'">{{ toast.message }}</div>
-  </div>
+    </div>
+  </AppLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import api from '@/services/api'
 import state from '@/store'
+import AppLayout from '@/layouts/AppLayout.vue'
 
 const leaves = ref([])
 const toast = ref(null)

@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted } from 'vue'
 import api from '@/services/api'
+import AppLayout from '@/layouts/AppLayout.vue'
 
 const loading = ref(false)
 const otRequests = ref([])
@@ -50,7 +51,8 @@ const rejectOt = async (id) => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <AppLayout>
+    <div class="p-4 sm:p-6 space-y-6">
     <!-- Header -->
     <div>
       <h1 class="text-2xl font-bold text-gray-900">OT Approval</h1>
@@ -83,5 +85,6 @@ const rejectOt = async (id) => {
         </tbody>
       </table>
     </div>
-  </div>
+    </div>
+  </AppLayout>
 </template>
