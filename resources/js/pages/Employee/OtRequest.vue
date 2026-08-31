@@ -81,7 +81,11 @@
 
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import axios from 'axios'
+import store from '../../store'
+
+const router = useRouter()
 
 const loading = ref(false)
 const error = ref('')
@@ -146,5 +150,12 @@ async function handleSubmit() {
   }
 }
 
-onMounted(fetchHistory)
+onMounted(() => {
+  if (!store.user?.has_ot) {
+    alert('พนักงานไม่มีสิทธิ์ทำโอที')
+    router.push('/employee/menu')
+    return
+  }
+  fetchHistory()
+})
 </script>

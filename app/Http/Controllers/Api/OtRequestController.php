@@ -46,6 +46,16 @@ class OtRequestController extends Controller
     public function store(Request $request): JsonResponse
     {
         try {
+            $user = $request->user();
+
+            if (!$user->has_ot) {
+                return response()->json([
+                    'success' => false,
+                    'data' => null,
+                    'message' => 'พนักงานไม่มีสิทธิ์ทำโอที',
+                ], 403);
+            }
+
             $validated = $request->validate([
                 'date' => 'required|date|after_or_equal:-30 days',
                 'start_time' => 'required|date_format:H:i',
@@ -53,7 +63,6 @@ class OtRequestController extends Controller
                 'reason' => 'nullable|string|max:1000',
             ]);
 
-            $user = $request->user();
             $validated['employee_id'] = $user->id;
             $validated['status'] = 'pending_manager';
 
