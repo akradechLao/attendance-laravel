@@ -6,8 +6,11 @@ import AppLayout from '@/layouts/AppLayout.vue'
 const loading = ref(false)
 const shifts = ref([])
 const employees = ref([])
+const companies = ref([])
 const showForm = ref(false)
 const selectedMonth = ref(new Date().toISOString().slice(0, 7))
+const selectedCompany = ref('')
+const searchQuery = ref('')
 const newShift = ref({
   emp_id: '',
   date: '',
@@ -19,6 +22,7 @@ const newShift = ref({
 onMounted(async () => {
   await loadShifts()
   await loadEmployees()
+  await loadCompanies()
 })
 
 const loadShifts = async () => {
@@ -37,11 +41,29 @@ const loadShifts = async () => {
 
 const loadEmployees = async () => {
   try {
-    const response = await api.get('/api/employees')
+    const params = { shift_only: true, per_page: 9999 }
+    if (selectedCompany.value) params.company_id = selectedCompany.value
+    if (searchQuery.value) params.search = searchQuery.value
+    const response = await api.get('/api/employees', { params })
     employees.value = response.data.data?.data || response.data.data || []
   } catch (error) {
     console.error('Failed to load employees:', error)
   }
+}
+
+const loadCompanies = async () => {
+  try {
+    const response = await api.get('/api/companies')
+    companies.value = response.data.data?.data || response.data.data || []
+  } catch (error) {
+    console.error('Failed to load companies:', error)
+  }
+}
+
+let empSearchTimeout = null
+function debounceLoadEmployees() {
+  clearTimeout(empSearchTimeout)
+  empSearchTimeout = setTimeout(() => loadEmployees(), 300)
 }
 
 const addShift = async () => {
@@ -57,6 +79,8 @@ const addShift = async () => {
     alert('เพิ่มกะสำเร็จ')
     showForm.value = false
     newShift.value = { emp_id: '', date: '', start_time: '08:00', end_time: '17:00', shift_code: 'Full Day' }
+    selectedCompany.value = ''
+    searchQuery.value = ''
     await loadShifts()
   } catch (error) {
     alert('เกิดข้อผิดพลาดในการเพิ่มกะ')
@@ -125,10 +149,21 @@ const deleteShift = async (id) => {
         <h3 class="text-lg font-bold mb-4">เพิ่มกะ</h3>
         <div class="space-y-4">
           <div>
-            <label class="block text-sm font-medium text-gray-700">พนักงาน</label>
+            <label class="block text-sm font-medium text-gray-700">บริษัท</label>
+            <select v-model="selectedCompany" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" @change="loadEmployees">
+              <option value="">ทุกบริษัท</option>
+              <option v-for="c in companies" :key="c.id" :value="c.id">{{ c.name }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">ค้นหาพนักงาน</label>
+            <input v-model="searchQuery" type="text" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="ชื่อหรือรหัส..." @input="debounceLoadEmployees" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700">พนักงาน (เฉพาะเข้ากะ)</label>
             <select v-model="newShift.emp_id" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
               <option value="">เลือกพนักงาน</option>
-              <option v-for="emp in employees" :key="emp.id" :value="emp.id">{{ emp.name }}</option>
+              <option v-for="emp in employees" :key="emp.id" :value="emp.id">{{ emp.employee_code }} - {{ emp.name }}</option>
             </select>
           </div>
           <div>
@@ -155,7 +190,7 @@ const deleteShift = async (id) => {
             </select>
           </div>
           <div class="flex gap-3 justify-end">
-            <button @click="showForm = false" class="px-4 py-2 border rounded-lg hover:bg-gray-50">ยกเลิก</button>
+            <button @click="showForm = false; selectedCompany = ''; searchQuery = ''" class="px-4 py-2 border rounded-lg hover:bg-gray-50">ยกเลิก</button>
             <button @click="addShift" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">เพิ่ม</button>
           </div>
         </div>

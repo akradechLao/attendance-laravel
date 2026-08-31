@@ -38,6 +38,12 @@ class EmployeeController extends Controller
                 $query->where('department', $request->department);
             }
 
+            if ($request->boolean('shift_only')) {
+                $query->whereIn('id', function ($q) {
+                    $q->select('employee_id')->from('employee_shifts')->groupBy('employee_id');
+                });
+            }
+
             $employees = $query->paginate($request->get('per_page', 15));
 
             // Build filter options from matching employees
