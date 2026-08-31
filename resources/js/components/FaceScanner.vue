@@ -142,17 +142,19 @@ async function startScan() {
       throw new Error('ไม่สามารถถ่ายภาพได้')
     }
 
+    const apiType = props.scanMode === 'verify_only' ? 'verify_only' : props.scanMode
+
     const response = await axios.post('/api/face/verify', {
       employee_id: props.employeeId,
       image: imageData,
-      type: props.scanMode,
+      type: apiType,
       latitude: props.currentLatitude,
       longitude: props.currentLongitude,
     })
 
     if (response.data.success) {
       verified.value = true
-      emit('verified', response.data)
+      emit('verified', { ...response.data, image: imageData })
     } else if (retryCount.value < maxRetries) {
       retryCount.value++
       scanning.value = false

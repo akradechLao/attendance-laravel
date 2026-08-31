@@ -35,7 +35,7 @@ class FaceController extends Controller
             $request->validate([
                 'employee_id' => 'required|exists:employees,id',
                 'image' => 'required|string',
-                'type' => 'required|string|in:check_in,check_out',
+                'type' => 'required|string|in:check_in,check_out,verify_only',
                 'latitude' => 'nullable|numeric',
                 'longitude' => 'nullable|numeric',
                 'accuracy' => 'nullable|numeric',
@@ -84,6 +84,23 @@ class FaceController extends Controller
             }
 
             $now = Carbon::now('Asia/Bangkok');
+
+            // ─── verify_only: ยืนยันตัวตนอย่างเดียว ไม่บันทึกเวลา ───
+            if ($request->type === 'verify_only') {
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'face_match' => $result,
+                        'employee' => [
+                            'id' => $employee->id,
+                            'name' => $employee->name,
+                            'employee_code' => $employee->employee_code,
+                            'has_ot' => $employee->has_ot,
+                        ],
+                    ],
+                    'message' => 'ยืนยันตัวตนสำเร็จ',
+                ]);
+            }
 
             if ($request->type === 'check_in') {
                 // หาวันที่เริ่มกะ (รองรับกะข้ามคืน)

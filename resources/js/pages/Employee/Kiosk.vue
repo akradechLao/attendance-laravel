@@ -386,34 +386,14 @@
                 : 'from-gray-300 to-gray-400 cursor-not-allowed shadow-none'"
               class="w-full py-3 sm:py-4 rounded-xl bg-gradient-to-r text-white font-bold text-base sm:text-lg active:scale-95 transition-all touch-target"
             >
-              {{ gpsReady
-                ? (scanMode === 'check_in' ? 'สแกนใบหน้าเช็คอิน' : 'สแกนใบหน้าเช็คเอาท์')
-                : 'กรุณาเข้าใกล้สถานที่เช็คอิน' }}
+              {{ gpsReady ? 'สแกนใบหน้าเพื่อยืนยันตัวตน' : 'กรุณาเข้าใกล้สถานที่เช็คอิน' }}
             </button>
             <button
               v-else
               @click="triggerScan = true"
               class="w-full py-3 sm:py-4 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold text-base sm:text-lg shadow-lg active:scale-95 transition-all touch-target"
             >
-              {{ scanMode === 'check_in' ? 'สแกนใบหน้าเช็คอิน' : 'สแกนใบหน้าเช็คเอาท์' }}
-            </button>
-          </div>
-
-          <!-- Check-in / Check-out toggle -->
-          <div class="flex justify-center gap-2 sm:gap-3 mb-2">
-            <button
-              @click="scanMode = 'check_in'; triggerScan = false"
-              :class="scanMode === 'check_in' ? 'bg-green-500 hover:bg-green-600 shadow-lg' : 'bg-gray-200 hover:bg-gray-300'"
-              class="px-5 py-2.5 sm:px-6 sm:py-3 rounded-xl font-bold text-sm sm:text-base touch-target transition-all"
-            >
-              เช็คอิน
-            </button>
-            <button
-              @click="scanMode = 'check_out'; triggerScan = false"
-              :class="scanMode === 'check_out' ? 'bg-red-500 hover:bg-red-600 shadow-lg' : 'bg-gray-200 hover:bg-gray-300'"
-              class="px-5 py-2.5 sm:px-6 sm:py-3 rounded-xl font-bold text-sm sm:text-base touch-target transition-all"
-            >
-              เช็คเอาท์
+              สแกนใบหน้าเพื่อยืนยันตัวตน
             </button>
           </div>
 
@@ -422,6 +402,103 @@
             <button @click="retryScan" class="mt-2 text-blue-500 active:text-blue-600 font-medium text-sm touch-target">
               ลองใหม่
             </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 3.5: Action Selection Menu (after face verify) -->
+      <div v-if="step === 3.5" class="animate-fadeIn">
+        <div class="card p-4 sm:p-6">
+          <!-- Top bar -->
+          <div class="flex items-center justify-between mb-4 sm:mb-6">
+            <button @click="step = 3; triggerScan = false; capturedImage = null" class="text-blue-500 active:text-blue-600 flex items-center gap-1 touch-target">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+              </svg>
+              <span class="text-sm sm:text-base">กลับ</span>
+            </button>
+            <div class="text-center">
+              <p class="text-sm sm:text-base font-semibold text-navy">{{ selectedEmployee?.name }}</p>
+              <p class="text-xs text-green-600 font-medium">✓ ยืนยันตัวตนสำเร็จ</p>
+            </div>
+            <div class="w-16"></div>
+          </div>
+
+          <h2 class="text-lg sm:text-xl font-semibold text-navy mb-4 sm:mb-6 text-center">เลือกรายการ</h2>
+
+          <!-- GPS Status for office scan -->
+          <div v-if="scanType === 'office_scan' && officeLocation" class="mb-3">
+            <div class="flex items-center justify-between bg-white rounded-xl p-2 shadow-sm border border-gray-100">
+              <div class="flex items-center gap-2">
+                <div v-if="gpsStatus === 'acquiring'" class="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse"></div>
+                <div v-else-if="gpsStatus === 'found' && gpsReady" class="w-2.5 h-2.5 rounded-full bg-green-500"></div>
+                <div v-else-if="gpsStatus === 'found' && !gpsReady" class="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></div>
+                <div v-else class="w-2.5 h-2.5 rounded-full bg-gray-400"></div>
+                <span class="text-xs font-medium text-gray-600">
+                  <template v-if="gpsStatus === 'acquiring'">กำลังระบุตำแหน่ง...</template>
+                  <template v-else-if="gpsStatus === 'found' && distanceToOffice !== null">
+                    ห่าง {{ Math.round(distanceToOffice) }} ม.
+                    <span v-if="gpsReady" class="text-green-600">(ในรัศมี)</span>
+                    <span v-else class="text-red-600">(เกินรัศมี)</span>
+                  </template>
+                  <template v-else-if="gpsStatus === 'error'">ไม่สามารถระบุตำแหน่งได้</template>
+                </span>
+              </div>
+              <span class="text-[10px] text-gray-400">รัศมี {{ officeLocation.radius_meters }}ม.</span>
+            </div>
+          </div>
+
+          <!-- Action buttons -->
+          <div class="grid grid-cols-2 gap-3 sm:gap-4">
+            <button
+              @click="handleActionSelect('check_in')"
+              :disabled="actionLoading || (scanType === 'office_scan' && !gpsReady)"
+              class="p-4 sm:p-6 rounded-xl border-2 transition-all duration-200 text-center touch-target shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed
+                border-green-200 bg-gradient-to-b from-green-50 to-white hover:from-green-100 hover:border-green-400 active:from-green-200"
+            >
+              <div class="text-3xl sm:text-4xl mb-2 sm:mb-3">🟢</div>
+              <p class="font-bold text-navy text-sm sm:text-base">เข้างาน</p>
+              <p class="text-xs sm:text-sm text-green-600">Check-in</p>
+            </button>
+
+            <button
+              @click="handleActionSelect('check_out')"
+              :disabled="actionLoading || (scanType === 'office_scan' && !gpsReady)"
+              class="p-4 sm:p-6 rounded-xl border-2 transition-all duration-200 text-center touch-target shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed
+                border-red-200 bg-gradient-to-b from-red-50 to-white hover:from-red-100 hover:border-red-400 active:from-red-200"
+            >
+              <div class="text-3xl sm:text-4xl mb-2 sm:mb-3">🔴</div>
+              <p class="font-bold text-navy text-sm sm:text-base">ออกงาน</p>
+              <p class="text-xs sm:text-sm text-red-600">Check-out</p>
+            </button>
+
+            <button
+              v-if="verifiedEmployeeData?.has_ot"
+              @click="handleActionSelect('ot_start')"
+              :disabled="actionLoading || (scanType === 'office_scan' && !gpsReady)"
+              class="p-4 sm:p-6 rounded-xl border-2 transition-all duration-200 text-center touch-target shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed
+                border-yellow-200 bg-gradient-to-b from-yellow-50 to-white hover:from-yellow-100 hover:border-yellow-400 active:from-yellow-200"
+            >
+              <div class="text-3xl sm:text-4xl mb-2 sm:mb-3">⚡</div>
+              <p class="font-bold text-navy text-sm sm:text-base">ทำโอที</p>
+              <p class="text-xs sm:text-sm text-yellow-600">Start OT</p>
+            </button>
+
+            <button
+              v-if="verifiedEmployeeData?.has_ot"
+              @click="handleActionSelect('ot_end')"
+              :disabled="actionLoading || (scanType === 'office_scan' && !gpsReady)"
+              class="p-4 sm:p-6 rounded-xl border-2 transition-all duration-200 text-center touch-target shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed
+                border-purple-200 bg-gradient-to-b from-purple-50 to-white hover:from-purple-100 hover:border-purple-400 active:from-purple-200"
+            >
+              <div class="text-3xl sm:text-4xl mb-2 sm:mb-3">🏁</div>
+              <p class="font-bold text-navy text-sm sm:text-base">ออกโอที</p>
+              <p class="text-xs sm:text-sm text-purple-600">End OT</p>
+            </button>
+          </div>
+
+          <div v-if="scanningError" class="mt-3 p-3 bg-red-50 rounded-lg text-center">
+            <p class="text-red-600 text-xs sm:text-sm">{{ scanningError }}</p>
           </div>
         </div>
       </div>
@@ -585,7 +662,11 @@ const showReregisterModal = ref(false)
 const reregisterEmployee = ref(null)
 const reregisterLoading = ref(false)
 
-const scanMode = ref('check_in')  // 'check_in' or 'check_out'
+const scanMode = ref('verify_only')  // 'verify_only', 'check_in', or 'check_out'
+const capturedImage = ref(null)
+const verifiedEmployeeData = ref(null)
+const selectedAction = ref(null)
+const actionLoading = ref(false)
 
 // Admin/HR Login
 const showAdminLogin = ref(false)
@@ -904,6 +985,7 @@ async function selectEmployee(employee) {
       step.value = 2.5
     } else {
       scanType.value = 'office_scan'
+      scanMode.value = 'verify_only'
       step.value = 3
       await fetchOfficeLocation(employee.id)
       await nextTick()
@@ -913,6 +995,7 @@ async function selectEmployee(employee) {
     }
   } catch {
     scanType.value = 'office_scan'
+    scanMode.value = 'verify_only'
     step.value = 3
     await fetchOfficeLocation(employee.id)
     await nextTick()
@@ -924,6 +1007,7 @@ async function selectEmployee(employee) {
 
 function startOfficeScan() {
   scanType.value = 'office_scan'
+  scanMode.value = 'verify_only'
   step.value = 3
   fetchOfficeLocation(selectedEmployee.value?.id).then(() => {
     nextTick(() => {
@@ -936,6 +1020,7 @@ function startOfficeScan() {
 
 function startRemoteScan() {
   scanType.value = 'remote_scan'
+  scanMode.value = 'verify_only'
   step.value = 3
 }
 
@@ -1012,10 +1097,12 @@ async function registerFace() {
         step.value = 2.5
       } else {
         scanType.value = 'office_scan'
+        scanMode.value = 'verify_only'
         step.value = 3
       }
     } catch {
       scanType.value = 'office_scan'
+      scanMode.value = 'verify_only'
       step.value = 3
     }
   } catch (error) {
@@ -1026,6 +1113,16 @@ async function registerFace() {
 }
 
 function handleVerified(data) {
+  // If verify_only mode, show action menu
+  if (scanMode.value === 'verify_only') {
+    capturedImage.value = data.image || null
+    verifiedEmployeeData.value = data.data?.employee || selectedEmployee.value
+    scanningError.value = ''
+    triggerScan.value = false
+    step.value = 3.5
+    return
+  }
+
   const now = new Date()
   const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
 
@@ -1048,9 +1145,57 @@ function handleError(message) {
   scanningError.value = message || 'เกิดข้อผิดพลาด กรุณาลองใหม่'
 }
 
+async function handleActionSelect(type) {
+  if (actionLoading.value) return
+  actionLoading.value = true
+  scanningError.value = ''
+  selectedAction.value = type
+
+  try {
+    if (!capturedImage.value) {
+      throw new Error('ไม่พบข้อมูลภาพสแกน กรุณาสแกนใหม่')
+    }
+
+    const response = await axios.post('/api/face/verify', {
+      employee_id: selectedEmployee.value.id,
+      image: capturedImage.value,
+      type: type,
+      latitude: currentLatitude.value,
+      longitude: currentLongitude.value,
+    })
+
+    if (response.data.success) {
+      const now = new Date()
+      const timeStr = now.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' })
+      const actionLabels = {
+        check_in: '✓ เช็คอินสำเร็จ',
+        check_out: '✓ เช็คเอาท์สำเร็จ',
+        ot_start: '✓ เริ่มทำโอทีสำเร็จ',
+        ot_end: '✓ ออกโอทีสำเร็จ',
+      }
+
+      result.value = {
+        success: true,
+        message: response.data.message || actionLabels[type] || 'สำเร็จ',
+        time: timeStr,
+        location: scanType.value === 'remote_scan' ? customLocationName.value : null,
+      }
+      step.value = 4
+    } else {
+      scanningError.value = response.data.message || 'ไม่สามารถดำเนินการได้ กรุณาลองใหม่'
+    }
+  } catch (error) {
+    scanningError.value = error.response?.data?.message || error.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่'
+  } finally {
+    actionLoading.value = false
+  }
+}
+
 function retryScan() {
   scanningError.value = ''
   triggerScan.value = false
+  capturedImage.value = null
+  verifiedEmployeeData.value = null
   step.value = 3
 }
 
@@ -1063,7 +1208,11 @@ function reset() {
   scanningError.value = ''
   result.value = { success: false, message: '', time: '', location: '' }
   scanType.value = 'office_scan'
-  scanMode.value = 'check_in'
+  scanMode.value = 'verify_only'
+  capturedImage.value = null
+  verifiedEmployeeData.value = null
+  selectedAction.value = null
+  actionLoading.value = false
   customLocationName.value = ''
   faceRegPhotos.value = []
   faceRegCapturing.value = false
