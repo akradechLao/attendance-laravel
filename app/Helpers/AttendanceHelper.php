@@ -35,7 +35,15 @@ class AttendanceHelper
             $lastOut = $untilTime ? Carbon::parse($untilTime) : Carbon::now();
         }
 
-        $totalMinutes = $firstIn->diffInMinutes($lastOut) - self::BREAK_MINUTES;
+        $totalMinutes = $firstIn->diffInMinutes($lastOut);
+
+        $breakWindowStart = Carbon::parse($date . ' 11:45:00');
+        $breakWindowEnd = Carbon::parse($date . ' 12:45:00');
+
+        if ($firstIn->lt($breakWindowEnd) && $lastOut->gt($breakWindowStart)) {
+            $totalMinutes -= self::BREAK_MINUTES;
+        }
+
         $totalMinutes = max(0, $totalMinutes);
 
         return round($totalMinutes / 60, 1);
