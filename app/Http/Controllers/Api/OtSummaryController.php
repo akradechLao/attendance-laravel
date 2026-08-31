@@ -30,7 +30,7 @@ class OtSummaryController extends Controller
         }
 
         // Get company holidays
-        $holidays = DB::table('holidays')
+        $holidays = DB::table('company_holidays')
             ->where('company_id', $companyId)
             ->whereBetween('date', [$cycleStart->toDateString(), $cycleEnd->toDateString()])
             ->pluck('date')
