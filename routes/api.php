@@ -280,6 +280,10 @@ Route::middleware(['auth:sanctum', 'role:admin,super_admin'])->group(function ()
     // Employee list (read)
     Route::get('/employees', [EmployeeController::class, 'index']);
     Route::get('/employees/{id}', [EmployeeController::class, 'show']);
+    Route::post('/employees', [EmployeeController::class, 'store']);
+    Route::put('/employees/{id}', [EmployeeController::class, 'update']);
+    Route::delete('/employees/{id}', [EmployeeController::class, 'destroy']);
+    Route::post('/employees/{id}/reset-password', [EmployeeController::class, 'resetPassword']);
 
     // Reports
     Route::get('/reports/attendance', [ReportController::class, 'attendance']);
@@ -410,13 +414,9 @@ Route::middleware(['auth:sanctum', 'role:admin,super_admin'])->group(function ()
 
 Route::middleware(['auth:sanctum', 'role:super_admin'])->group(function () {
 
-    // Employee management (CRUD)
-    Route::post('/employees', [EmployeeController::class, 'store']);
-    Route::put('/employees/{id}', [EmployeeController::class, 'update']);
-    Route::delete('/employees/{id}', [EmployeeController::class, 'destroy']);
+    // Employee face registration
     Route::post('/employees/face', [EmployeeController::class, 'registerFace']);
     Route::delete('/employees/face/{id}', [EmployeeController::class, 'deleteFaceData']);
-    Route::post('/employees/{id}/reset-password', [EmployeeController::class, 'resetPassword']);
 
     // Permission management
     Route::get('/api/permissions/employees', [PermissionController::class, 'index']);
