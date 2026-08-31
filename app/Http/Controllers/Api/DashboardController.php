@@ -217,7 +217,8 @@ class DashboardController extends Controller
                     'scan_type' => $first->scan_type,
                     'is_late' => $hasLate,
                     'has_forced_leave' => method_exists($first, 'lateForcedLeave') ? $first->lateForcedLeave()->exists() : false,
-                    'work_hours_display' => $workedHours !== null ? AttendanceCalculator::formatMinutes((int) ($workedHours * 60)) : '-',
+                    'work_minutes' => (int) $workedHours,
+                    'work_hours_display' => $workedHours !== null ? AttendanceCalculator::formatMinutes((int) $workedHours) : '-',
                     'shift_code' => $resolved['shift_code'],
                     'shift_time' => ($resolved['start_time'] && $resolved['end_time'])
                         ? $resolved['start_time'] . '-' . $resolved['end_time']
