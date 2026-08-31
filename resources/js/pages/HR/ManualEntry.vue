@@ -1,5 +1,6 @@
 <template>
-  <div class="max-w-7xl mx-auto">
+  <AppLayout>
+    <div class="max-w-7xl mx-auto p-4 sm:p-6">
     <div class="mb-6">
       <h1 class="text-2xl font-bold text-gray-800">บันทึกข้อมูลด้วยมือ</h1>
       <p class="text-gray-500 mt-1">เพิ่ม แก้ไข ลบ ข้อมูลเข้างาน _OT กะ ลางาน สำหรับพนักงาน</p>
@@ -490,13 +491,15 @@
         </div>
       </div>
     </div>
-  </div>
+    </div>
+  </AppLayout>
 </template>
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
 import axios from 'axios'
 import api from '@/services/api'
+import AppLayout from '@/layouts/AppLayout.vue'
 
 const activeTab = ref('attendance')
 const tabs = [
