@@ -30,11 +30,42 @@ class EmployeeController extends Controller
                 $query->where('company_id', $request->company_id);
             }
 
+            if ($request->has('division') && $request->division) {
+                $query->where('division', $request->division);
+            }
+
+            if ($request->has('department') && $request->department) {
+                $query->where('department', $request->department);
+            }
+
             $employees = $query->paginate($request->get('per_page', 15));
+
+            // Build filter options from matching employees
+            $filterQuery = Employee::where('is_active', true);
+            if ($request->has('company_id') && $request->company_id) {
+                $filterQuery->where('company_id', $request->company_id);
+            }
+            if ($request->has('division') && $request->division) {
+                $filterQuery->where('division', $request->division);
+            }
+            $divisions = (clone $filterQuery)->whereNotNull('division')->distinct()->pluck('division')->sort()->values();
+
+            $deptQuery = Employee::where('is_active', true);
+            if ($request->has('company_id') && $request->company_id) {
+                $deptQuery->where('company_id', $request->company_id);
+            }
+            if ($request->has('division') && $request->division) {
+                $deptQuery->where('division', $request->division);
+            }
+            $departments = (clone $deptQuery)->whereNotNull('department')->distinct()->pluck('department')->sort()->values();
 
             return response()->json([
                 'success' => true,
                 'data' => $employees,
+                'filters' => [
+                    'divisions' => $divisions,
+                    'departments' => $departments,
+                ],
                 'message' => 'Employees retrieved successfully.',
             ]);
         } catch (\Exception $e) {

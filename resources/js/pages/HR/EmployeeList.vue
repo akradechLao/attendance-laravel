@@ -17,8 +17,8 @@
 
       <!-- Search -->
       <div class="card">
-        <div class="flex flex-col md:flex-row gap-4">
-          <div class="flex-1">
+        <div class="flex flex-col md:flex-row gap-3 flex-wrap">
+          <div class="flex-1 min-w-[200px]">
             <div class="relative">
               <input
                 v-model="searchQuery"
@@ -32,11 +32,19 @@
               </svg>
             </div>
           </div>
-          <select v-model="selectedCompany" class="input-field w-auto" @change="fetchEmployees">
+          <select v-model="selectedCompany" class="input-field w-auto min-w-[140px]" @change="onCompanyChange">
             <option value="">ทุกบริษัท</option>
             <option v-for="company in companies" :key="company.id" :value="company.id">
               {{ company.name }}
             </option>
+          </select>
+          <select v-model="selectedDivision" class="input-field w-auto min-w-[140px]" @change="onFilterChange" :disabled="!selectedCompany">
+            <option value="">ทุกฝ่าย</option>
+            <option v-for="d in divisions" :key="d" :value="d">{{ d }}</option>
+          </select>
+          <select v-model="selectedDepartment" class="input-field w-auto min-w-[140px]" @change="onFilterChange" :disabled="!selectedCompany">
+            <option value="">ทุกแผนก</option>
+            <option v-for="d in departments" :key="d" :value="d">{{ d }}</option>
           </select>
         </div>
       </div>
@@ -250,6 +258,10 @@ const saving = ref(false)
 const deleting = ref(false)
 const searchQuery = ref('')
 const selectedCompany = ref('')
+const selectedDivision = ref('')
+const selectedDepartment = ref('')
+const divisions = ref([])
+const departments = ref([])
 const employees = ref([])
 const companies = ref([])
 const currentPage = ref(1)
@@ -288,6 +300,18 @@ function debounceSearch() {
   }, 300)
 }
 
+function onCompanyChange() {
+  selectedDivision.value = ''
+  selectedDepartment.value = ''
+  currentPage.value = 1
+  fetchEmployees()
+}
+
+function onFilterChange() {
+  currentPage.value = 1
+  fetchEmployees()
+}
+
 async function fetchEmployees() {
   loading.value = true
   try {
@@ -295,12 +319,19 @@ async function fetchEmployees() {
       page: currentPage.value,
       per_page: perPage.value,
       search: searchQuery.value,
-      company_id: selectedCompany.value || undefined
+      company_id: selectedCompany.value || undefined,
+      division: selectedDivision.value || undefined,
+      department: selectedDepartment.value || undefined,
     }
     const response = await api.get('/api/employees', { params })
     const paginated = response.data.data
     employees.value = paginated?.data || paginated || []
     totalItems.value = paginated?.total || employees.value.length
+    const filters = response.data.filters
+    if (filters) {
+      divisions.value = filters.divisions || []
+      departments.value = filters.departments || []
+    }
   } catch (error) {
     console.error('Error fetching employees:', error)
   } finally {
