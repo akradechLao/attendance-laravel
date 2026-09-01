@@ -26,9 +26,9 @@ class ReportController extends Controller
                 'end_date' => 'required|date|after_or_equal:start_date',
             ]);
 
-            $query = AttendanceLog::whereBetween('check_in', [
-                Carbon::parse($request->start_date)->startOfDay(),
-                Carbon::parse($request->end_date)->endOfDay(),
+            $query = AttendanceLog::whereBetween('date', [
+                $request->start_date,
+                $request->end_date,
             ]);
 
             if ($request->filled('company_id')) {
@@ -123,7 +123,10 @@ class ReportController extends Controller
             $attendance = AttendanceLog::whereHas('employee', function ($q) use ($request) {
                     $q->where('company_id', $request->company_id);
                 })
-                ->whereBetween('check_in', [$startDate, $endDate])
+                ->whereBetween('date', [
+                    $startDate->toDateString(),
+                    $endDate->toDateString(),
+                ])
                 ->get();
 
             $daysInMonth = $startDate->daysInMonth;
@@ -179,9 +182,9 @@ class ReportController extends Controller
             ]);
 
             $logs = AttendanceLog::where('employee_id', $id)
-                ->whereBetween('check_in', [
-                    Carbon::parse($request->start_date)->startOfDay(),
-                    Carbon::parse($request->end_date)->endOfDay(),
+                ->whereBetween('date', [
+                    $request->start_date,
+                    $request->end_date,
                 ])
                 ->orderBy('date', 'desc')
                 ->orderBy('check_in', 'desc')
@@ -246,9 +249,9 @@ class ReportController extends Controller
                 'end_date' => 'required|date|after_or_equal:start_date',
             ]);
 
-            $query = AttendanceLog::whereBetween('check_in', [
-                Carbon::parse($request->start_date)->startOfDay(),
-                Carbon::parse($request->end_date)->endOfDay(),
+            $query = AttendanceLog::whereBetween('date', [
+                $request->start_date,
+                $request->end_date,
             ]);
 
             if ($request->filled('company_id')) {
@@ -393,9 +396,9 @@ class ReportController extends Controller
             'end_date' => 'required|date|after_or_equal:start_date',
         ]);
 
-        $query = AttendanceLog::whereBetween('check_in', [
-            Carbon::parse($request->start_date)->startOfDay(),
-            Carbon::parse($request->end_date)->endOfDay(),
+        $query = AttendanceLog::whereBetween('date', [
+            $request->start_date,
+            $request->end_date,
         ]);
 
         if ($request->filled('company_id')) {
