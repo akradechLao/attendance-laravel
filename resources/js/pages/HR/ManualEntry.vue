@@ -518,7 +518,6 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
-import axios from 'axios'
 import api from '@/services/api'
 import AppLayout from '@/layouts/AppLayout.vue'
 
@@ -585,13 +584,13 @@ const shiftCodes = [
 
 onMounted(async () => {
   const [empRes, ltRes, compRes] = await Promise.all([
-    axios.get('/api/employees'),
-    axios.get('/api/leave/types'),
-    axios.get('/api/companies'),
+    api.get('/api/employees'),
+    api.get('/api/leave/types'),
+    api.get('/api/companies'),
   ])
   employees.value = empRes.data.data || empRes.data
   leaveTypes.value = ltRes.data.data || ltRes.data
-  companies.value = compRes.data.data?.data || compRes.data.data || compRes.data
+  companies.value = compRes.data.data || compRes.data
   loadData()
 })
 
@@ -632,7 +631,7 @@ async function loadData() {
     if (filters.value.department) params.department = filters.value.department
 
     const url = `/api/manual/${activeTab.value}`
-    const res = await axios.get(url, { params })
+    const res = await api.get(url, { params })
     tableData.value = res.data.data?.data || res.data.data || []
     pagination.value = {
       current_page: res.data.data?.current_page || 1,
@@ -700,7 +699,7 @@ async function saveForm() {
       ? `/api/manual/${activeTab.value}/${editingId.value}`
       : `/api/manual/${activeTab.value}`
     const method = isEditing.value ? 'put' : 'post'
-    await axios[method](url, form.value)
+    await api[method](url, form.value)
     closeForm()
     loadData()
   } catch (e) {
@@ -716,7 +715,7 @@ function confirmDelete(type, id) {
 
 async function doDelete() {
   try {
-    await axios.delete(`/api/manual/${deleteTarget.value.type}/${deleteTarget.value.id}`)
+    await api.delete(`/api/manual/${deleteTarget.value.type}/${deleteTarget.value.id}`)
     showDeleteConfirm.value = false
     loadData()
   } catch (e) {
