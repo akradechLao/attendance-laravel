@@ -583,14 +583,19 @@ const shiftCodes = [
 ]
 
 onMounted(async () => {
-  const [empRes, ltRes, compRes] = await Promise.all([
-    api.get('/api/employees'),
-    api.get('/api/leave/types'),
-    api.get('/api/companies'),
-  ])
-  employees.value = empRes.data.data || empRes.data
-  leaveTypes.value = ltRes.data.data || ltRes.data
-  companies.value = compRes.data.data || compRes.data
+  try {
+    const [empRes, ltRes, compRes] = await Promise.all([
+      api.get('/api/employees', { params: { per_page: 1000 } }),
+      api.get('/api/leave/types'),
+      api.get('/api/companies'),
+    ])
+    const empData = empRes.data.data
+    employees.value = empData?.data || empData || []
+    leaveTypes.value = ltRes.data.data || ltRes.data || []
+    companies.value = compRes.data.data || compRes.data || []
+  } catch (e) {
+    console.error('Failed to load data:', e)
+  }
   loadData()
 })
 
