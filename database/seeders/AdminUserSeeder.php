@@ -10,13 +10,25 @@ class AdminUserSeeder extends Seeder
 {
     public function run(): void
     {
+        // Super admin - keep existing password
+        DB::table('admin_users')->updateOrInsert(
+            ['username' => 'superadmin'],
+            [
+                'company_id' => null,
+                'password' => Hash::make('YourStr0ngP@ss!'),
+                'role' => 'super_admin',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]
+        );
+
+        // Company admins - password: 1234
         $admins = [
-            ['username' => 'superadmin', 'company_id' => null, 'role' => 'super_admin'],
-            ['username' => 'admin', 'company_id' => 2, 'role' => 'admin'],
-            ['username' => 'admin_ntc', 'company_id' => 1, 'role' => 'admin'],
-            ['username' => 'admin_etc1992', 'company_id' => 2, 'role' => 'admin'],
-            ['username' => 'admin_etech', 'company_id' => 3, 'role' => 'admin'],
-            ['username' => 'admin_stc', 'company_id' => 4, 'role' => 'admin'],
+            ['username' => 'admin', 'company_id' => 2],
+            ['username' => 'admin_ntc', 'company_id' => 1],
+            ['username' => 'admin_etc1992', 'company_id' => 2],
+            ['username' => 'admin_etech', 'company_id' => 3],
+            ['username' => 'admin_stc', 'company_id' => 4],
         ];
 
         foreach ($admins as $admin) {
@@ -25,7 +37,7 @@ class AdminUserSeeder extends Seeder
                 [
                     'company_id' => $admin['company_id'],
                     'password' => Hash::make('1234'),
-                    'role' => $admin['role'],
+                    'role' => 'admin',
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]
