@@ -133,7 +133,7 @@ class FaceController extends Controller
 
                 // ─── คำนวณเวลาเข้างานจริงของกะ ───
                 $workStartTime = $resolvedShift['start_time']
-                    ? Carbon::parse($shiftStartDate->toDateString() . ' ' . $resolvedShift['start_time'])
+                    ? Carbon::parse($shiftStartDate . ' ' . $resolvedShift['start_time'])
                     : null;
 
                 // Fallback to office location
@@ -141,7 +141,7 @@ class FaceController extends Controller
                     $time = $officeLocation->work_start_time instanceof Carbon
                         ? $officeLocation->work_start_time->format('H:i')
                         : $officeLocation->work_start_time;
-                    $workStartTime = Carbon::parse($shiftStartDate->toDateString() . ' ' . $time);
+                    $workStartTime = Carbon::parse($shiftStartDate . ' ' . $time);
                 }
 
                 $lateMinutes = 0;
@@ -193,7 +193,7 @@ class FaceController extends Controller
                     'company_id' => $employee->company_id,
                     'date' => $shiftStartDate,
                     'round_no' => $nextRound,
-                    'check_in' => $now,
+                    'check_in' => $now->format('H:i:s'),
                     'check_in_status' => $originalStatus,
                     'original_status' => $originalStatus,
                     'final_status' => $originalStatus,
@@ -523,11 +523,11 @@ class FaceController extends Controller
             if ($endTime) {
                 $endCarbon = Carbon::parse($endTime);
                 if ($now->format('H:i') < $endCarbon->format('H:i')) {
-                    $yesterdayStr = Carbon::yesterday()->toDateString();
+                    $yesterdayStr = $now->copy()->subDay()->toDateString();
                     $resolvedYesterday = \App\Services\ShiftResolver::resolve($employee, $yesterdayStr);
                     return [
                         'resolved' => $resolvedYesterday['start_time'] ? $resolvedYesterday : $resolvedToday,
-                        'shift_start_date' => Carbon::yesterday(),
+                        'shift_start_date' => $yesterdayStr,
                         'is_overnight' => true,
                     ];
                 }
@@ -536,7 +536,7 @@ class FaceController extends Controller
 
         return [
             'resolved' => $resolvedToday,
-            'shift_start_date' => $now->copy()->startOfDay(),
+            'shift_start_date' => $todayStr,
             'is_overnight' => $resolvedToday['is_overnight'] ?? false,
         ];
     }
@@ -545,7 +545,7 @@ class FaceController extends Controller
      * หาเวลาเข้างานจากกะ (ค้ำด้วย ShiftResolver)
      * ตรวจสอบว่าพนักงานมีลามาแล้วหรือยัง
      */
-    private function checkExistingLeave(Employee $employee, Carbon $date): ?LeaveRequest
+    private function checkExistingLeave(Employee $employee, string $date): ?LeaveRequest
     {
         return LeaveRequest::where('emp_id', $employee->id)
             ->where('start_date', '<=', $date)
@@ -560,7 +560,7 @@ class FaceController extends Controller
     private function createForcedLeaveIfApplicable(
         Employee $employee,
         AttendanceLog $log,
-        Carbon $shiftStartDate,
+        string $shiftStartDate,
         int $lateMinutes
     ): void {
         // ตรวจสอบว่ามีบันทึกลาบังคับแล้วหรือยัง
@@ -603,12 +603,12 @@ class FaceController extends Controller
         $this->sendLateWarningNotification($employee, $lateMinutes, $shiftStartDate);
     }
 
-    private function sendLateWarningNotification(Employee $employee, int $lateMinutes, Carbon $date): void
+    private function sendLateWarningNotification(Employee $employee, int $lateMinutes, string $date): void
     {
         try {
             $telegram = new TelegramService();
             $companyName = $employee->company->name ?? '-';
-            $dateStr = $date->format('d/m/Y');
+            $dateStr = $date;
 
             $message = "⚠️ <b>แจ้งเตือนสาย</b>\n\n";
             $message .= "👤 <b>ชื่อ:</b> {$employee->name}\n";
@@ -638,7 +638,7 @@ class FaceController extends Controller
     private function detectBeforeShiftOt(
         Employee $employee,
         AttendanceLog $log,
-        Carbon $shiftStartDate,
+        string $shiftStartDate,
         Carbon $workStartTime,
         Carbon $checkInTime
     ): void {
@@ -674,7 +674,7 @@ class FaceController extends Controller
     private function detectAfterShiftOt(
         Employee $employee,
         AttendanceLog $log,
-        Carbon $shiftStartDate,
+        string $shiftStartDate,
         string $endTime,
         Carbon $checkOutTime
     ): void {
@@ -684,7 +684,7 @@ class FaceController extends Controller
             ->exists();
         if ($existing) return;
 
-        $shiftEnd = Carbon::parse($shiftStartDate->toDateString() . ' ' . $endTime);
+        $shiftEnd = Carbon::parse($shiftStartDate . ' ' . $endTime);
 
         // ถ้าเลิกงานช้ากว่าเวลาจบทะ ≥ 60 นาที
         if ($checkOutTime->gt($shiftEnd)) {

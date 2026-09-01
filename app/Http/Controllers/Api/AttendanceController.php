@@ -37,7 +37,7 @@ class AttendanceController extends Controller
             ]);
 
             $employee = Employee::findOrFail($request->employee_id);
-            $today = Carbon::now('Asia/Bangkok')->today();
+            $today = Carbon::now('Asia/Bangkok')->today()->toDateString();
             $scanType = $request->get('scan_type', 'office_scan');
 
             // Check if already checked in today
@@ -161,7 +161,7 @@ class AttendanceController extends Controller
             ]);
 
             $employee = Employee::findOrFail($request->employee_id);
-            $today = Carbon::now('Asia/Bangkok')->today();
+            $today = Carbon::now('Asia/Bangkok')->today()->toDateString();
 
             $log = AttendanceLog::where('emp_id', $employee->id)
                 ->whereDate('date', $today)
@@ -250,7 +250,7 @@ class AttendanceController extends Controller
     {
         try {
             $employee = $request->user();
-            $today = Carbon::now('Asia/Bangkok')->today();
+            $today = Carbon::now('Asia/Bangkok')->today()->toDateString();
 
             $log = AttendanceLog::where('emp_id', $employee->id)
                 ->whereDate('date', $today)

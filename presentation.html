@@ -1,0 +1,758 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<title>ระบบจัดการเวลาเข้างาน - Attendance Management System</title>
+<style>
+  @page { size: A4 landscape; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #fff; color: #1e293b; }
+
+  .slide {
+    width: 297mm; height: 210mm;
+    padding: 20mm 25mm;
+    page-break-after: always;
+    position: relative;
+    overflow: hidden;
+  }
+  .slide:last-child { page-break-after: auto; }
+
+  .slide-header {
+    margin-bottom: 15px;
+    padding-bottom: 10px;
+    border-bottom: 3px solid #2563eb;
+  }
+  .slide-header h1 {
+    font-size: 28px; color: #1e40af; font-weight: 700;
+  }
+  .slide-header .subtitle {
+    font-size: 14px; color: #64748b; margin-top: 4px;
+  }
+
+  .content { font-size: 14px; line-height: 1.6; }
+
+  table {
+    width: 100%; border-collapse: collapse; margin: 12px 0;
+  }
+  th {
+    background: #1e40af; color: #fff; padding: 10px 14px;
+    text-align: left; font-size: 13px; font-weight: 600;
+  }
+  td {
+    padding: 9px 14px; border-bottom: 1px solid #e2e8f0;
+    font-size: 13px;
+  }
+  tr:nth-child(even) { background: #f8fafc; }
+  tr:hover { background: #eff6ff; }
+
+  .badge {
+    display: inline-block; padding: 2px 10px; border-radius: 12px;
+    font-size: 11px; font-weight: 600;
+  }
+  .badge-blue { background: #dbeafe; color: #1e40af; }
+  .badge-green { background: #dcfce7; color: #166534; }
+  .badge-yellow { background: #fef9c3; color: #854d0e; }
+  .badge-red { background: #fee2e2; color: #991b1b; }
+
+  .two-col { display: flex; gap: 20px; }
+  .two-col > div { flex: 1; }
+
+  .card {
+    background: #f8fafc; border: 1px solid #e2e8f0;
+    border-radius: 10px; padding: 14px 18px; margin: 8px 0;
+  }
+  .card h3 { color: #1e40af; font-size: 14px; margin-bottom: 6px; }
+  .card ul { padding-left: 18px; }
+  .card li { margin: 3px 0; font-size: 13px; }
+
+  .flow-box {
+    display: flex; align-items: center; gap: 8px;
+    margin: 10px 0; flex-wrap: wrap;
+  }
+  .flow-step {
+    background: #1e40af; color: #fff; padding: 10px 18px;
+    border-radius: 8px; font-size: 13px; font-weight: 600;
+    text-align: center; min-width: 100px;
+  }
+  .flow-arrow { color: #64748b; font-size: 22px; font-weight: bold; }
+
+  .stat-grid { display: flex; gap: 14px; margin: 12px 0; }
+  .stat-box {
+    flex: 1; background: #f8fafc; border: 1px solid #e2e8f0;
+    border-radius: 10px; padding: 16px; text-align: center;
+  }
+  .stat-box .number { font-size: 32px; font-weight: 700; color: #1e40af; }
+  .stat-box .label { font-size: 12px; color: #64748b; margin-top: 4px; }
+
+  .highlight { color: #1e40af; font-weight: 600; }
+
+  .arch-box {
+    background: #f1f5f9; border: 2px solid #cbd5e1;
+    border-radius: 12px; padding: 16px; margin: 10px 0;
+    font-family: 'Courier New', monospace; font-size: 13px;
+    line-height: 1.8; text-align: center;
+  }
+
+  .footer {
+    position: absolute; bottom: 12mm; left: 25mm; right: 25mm;
+    text-align: center; font-size: 11px; color: #94a3b8;
+    border-top: 1px solid #e2e8f0; padding-top: 8px;
+  }
+
+  .cover-bg {
+    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 50%, #3b82f6 100%);
+    color: #fff; display: flex; flex-direction: column;
+    justify-content: center; align-items: center; text-align: center;
+  }
+  .cover-bg h1 { font-size: 42px; margin-bottom: 16px; }
+  .cover-bg .subtitle { font-size: 20px; color: #93c5fd; margin-bottom: 30px; }
+  .cover-bg .meta { font-size: 14px; color: #bfdbfe; }
+
+  .vs-table td:first-child { font-weight: 600; color: #991b1b; background: #fef2f2; }
+  .vs-table td:last-child { color: #166534; background: #f0fdf4; }
+
+  .check { color: #16a34a; font-weight: bold; }
+  .x { color: #dc2626; font-weight: bold; }
+</style>
+</head>
+<body>
+
+<!-- ==================== SLIDE 1: COVER ==================== -->
+<div class="slide cover-bg">
+  <div style="margin-bottom: 30px;">
+    <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#93c5fd" stroke-width="1.5">
+      <circle cx="12" cy="12" r="10"/>
+      <polyline points="12 6 12 12 16 14"/>
+    </svg>
+  </div>
+  <h1>ระบบจัดการเวลาเข้างาน</h1>
+  <div class="subtitle">Attendance Management System</div>
+  <div class="meta" style="margin-top: 20px;">
+    Northern Thai Group &mdash; บริษัทในเครือ 4 บริษัท<br>
+    NTC / ETC / ETECH / STC
+  </div>
+  <div class="meta" style="margin-top: 40px;">
+    Presented by: IT Department<br>
+    2025
+  </div>
+</div>
+
+<!-- ==================== SLIDE 2: PROBLEMS ==================== -->
+<div class="slide">
+  <div class="slide-header">
+    <h1>ปัญหาเดิม (Current Problems)</h1>
+    <div class="subtitle">ทำไมต้องพัฒนาระบบใหม่?</div>
+  </div>
+  <div class="content">
+    <table>
+      <thead>
+        <tr><th style="width:30%">ปัญหา</th><th style="width:40%">ผลกระทบ</th><th style="width:30%">ความรุนแรง</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>ลงเวลามือ (Paper-based)</td><td>ข้อมูลผิดพลาด, ลืมลง, เสียเวลา</td><td><span class="badge badge-red">สูงมาก</span></td></tr>
+        <tr><td>เอกสารกระดาษหายาก</td><td>หาข้อมูลย้อนหลังยาก, เสียเวลา HR</td><td><span class="badge badge-red">สูง</span></td></tr>
+        <tr><td>คำนวณ OT/ลา ผิด</td><td>ลูกจ้างไม่พอใจ, มีข้อพิพาท</td><td><span class="badge badge-red">สูง</span></td></tr>
+        <tr><td>ไม่มีหลักฐานชัดเจน</td><td>พิสูจน์ไม่ได้, เสียเปรียบ</td><td><span class="badge badge-yellow">ปานกลาง</span></td></tr>
+        <tr><td>ข้อมูลคนละที่</td><td>HR ต้องนั่งรวมเอง, ผิดพลาดง่าย</td><td><span class="badge badge-yellow">ปานกลาง</span></td></tr>
+        <tr><td>ไม่มี GPS ยืนยัน</td><td>ลงเวลาแต่ไม่ได้อยู่ที่ทำงาน</td><td><span class="badge badge-yellow">ปานกลาง</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="footer">Attendance Management System &mdash; Slide 2</div>
+</div>
+
+<!-- ==================== SLIDE 3: SOLUTION ==================== -->
+<div class="slide">
+  <div class="slide-header">
+    <h1>ระบบใหม่แก้ปัญหาอะไร? (Solution)</h1>
+    <div class="subtitle">Technology-driven solutions</div>
+  </div>
+  <div class="content">
+    <table>
+      <thead>
+        <tr><th style="width:25%">ปัญหาเดิม</th><th style="width:35%">แก้ไขด้วย</th><th style="width:40%">ผลลัพธ์</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>ลงเวลามือ</td><td>Face Scan + GPS Check-in/out</td><td><span class="check">&#10003;</span> ลดข้อผิดพลาด</td></tr>
+        <tr><td>เอกสารหาย</td><td>Cloud Database + Audit Trail</td><td><span class="check">&#10003;</span> ข้อมูลปลอดภัย</td></tr>
+        <tr><td>คำนวณผิด</td><td>Auto Calculate (work hours, OT, break)</td><td><span class="check">&#10003;</span> คำนวณถูกต้อง</td></tr>
+        <tr><td>ไม่มีหลักฐาน</td><td>Photo + GPS Logs + Timestamps</td><td><span class="check">&#10003;</span> มีหลักฐานครบ</td></tr>
+        <tr><td>ข้อมูลคนละที่</td><td>Central Dashboard รวมทุก Company</td><td><span class="check">&#10003;</span> เข้าถึงง่าย</td></tr>
+        <tr><td>ไม่มี GPS</td><td>GPS Enforcement 200m radius</td><td><span class="check">&#10003;</span> ยืนยันตำแหน่ง</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="footer">Attendance Management System &mdash; Slide 3</div>
+</div>
+
+<!-- ==================== SLIDE 4: ARCHITECTURE ==================== -->
+<div class="slide">
+  <div class="slide-header">
+    <h1>System Architecture</h1>
+    <div class="subtitle">โครงสร้างระบบ</div>
+  </div>
+  <div class="content">
+    <div class="arch-box">
+      <div style="display:flex; justify-content:center; gap:20px; margin-bottom:16px;">
+        <div style="background:#1e40af; color:#fff; padding:12px 20px; border-radius:8px;">
+          <strong>Employee Portal</strong><br>
+          <small>/employee (Kiosk)</small><br>
+          <small>/employee/menu (Dashboard)</small>
+        </div>
+        <div style="background:#1e40af; color:#fff; padding:12px 20px; border-radius:8px;">
+          <strong>HR Admin</strong><br>
+          <small>Dashboard, Reports</small><br>
+          <small>Employee Management</small>
+        </div>
+        <div style="background:#1e40af; color:#fff; padding:12px 20px; border-radius:8px;">
+          <strong>Supervisor</strong><br>
+          <small>Approval Workflow</small><br>
+          <small>Team Calendar</small>
+        </div>
+      </div>
+      <div style="font-size:20px; color:#1e40af;">&#8595; REST API (Laravel Sanctum) &#8595;</div>
+      <div style="display:flex; justify-content:center; gap:20px; margin:12px 0;">
+        <div style="background:#2563eb; color:#fff; padding:10px 20px; border-radius:8px;">
+          <strong>Laravel Backend</strong><br><small>PHP 8.4</small>
+        </div>
+        <div style="background:#7c3aed; color:#fff; padding:10px 20px; border-radius:8px;">
+          <strong>Face API</strong><br><small>FastAPI (Port 8001)</small>
+        </div>
+        <div style="background:#059669; color:#fff; padding:10px 20px; border-radius:8px;">
+          <strong>MySQL</strong><br><small>Database</small>
+        </div>
+      </div>
+    </div>
+    <div class="two-col" style="margin-top:12px;">
+      <div class="card">
+        <h3>Frontend</h3>
+        <ul>
+          <li>Vue.js 3 + Vite</li>
+          <li>TailwindCSS</li>
+          <li>Responsive Design</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Backend</h3>
+        <ul>
+          <li>Laravel 10 (PHP 8.4)</li>
+          <li>Laravel Sanctum (Auth)</li>
+          <li>RESTful API</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Face Recognition</h3>
+        <ul>
+          <li>Python FastAPI</li>
+          <li>face_recognition library</li>
+          <li>Threshold: 0.75</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+  <div class="footer">Attendance Management System &mdash; Slide 4</div>
+</div>
+
+<!-- ==================== SLIDE 5: USER ROLES ==================== -->
+<div class="slide">
+  <div class="slide-header">
+    <h1>User Roles &amp; Permissions</h1>
+    <div class="subtitle">สิทธิ์ผู้ใช้งานแต่ละระดับ</div>
+  </div>
+  <div class="content">
+    <div class="two-col">
+      <div>
+        <table>
+          <thead><tr><th>Role</th><th>权限</th></tr></thead>
+          <tbody>
+            <tr><td><span class="badge badge-blue">Employee</span></td><td>ลงเวลา, ขอลา/OT/WFH, ดูประวัติ, payslip</td></tr>
+            <tr><td><span class="badge badge-green">Supervisor</span></td><td>อนุมัติลา/OT/WFH ของทีม, Team Calendar</td></tr>
+            <tr><td><span class="badge badge-yellow">HR Admin</span></td><td>จัดการพนักงาน, Reports, Manual Entry</td></tr>
+            <tr><td><span class="badge badge-red">Super Admin</span></td><td>ทุกอย่าง + Company/System Settings</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="card">
+          <h3>Position Hierarchy</h3>
+          <ul>
+            <li>Chairman</li>
+            <li>Managing Director (MD)</li>
+            <li>Executive Director</li>
+            <li>Assistant MD</li>
+            <li>Division Manager</li>
+            <li>Sub-Division Manager</li>
+            <li>Team Lead</li>
+            <li>Employee</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:14px;">
+      <h3>Role Hierarchy</h3>
+      <div class="flow-box" style="justify-content:center;">
+        <div class="flow-step" style="background:#6b7280;">Employee</div>
+        <div class="flow-arrow">&#8594;</div>
+        <div class="flow-step" style="background:#2563eb;">Admin</div>
+        <div class="flow-arrow">&#8594;</div>
+        <div class="flow-step" style="background:#dc2626;">Super Admin</div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">Attendance Management System &mdash; Slide 5</div>
+</div>
+
+<!-- ==================== SLIDE 6: EMPLOYEE FEATURES ==================== -->
+<div class="slide">
+  <div class="slide-header">
+    <h1>Employee Features</h1>
+    <div class="subtitle">สิทธิ์พนักงาน</div>
+  </div>
+  <div class="content">
+    <div class="two-col">
+      <div>
+        <div class="card">
+          <h3>&#128247; Face Scan Check-in/out</h3>
+          <ul>
+            <li>กล้องจับใบหน้าอัตโนมัติ</li>
+            <li>ถ่ายรูปเก็บเป็นหลักฐาน</li>
+            <li>Face threshold: 0.75</li>
+            <li>Manual press (ไม่ auto-scan)</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>&#128205; GPS Enforcement</h3>
+          <ul>
+            <li>ต้องอยู่ในรัศมี office (200m)</li>
+            <li>ทั้ง check-in และ check-out</li>
+            <li>Geolocation API</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>&#128197; Employee Menu</h3>
+          <ul>
+            <li>สรุปวันนี้ (work hours, status)</li>
+            <li>快捷 links ไปหน้าต่างๆ</li>
+            <li>Shift calendar</li>
+          </ul>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <h3>&#128196; Leave Request</h3>
+          <ul>
+            <li>ขอลาย้อนหลัง/ล่วงหน้า</li>
+            <li>หลายประเภท (sick, annual, personal)</li>
+            <li>แนบเอกสาร/เหตุผล</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>&#9201; OT Request</h3>
+          <ul>
+            <li>ขอ OT หลังเวลาเลิกงาน</li>
+            <li>เฉพาะพนักงานที่มีสิทธิ์ (has_ot)</li>
+            <li> supervisor + HR approve</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>&#127968; WFH Request</h3>
+          <ul>
+            <li>ขอ work from home</li>
+            <li>Saturday 1 วัน/เดือน</li>
+            <li>Auto-approve สำหรับ MD+</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">Attendance Management System &mdash; Slide 6</div>
+</div>
+
+<!-- ==================== SLIDE 7: HR FEATURES ==================== -->
+<div class="slide">
+  <div class="slide-header">
+    <h1>HR / Admin Features</h1>
+    <div class="subtitle">สิทธิ์ฝ่าย HR และ Admin</div>
+  </div>
+  <div class="content">
+    <div class="two-col">
+      <div>
+        <div class="card">
+          <h3>&#128202; Dashboard</h3>
+          <ul>
+            <li>สรุปคนเข้างานวันนี้</li>
+            <li>กราฟ Company breakdown</li>
+            <li>Late on-time statistics</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>&#128101; Employee Management</h3>
+          <ul>
+            <li>CRUD พนักงาน</li>
+            <li>Cascading filters (Company &#8594; Division &#8594; Dept)</li>
+            <li>Pagination + Search</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>&#128336; Shift Management</h3>
+          <ul>
+            <li>จัดกลุ่มกะ work</li>
+            <li>Assign พนักงาน (shift-only filter)</li>
+            <li>Shift swap approval</li>
+          </ul>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <h3>&#9997; Manual Entry</h3>
+          <ul>
+            <li>ลงเวลาแทนพนักงาน</li>
+            <li>Bulk import จาก CSV</li>
+            <li>Backdate unlimited</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>&#128196; Reports &amp; Export</h3>
+          <ul>
+            <li>PDF export (Thai font)</li>
+            <li>Bulk payslip export</li>
+            <li>Custom date range</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>&#127974; Holiday Calendar</h3>
+          <ul>
+            <li>วันหยุด 3 ประเภท</li>
+            <li>Government (blue) / Company (green) / Special (yellow)</li>
+            <li>Company-specific holidays</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">Attendance Management System &mdash; Slide 7</div>
+</div>
+
+<!-- ==================== SLIDE 8: APPROVAL WORKFLOW ==================== -->
+<div class="slide">
+  <div class="slide-header">
+    <h1>Approval Workflow</h1>
+    <div class="subtitle">ขั้นตอนการอนุมัติ</div>
+  </div>
+  <div class="content">
+    <div style="margin-bottom:20px;">
+      <h3 style="color:#1e40af; margin-bottom:10px;">Leave / OT Request</h3>
+      <div class="flow-box">
+        <div class="flow-step">&#128100; Employee<br><small>Submit Request</small></div>
+        <div class="flow-arrow">&#8594;</div>
+        <div class="flow-step" style="background:#2563eb;">Supervisor<br><small>Review & Approve</small></div>
+        <div class="flow-arrow">&#8594;</div>
+        <div class="flow-step" style="background:#7c3aed;">HR Admin<br><small>Final Approval</small></div>
+        <div class="flow-arrow">&#8594;</div>
+        <div class="flow-step" style="background:#059669;">Approved<br><small>&#10003;</small></div>
+      </div>
+    </div>
+    <div style="margin-bottom:20px;">
+      <h3 style="color:#1e40af; margin-bottom:10px;">WFH Request</h3>
+      <div class="flow-box">
+        <div class="flow-step">&#128100; Employee<br><small>Submit Request</small></div>
+        <div class="flow-arrow">&#8594;</div>
+        <div class="flow-step" style="background:#f59e0b; color:#000;">Auto-approve<br><small>MD+ Position</small></div>
+        <div class="flow-arrow">&#8594;</div>
+        <div class="flow-step" style="background:#059669;">Approved<br><small>+ RemoteAssignment</small></div>
+      </div>
+      <div class="flow-box">
+        <div class="flow-step">&#128100; Employee<br><small>Regular Position</small></div>
+        <div class="flow-arrow">&#8594;</div>
+        <div class="flow-step" style="background:#2563eb;">Supervisor<br><small>Review & Approve</small></div>
+        <div class="flow-arrow">&#8594;</div>
+        <div class="flow-step" style="background:#059669;">Approved<br><small>+ RemoteAssignment</small></div>
+      </div>
+    </div>
+    <div class="card">
+      <h3>&#128260; WFH &harr; RemoteAssignment Sync</h3>
+      <ul>
+        <li>WFH Approved &#8594; สร้าง RemoteAssignment อัตโนมัติ (start = end = approved_date, destination = WFH)</li>
+        <li>WFH Rejected/Cancelled &#8594; ลบ RemoteAssignment ที่ตรงกัน</li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer">Attendance Management System &mdash; Slide 8</div>
+</div>
+
+<!-- ==================== SLIDE 9: SMART CALCULATIONS ==================== -->
+<div class="slide">
+  <div class="slide-header">
+    <h1>Smart Calculations</h1>
+    <div class="subtitle">ระบบคำนวณอัตโนมัติ</div>
+  </div>
+  <div class="content">
+    <div class="two-col">
+      <div>
+        <table>
+          <thead><tr><th>การคำนวณ</th><th>กฎ</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Work Hours</strong></td><td>(last check-out - first check-in) - break</td></tr>
+            <tr><td><strong>Break Deduction</strong></td><td>หัก 60 นาทีเฉพาะ work period ทับซ้อน 11:45-12:45</td></tr>
+            <tr><td><strong>Combined Rounds</strong></td><td>หลาย check-in/out = รอบเดียว</td></tr>
+            <tr><td><strong>OT Calculation</strong></td><td>หลังเวลาเลิกงาน ตาม shift end</td></tr>
+            <tr><td><strong>Late Detection</strong></td><td>เทียบกับ shift start time</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <div class="card">
+          <h3>Break Deduction Example</h3>
+          <table style="font-size:12px;">
+            <thead><tr><th>Check-in</th><th>Check-out</th><th>Worked</th><th>Break</th><th>Result</th></tr></thead>
+            <tbody>
+              <tr><td>08:00</td><td>17:00</td><td>9 hrs</td><td>-1 hr</td><td><strong>8 hrs</strong></td></tr>
+              <tr><td>08:00</td><td>11:30</td><td>3.5 hrs</td><td>0</td><td><strong>3.5 hrs</strong></td></tr>
+              <tr><td>07:58</td><td>16:30</td><td>8.5 hrs</td><td>-1 hr</td><td><strong>7.5 hrs</strong></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="card" style="margin-top:10px;">
+          <h3>Monthly Summary</h3>
+          <ul>
+            <li>Working days / Late days / On-time days</li>
+            <li>Absent days (auto-calculated)</li>
+            <li>Leave days (approved)</li>
+            <li>Total late minutes</li>
+            <li>OT hours (approved)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">Attendance Management System &mdash; Slide 9</div>
+</div>
+
+<!-- ==================== SLIDE 10: LIVE DEMO ==================== -->
+<div class="slide">
+  <div class="slide-header">
+    <h1>Live Demo Flow</h1>
+    <div class="subtitle">สาธิตการใช้งาน</div>
+  </div>
+  <div class="content">
+    <div class="two-col">
+      <div>
+        <div class="card" style="border-left: 4px solid #2563eb;">
+          <h3>Step 1: Employee Check-in</h3>
+          <ul>
+            <li>1. เปิดหน้า Kiosk (<code>/employee</code>)</li>
+            <li>2. Face Scan &#8594; Verify face</li>
+            <li>3. เลือก action (check-in / check-out)</li>
+            <li>4. ระบบบันทึก + ถ่ายรูป + GPS</li>
+          </ul>
+        </div>
+        <div class="card" style="border-left: 4px solid #2563eb;">
+          <h3>Step 2: Employee Dashboard</h3>
+          <ul>
+            <li>1. Login &#8594; ดู menu (<code>/employee/menu</code>)</li>
+            <li>2. ดูสรุปวันนี้ (work hours, status)</li>
+            <li>3. ขอลา/OT/WFH</li>
+            <li>4. ดูประวัติย้อนหลัง</li>
+          </ul>
+        </div>
+      </div>
+      <div>
+        <div class="card" style="border-left: 4px solid #059669;">
+          <h3>Step 3: HR Dashboard</h3>
+          <ul>
+            <li>1. Login admin</li>
+            <li>2. ดู Dashboard &#8594; มีคนเข้างานกี่คน</li>
+            <li>3. Company breakdown (NTC, ETC, ETECH, STC)</li>
+            <li>4. Late / On-time statistics</li>
+          </ul>
+        </div>
+        <div class="card" style="border-left: 4px solid #059669;">
+          <h3>Step 4: Reports & Export</h3>
+          <ul>
+            <li>1. ไปหน้า Reports</li>
+            <li>2. Export PDF &#8594; ได้รายงานพร้อม work hours</li>
+            <li>3. Bulk payslip export</li>
+            <li>4. Audit log</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">Attendance Management System &mdash; Slide 10</div>
+</div>
+
+<!-- ==================== SLIDE 11: COMPANY STRUCTURE ==================== -->
+<div class="slide">
+  <div class="slide-header">
+    <h1>Company Structure</h1>
+    <div class="subtitle">กลุ่มบริษัทในเครือ</div>
+  </div>
+  <div class="content">
+    <div class="stat-grid">
+      <div class="stat-box">
+        <div class="number">4</div>
+        <div class="label">Companies</div>
+      </div>
+      <div class="stat-box">
+        <div class="number">413</div>
+        <div class="label">Total Employees</div>
+      </div>
+      <div class="stat-box">
+        <div class="number">37</div>
+        <div class="label">Office Locations</div>
+      </div>
+      <div class="stat-box">
+        <div class="number">24/7</div>
+        <div class="label">System Available</div>
+      </div>
+    </div>
+    <table>
+      <thead>
+        <tr><th>Company</th><th>Full Name</th><th>Prefix</th><th>Employees</th><th>Locations</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><span class="badge badge-blue">NTC</span></td><td>Northern Thai Co., Ltd.</td><td>NTC</td><td>6</td><td>1</td></tr>
+        <tr><td><span class="badge badge-green">ETC</span></td><td>Eastern Thai Co., Ltd.</td><td>ETC</td><td>338</td><td>30</td></tr>
+        <tr><td><span class="badge badge-yellow">ETECH</span></td><td>E-Technology Co., Ltd.</td><td>ETE</td><td>6</td><td>1</td></tr>
+        <tr><td><span class="badge badge-red">STC</span></td><td>Southern Thai Co., Ltd.</td><td>STC</td><td>63</td><td>3</td></tr>
+      </tbody>
+    </table>
+    <div class="card" style="margin-top:12px;">
+      <h3>Office Locations</h3>
+      <ul>
+        <li><strong>NTC:</strong> 1 main office</li>
+        <li><strong>ETC:</strong> 30 locations (main office + branches)</li>
+        <li><strong>ETECH:</strong> 1 main office</li>
+        <li><strong>STC:</strong> 3 locations</li>
+      </ul>
+    </div>
+  </div>
+  <div class="footer">Attendance Management System &mdash; Slide 11</div>
+</div>
+
+<!-- ==================== SLIDE 12: RESULTS ==================== -->
+<div class="slide">
+  <div class="slide-header">
+    <h1>Results &amp; Impact</h1>
+    <div class="subtitle">ผลลัพธ์ที่ได้</div>
+  </div>
+  <div class="content">
+    <div class="two-col">
+      <div>
+        <h3 style="color:#dc2626; margin-bottom:10px;">&#10060; Before (เดิม)</h3>
+        <table class="vs-table">
+          <thead><tr><th>หัวข้อ</th></tr></thead>
+          <tbody>
+            <tr><td>ลงเวลาด้วยมือ</td></tr>
+            <tr><td>คำนวณ OT/ลา ผิดพลาด</td></tr>
+            <tr><td>หาข้อมูลย้อนหลังยาก</td></tr>
+            <tr><td>ไม่มีหลักฐานชัดเจน</td></tr>
+            <tr><td>ข้อมูลกระจายคนละที่</td></tr>
+            <tr><td>ไม่มี GPS ยืนยัน</td></tr>
+            <tr><td>HR เสียเวลาجمعข้อมูล</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div>
+        <h3 style="color:#16a34a; margin-bottom:10px;">&#10004; After (ใหม่)</h3>
+        <table class="vs-table">
+          <thead><tr><th>หัวข้อ</th></tr></thead>
+          <tbody>
+            <tr><td>Face Scan + GPS Check-in/out</td></tr>
+            <tr><td>Auto Calculate ถูกต้อง</td></tr>
+            <tr><td>Dashboard รวมทุก Company</td></tr>
+            <tr><td>Photo + GPS Logs ทุกรายการ</td></tr>
+            <tr><td>Cloud Database ปลอดภัย</td></tr>
+            <tr><td>GPS Enforcement 200m</td></tr>
+            <tr><td>Report Export ทันที</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+  <div class="footer">Attendance Management System &mdash; Slide 12</div>
+</div>
+
+<!-- ==================== SLIDE 13: FUTURE ==================== -->
+<div class="slide">
+  <div class="slide-header">
+    <h1>Future Enhancements</h1>
+    <div class="subtitle">แผนพัฒนาต่อ</div>
+  </div>
+  <div class="content">
+    <div class="two-col">
+      <div>
+        <div class="card">
+          <h3>&#128276; Telegram Notification</h3>
+          <ul>
+            <li>แจ้งเตือนเมื่ออนุมัติ/ปฏิเสธ</li>
+            <li>สรุปเวลาเข้างานรายวัน</li>
+            <li>Alert สาย/ขาด</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>&#128241; Mobile App (Future)</h3>
+          <ul>
+            <li>React Native / Flutter</li>
+            <li>Face Scan ผ่านมือถือ</li>
+            <li>Push Notification</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>&#128176; Payroll Integration</h3>
+          <ul>
+            <li>เชื่อมต่อระบบเงินเดือน</li>
+            <li>Auto-calculate salary</li>
+            <li>OT/Leave deduction</li>
+          </ul>
+        </div>
+      </div>
+      <div>
+        <div class="card">
+          <h3>&#127974; Face API Improvements</h3>
+          <ul>
+            <li>Multi-face detection</li>
+            <li>Anti-spoofing (liveness)</li>
+            <li>Better accuracy</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>&#128202; Advanced Reports</h3>
+          <ul>
+            <li>Custom report builder</li>
+            <li>Scheduled email reports</li>
+            <li>Excel export</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>&#128274; Security Enhancements</h3>
+          <ul>
+            <li>Two-factor auth</li>
+            <li>Session management</li>
+            <li>IP whitelist</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">Attendance Management System &mdash; Slide 13</div>
+</div>
+
+<!-- ==================== SLIDE 14: THANK YOU ==================== -->
+<div class="slide cover-bg">
+  <div style="margin-bottom: 30px;">
+    <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="#93c5fd" stroke-width="1.5">
+      <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+      <polyline points="22 4 12 14.01 9 11.01"/>
+    </svg>
+  </div>
+  <h1>Thank You</h1>
+  <div class="subtitle">ระบบจัดการเวลาเข้างาน<br>Attendance Management System</div>
+  <div class="meta" style="margin-top: 30px;">
+    Northern Thai Group<br>
+    IT Department &mdash; 2025
+  </div>
+</div>
+
+</body>
+</html>
