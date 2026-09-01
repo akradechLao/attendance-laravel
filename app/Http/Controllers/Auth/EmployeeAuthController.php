@@ -7,6 +7,7 @@ use App\Models\Employee;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Cache;
 
 class EmployeeAuthController extends Controller
 {
@@ -115,6 +116,52 @@ class EmployeeAuthController extends Controller
                 'success' => false,
                 'data' => null,
                 'message' => 'Verification failed: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function verifyPin(Request $request): JsonResponse
+    {
+        try {
+            $request->validate([
+                'employee_id' => 'required|exists:employees,id',
+                'pin' => 'required|string',
+            ]);
+
+            $employee = Employee::findOrFail($request->employee_id);
+
+            if (!$employee->pin) {
+                return response()->json([
+                    'success' => false,
+                    'data' => null,
+                    'message' => 'ยังไม่ได้ตั้ง PIN กรุณาติดต่อ HR',
+                ], 400);
+            }
+
+            if (!Hash::check($request->pin, $employee->pin)) {
+                return response()->json([
+                    'success' => false,
+                    'data' => null,
+                    'message' => 'PIN ไม่ถูกต้อง',
+                ], 401);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => ['verified' => true],
+                'message' => 'PIN ถูกต้อง',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'กรุณากรอกข้อมูลให้ครบถ้วน',
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'ตรวจสอบ PIN ล้มเหลว',
             ], 500);
         }
     }

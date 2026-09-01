@@ -208,6 +208,52 @@
         </div>
       </div>
 
+      <!-- Step 2.65: PIN Verification (before face registration) -->
+      <div v-if="step === 2.65" class="animate-fadeIn">
+        <div class="card p-4 sm:p-6">
+          <div class="flex items-center justify-between mb-3">
+            <button @click="step = 2; pinEntry = ''; pinError = ''" class="text-blue-500 active:text-blue-600 flex items-center gap-1 touch-target">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+              </svg>
+              <span class="text-sm sm:text-base">กลับ</span>
+            </button>
+            <div class="text-center">
+              <p class="text-sm sm:text-base font-semibold text-navy">{{ selectedEmployee?.name }}</p>
+              <p class="text-xs text-orange-500 font-medium">ยืนยันตัวตนด้วย PIN</p>
+            </div>
+            <div class="w-16"></div>
+          </div>
+
+          <h2 class="text-lg sm:text-xl font-semibold text-navy mb-2 text-center">กรอก PIN เพื่อยืนยันตัวตน</h2>
+          <p class="text-xs text-gray-500 text-center mb-6">เพื่อความปลอดภัย กรุณากรอก PIN ของคุณก่อนลงทะเบียนใบหน้า</p>
+
+          <div v-if="pinError" class="mb-4 p-3 bg-red-50 rounded-lg text-center">
+            <p class="text-red-600 text-sm">{{ pinError }}</p>
+          </div>
+
+          <div class="max-w-xs mx-auto">
+            <input
+              v-model="pinEntry"
+              type="password"
+              inputmode="numeric"
+              maxlength="8"
+              placeholder="กรอก PIN"
+              class="w-full text-center text-2xl tracking-[0.5em] border border-gray-300 rounded-xl px-4 py-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+              @keyup.enter="verifyPinAndProceed"
+              autofocus
+            />
+            <button
+              @click="verifyPinAndProceed"
+              :disabled="pinVerifying || !pinEntry"
+              class="w-full mt-4 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 disabled:from-gray-300 disabled:to-gray-400 text-white font-bold text-base rounded-xl shadow-lg active:scale-95 transition-all touch-target"
+            >
+              {{ pinVerifying ? 'กำลังตรวจสอบ...' : 'ยืนยัน PIN' }}
+            </button>
+          </div>
+        </div>
+      </div>
+
       <!-- Step 2.7: Face Registration (self-service) -->
       <div v-if="step === 2.7" class="animate-fadeIn">
         <div class="card p-4 sm:p-6">
@@ -662,6 +708,10 @@ const showReregisterModal = ref(false)
 const reregisterEmployee = ref(null)
 const reregisterLoading = ref(false)
 
+const pinEntry = ref('')
+const pinVerifying = ref(false)
+const pinError = ref('')
+
 const scanMode = ref('verify_only')  // 'verify_only', 'check_in', or 'check_out'
 const capturedImage = ref(null)
 const verifiedEmployeeData = ref(null)
@@ -942,6 +992,26 @@ async function doReregister() {
   }
 }
 
+async function verifyPinAndProceed() {
+  if (!pinEntry.value || pinEntry.value.length < 4) {
+    pinError.value = 'กรุณากรอก PIN อย่างน้อย 4 หลัก'
+    return
+  }
+  pinVerifying.value = true
+  pinError.value = ''
+  try {
+    await axios.post('/api/employee/auth/verify-pin', {
+      employee_id: selectedEmployee.value.id,
+      pin: pinEntry.value,
+    })
+    step.value = 2.7
+  } catch (e) {
+    pinError.value = e.response?.data?.message || 'PIN ไม่ถูกต้อง'
+  } finally {
+    pinVerifying.value = false
+  }
+}
+
 async function selectEmployee(employee) {
   selectedEmployee.value = employee
   scanningError.value = ''
@@ -971,7 +1041,9 @@ async function selectEmployee(employee) {
       faceRegAllDone.value = false
       faceRegEncodings.value = []
       faceRegCurrentPosition.value = 0
-      step.value = 2.7
+      pinEntry.value = ''
+      pinError.value = ''
+      step.value = 2.65
       return
     }
   } catch (e) {
@@ -1226,6 +1298,8 @@ function reset() {
   faceRegAllDone.value = false
   faceRegEncodings.value = []
   faceRegCurrentPosition.value = 0
+  pinEntry.value = ''
+  pinError.value = ''
   currentLatitude.value = null
   currentLongitude.value = null
   currentAccuracy.value = null
