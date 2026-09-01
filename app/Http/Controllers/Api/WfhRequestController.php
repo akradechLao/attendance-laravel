@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\WfhRecord;
 use App\Models\RemoteAssignment;
+use App\Models\EmployeeNotification;
 use App\Constants\RoleConstants;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -223,6 +224,16 @@ class WfhRequestController extends Controller
             }
         });
 
+        // Send in-app notification to employee
+        EmployeeNotification::notify(
+            $record->emp_id,
+            'wfh_approved',
+            'อนุมัติ WFH',
+            "คำขอ WFH วันที่ {$approvedDate} ของคุณได้รับการอนุมัติ",
+            $record->id,
+            'WfhRecord'
+        );
+
         return response()->json([
             'success' => true,
             'data' => [
@@ -273,6 +284,16 @@ class WfhRequestController extends Controller
             ->where('end_date', $wfhDate)
             ->where('destination', 'WFH')
             ->delete();
+
+        // Send in-app notification to employee
+        EmployeeNotification::notify(
+            $record->emp_id,
+            'wfh_rejected',
+            'ไม่อนุมัติ WFH',
+            "คำขอ WFH วันที่ {$wfhDate} ของคุณไม่ได้รับการอนุมัติ" . ($record->supervisor_note ? " เหตุผล: {$record->supervisor_note}" : ''),
+            $record->id,
+            'WfhRecord'
+        );
 
         return response()->json([
             'success' => true,

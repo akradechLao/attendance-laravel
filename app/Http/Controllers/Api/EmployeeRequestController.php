@@ -7,6 +7,7 @@ use App\Models\LeaveRequest;
 use App\Models\LeaveType;
 use App\Models\OtRequest;
 use App\Models\WfhRecord;
+use App\Models\EmployeeNotification;
 use App\Services\LeaveService;
 use App\Constants\PositionConstants;
 use Carbon\Carbon;
@@ -97,6 +98,29 @@ class EmployeeRequestController extends Controller
                 } catch (\Exception $e) {
                     \Log::warning('Failed to deduct leave balance on auto-approve: ' . $e->getMessage());
                 }
+
+                // Notify employee of auto-approval
+                EmployeeNotification::notify(
+                    $employee->id,
+                    'leave_approved',
+                    'อนุมัติลางานอัตโนมัติ',
+                    "คำขอลาของคุณ ({$leaveType->name} {$request->start_date} ถึง {$request->end_date}) ได้รับการอนุมัติอัตโนมัติ",
+                    $leave->id,
+                    'LeaveRequest'
+                );
+            } else {
+                // Notify supervisor(s) of new leave request
+                $supervisorIds = $employee->getSupervisorIds();
+                if (!empty($supervisorIds)) {
+                    EmployeeNotification::notifyMultiple(
+                        $supervisorIds,
+                        'leave_request',
+                        'มีคำขอลาใหม่',
+                        "{$employee->name} ({$employee->employee_code}) ขอลา {$leaveType->name} วันที่ {$request->start_date} ถึง {$request->end_date}" . ($request->reason ? " เหตุผล: {$request->reason}" : ''),
+                        $leave->id,
+                        'LeaveRequest'
+                    );
+                }
             }
 
             $leave->load('leaveType');
@@ -150,6 +174,31 @@ class EmployeeRequestController extends Controller
                 'approved_by' => $isAutoApprove ? $employee->id : null,
                 'approved_at' => $isAutoApprove ? now() : null,
             ]);
+
+            if ($isAutoApprove) {
+                // Notify employee of auto-approval
+                EmployeeNotification::notify(
+                    $employee->id,
+                    'ot_approved',
+                    'อนุมัติโอทีอัตโนมัติ',
+                    "คำขอโอทีของคุณ (วันที่ {$request->date} {$request->start_time}-{$request->end_time}) ได้รับการอนุมัติอัตโนมัติ",
+                    $ot->id,
+                    'OtRequest'
+                );
+            } else {
+                // Notify supervisor(s) of new OT request
+                $supervisorIds = $employee->getSupervisorIds();
+                if (!empty($supervisorIds)) {
+                    EmployeeNotification::notifyMultiple(
+                        $supervisorIds,
+                        'ot_request',
+                        'มีคำขอโอทีใหม่',
+                        "{$employee->name} ({$employee->employee_code}) ขอโอทีวันที่ {$request->date} เวลา {$request->start_time}-{$request->end_time}" . ($request->reason ? " เหตุผล: {$request->reason}" : ''),
+                        $ot->id,
+                        'OtRequest'
+                    );
+                }
+            }
 
             return response()->json([
                 'success' => true,
@@ -241,6 +290,29 @@ class EmployeeRequestController extends Controller
                     'approved_by' => $employee->id,
                     'approved_at' => now(),
                 ]);
+
+                // Notify employee of auto-approval
+                EmployeeNotification::notify(
+                    $employee->id,
+                    'wfh_approved',
+                    'อนุมัติ WFH อัตโนมัติ',
+                    "คำขอ WFH ของคุณวันที่ {$date->format('Y-m-d')} ได้รับการอนุมัติอัตโนมัติ",
+                    $wfh->id,
+                    'WfhRecord'
+                );
+            } else {
+                // Notify supervisor(s) of new WFH request
+                $supervisorIds = $employee->getSupervisorIds();
+                if (!empty($supervisorIds)) {
+                    EmployeeNotification::notifyMultiple(
+                        $supervisorIds,
+                        'wfh_request',
+                        'มีคำขอ WFH ใหม่',
+                        "{$employee->name} ({$employee->employee_code}) ขอ WFH วันที่ {$date->format('Y-m-d')}" . ($request->reason ? " เหตุผล: {$request->reason}" : ''),
+                        $wfh->id,
+                        'WfhRecord'
+                    );
+                }
             }
 
             return response()->json([

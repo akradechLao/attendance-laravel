@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
 use App\Models\Employee;
+use App\Models\EmployeeNotification;
 use App\Constants\RoleConstants;
 use App\Services\LeaveService;
 use App\Services\AuditLogService;
@@ -139,6 +140,17 @@ class LeaveController extends Controller
             // Send Telegram notification
             $this->sendLeaveNotification($leave, 'approved');
 
+            // Send in-app notification to employee
+            $leaveType = $leave->leaveType;
+            EmployeeNotification::notify(
+                $leave->emp_id,
+                'leave_approved',
+                'อนุมัติลางาน',
+                "คำขอลาของคุณ (" . ($leaveType->name ?? '-') . " {$leave->start_date} ถึง {$leave->end_date}) ได้รับการอนุมัติ",
+                $leave->id,
+                'LeaveRequest'
+            );
+
             return response()->json([
                 'success' => true,
                 'data' => [
@@ -205,6 +217,17 @@ class LeaveController extends Controller
 
             // Send Telegram notification
             $this->sendLeaveNotification($leave, 'rejected');
+
+            // Send in-app notification to employee
+            $leaveType = $leave->leaveType;
+            EmployeeNotification::notify(
+                $leave->emp_id,
+                'leave_rejected',
+                'ไม่อนุมัติลางาน',
+                "คำขอลาของคุณ (" . ($leaveType->name ?? '-') . " {$leave->start_date} ถึง {$leave->end_date}) ไม่ได้รับการอนุมัติ" . ($leave->rejection_reason ? " เหตุผล: {$leave->rejection_reason}" : ''),
+                $leave->id,
+                'LeaveRequest'
+            );
 
             $leave->load(['employee', 'leaveType']);
 

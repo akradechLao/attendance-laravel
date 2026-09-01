@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\OtRequest;
 use App\Models\Employee;
+use App\Models\EmployeeNotification;
 use App\Constants\RoleConstants;
 use App\Services\TelegramService;
 use Carbon\Carbon;
@@ -69,6 +70,19 @@ class OtRequestController extends Controller
             $otRequest = OtRequest::create($validated);
             $otRequest->load('employee');
 
+            // Notify supervisor(s) of new OT request
+            $supervisorIds = $user->getSupervisorIds();
+            if (!empty($supervisorIds)) {
+                EmployeeNotification::notifyMultiple(
+                    $supervisorIds,
+                    'ot_request',
+                    'มีคำขอโอทีใหม่',
+                    "{$user->name} ({$user->employee_code}) ขอโอทีวันที่ {$request->date} เวลา {$request->start_time}-{$request->end_time}" . ($request->reason ? " เหตุผล: {$request->reason}" : ''),
+                    $otRequest->id,
+                    'OtRequest'
+                );
+            }
+
             return response()->json([
                 'success' => true,
                 'data' => $this->formatOt($otRequest),
@@ -118,6 +132,19 @@ class OtRequestController extends Controller
                 'manager_approved_at' => now(),
             ]);
 
+            // Notify employee that manager approved
+            $emp = $otRequest->employee;
+            if ($emp) {
+                EmployeeNotification::notify(
+                    $otRequest->emp_id,
+                    'ot_approved',
+                    'ผู้จัดการอนุมัติโอที',
+                    "คำขอโอทีวันที่ {$otRequest->date} เวลา {$otRequest->start_time}-{$otRequest->end_time} ได้รับการอนุมัติจากผู้จัดการแล้ว รอ HR อนุมัติขั้นสุดท้าย",
+                    $otRequest->id,
+                    'OtRequest'
+                );
+            }
+
             $otRequest->load('employee');
 
             return response()->json([
@@ -160,6 +187,16 @@ class OtRequestController extends Controller
             ]);
 
             $this->sendOtNotification($otRequest, 'approved');
+
+            // Send in-app notification to employee
+            EmployeeNotification::notify(
+                $otRequest->emp_id,
+                'ot_approved',
+                'อนุมัติโอทีสำเร็จ',
+                "คำขอโอทีวันที่ {$otRequest->date} เวลา {$otRequest->start_time}-{$otRequest->end_time} ได้รับการอนุมัติขั้นสุดท้ายแล้ว",
+                $otRequest->id,
+                'OtRequest'
+            );
 
             $otRequest->load('employee');
 
@@ -217,6 +254,16 @@ class OtRequestController extends Controller
             ]);
 
             $this->sendOtNotification($otRequest, 'rejected');
+
+            // Send in-app notification to employee
+            EmployeeNotification::notify(
+                $otRequest->emp_id,
+                'ot_rejected',
+                'ไม่อนุมัติโอที',
+                "คำขอโอทีวันที่ {$otRequest->date} เวลา {$otRequest->start_time}-{$otRequest->end_time} ไม่ได้รับการอนุมัติ" . ($otRequest->rejection_reason ? " เหตุผล: {$otRequest->rejection_reason}" : ''),
+                $otRequest->id,
+                'OtRequest'
+            );
 
             $otRequest->load('employee');
 

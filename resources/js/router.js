@@ -122,6 +122,12 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/employee/notifications',
+    name: 'EmployeeNotifications',
+    component: () => import('./pages/Employee/NotificationList.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/employee/payslip',
     name: 'EmployeePayslip',
     component: () => import('./pages/Employee/Payslip.vue'),

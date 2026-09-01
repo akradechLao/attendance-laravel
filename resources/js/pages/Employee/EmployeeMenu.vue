@@ -12,6 +12,22 @@
           </a>
         </div>
         <div class="flex items-center gap-3">
+          <!-- Notification Bell -->
+          <router-link
+            to="/employee/notifications"
+            class="relative p-2 hover:bg-gray-100 rounded-xl transition-colors"
+          >
+            <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            <span
+              v-if="unreadCount > 0"
+              class="absolute -top-0.5 -right-0.5 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white"
+            >
+              {{ unreadCount > 9 ? '9+' : unreadCount }}
+            </span>
+          </router-link>
+
           <div class="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-lg shadow">
             {{ initials }}
           </div>
@@ -249,6 +265,25 @@
           </div>
         </router-link>
 
+        <!-- การแจ้งเตือน -->
+        <router-link to="/employee/notifications" class="block group">
+          <div class="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-center">
+            <div class="relative w-12 h-12 sm:w-14 sm:h-14 mx-auto rounded-2xl bg-indigo-500 flex items-center justify-center mb-3 shadow-lg group-hover:scale-110 transition-transform">
+              <svg class="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+              </svg>
+              <span
+                v-if="unreadCount > 0"
+                class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white"
+              >
+                {{ unreadCount > 9 ? '9+' : unreadCount }}
+              </span>
+            </div>
+            <h2 class="font-bold text-gray-800 text-sm sm:text-base">การแจ้งเตือน</h2>
+            <p class="text-gray-400 text-xs mt-1">ข้อความและประกาศ</p>
+          </div>
+        </router-link>
+
         <!-- เปลี่ยนรหัสผ่าน -->
         <router-link to="/employee/change-password" class="block group">
           <div class="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-center">
@@ -296,11 +331,13 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import store, { logout } from '../../store'
 import axios from 'axios'
+import api from '../../services/api'
 
 const router = useRouter()
 const pendingCounts = ref({ leave: 0, ot: 0, wfh: 0 })
 const warnings = ref([])
 const announcements = ref([])
+const unreadCount = ref(0)
 
 const hasOt = computed(() => store.user?.has_ot === true || store.user?.has_ot === 1)
 const hasShifts = computed(() => {
@@ -324,10 +361,11 @@ onMounted(async () => {
     axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
   }
   try {
-    const [pendingRes, warnRes, annRes] = await Promise.allSettled([
+    const [pendingRes, warnRes, annRes, notifRes] = await Promise.allSettled([
       axios.get('/api/employee/requests/pending-count'),
       axios.get('/api/employee/warnings'),
       axios.get('/api/announcements'),
+      api.get('/employee/notifications/unread-count'),
     ])
     if (pendingRes.status === 'fulfilled' && pendingRes.value.data.success) {
       pendingCounts.value = pendingRes.value.data.data
@@ -337,6 +375,9 @@ onMounted(async () => {
     }
     if (annRes.status === 'fulfilled' && annRes.value.data.success) {
       announcements.value = annRes.value.data.data || []
+    }
+    if (notifRes.status === 'fulfilled' && notifRes.value.data.success) {
+      unreadCount.value = notifRes.value.data.data.count
     }
   } catch (e) {
     // ignore

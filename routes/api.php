@@ -196,6 +196,12 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/wfh/available-saturdays', [WfhRequestController::class, 'availableSaturdays']);
         Route::get('/wfh/my-requests', [WfhRequestController::class, 'myRequests']);
         Route::post('/wfh', [WfhRequestController::class, 'store']);
+
+        // Notifications
+        Route::get('/employee/notifications', [\App\Http\Controllers\Api\EmployeeNotificationController::class, 'index']);
+        Route::get('/employee/notifications/unread-count', [\App\Http\Controllers\Api\EmployeeNotificationController::class, 'unreadCount']);
+        Route::put('/employee/notifications/{id}/read', [\App\Http\Controllers\Api\EmployeeNotificationController::class, 'markAsRead']);
+        Route::put('/employee/notifications/read-all', [\App\Http\Controllers\Api\EmployeeNotificationController::class, 'markAllAsRead']);
     });
 
     // Announcements (all authenticated users)

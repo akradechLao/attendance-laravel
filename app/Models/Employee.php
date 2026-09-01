@@ -210,6 +210,32 @@ class Employee extends Authenticatable
         }
     }
 
+    /**
+     * Get direct supervisor ID (the employee this person reports to).
+     */
+    public function getDirectSupervisorId(): ?int
+    {
+        return $this->reports_to;
+    }
+
+    /**
+     * Get all supervisor IDs up the chain (direct + indirect).
+     */
+    public function getSupervisorIds(): array
+    {
+        $ids = [];
+        $current = $this;
+        $maxDepth = 10;
+
+        while ($current && $current->reports_to && $maxDepth > 0) {
+            $ids[] = $current->reports_to;
+            $current = Employee::find($current->reports_to);
+            $maxDepth--;
+        }
+
+        return array_unique($ids);
+    }
+
     public function hasActiveRemoteAssignment(): bool
     {
         return $this->remoteAssignments()
