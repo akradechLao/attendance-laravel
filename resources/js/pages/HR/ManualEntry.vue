@@ -22,12 +22,33 @@
 
     <!-- Filter Bar -->
     <div class="bg-white rounded-lg shadow-sm p-4 mb-6">
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div class="grid grid-cols-1 md:grid-cols-6 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">บริษัท</label>
+          <select v-model="filters.company_id" @change="onCompanyFilterChange" class="w-full border rounded-lg px-3 py-2 text-sm">
+            <option value="">ทุกบริษัท</option>
+            <option v-for="c in companies" :key="c.id" :value="c.id">{{ c.name }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">ฝ่าย</label>
+          <select v-model="filters.division" @change="onFilterChange" class="w-full border rounded-lg px-3 py-2 text-sm" :disabled="!filters.company_id">
+            <option value="">ทุกฝ่าย</option>
+            <option v-for="d in divisions" :key="d" :value="d">{{ d }}</option>
+          </select>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">แผนก</label>
+          <select v-model="filters.department" @change="onFilterChange" class="w-full border rounded-lg px-3 py-2 text-sm" :disabled="!filters.company_id">
+            <option value="">ทุกแผนก</option>
+            <option v-for="d in departments" :key="d" :value="d">{{ d }}</option>
+          </select>
+        </div>
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">พนักงาน</label>
           <select v-model="filters.emp_id" class="w-full border rounded-lg px-3 py-2 text-sm">
             <option value="">ทุกคน</option>
-            <option v-for="emp in employees" :key="emp.id" :value="emp.id">
+            <option v-for="emp in filteredEmployees" :key="emp.id" :value="emp.id">
               {{ emp.employee_code }} - {{ emp.name }}
             </option>
           </select>
@@ -40,14 +61,14 @@
           <label class="block text-sm font-medium text-gray-700 mb-1">ถึงวันที่</label>
           <input type="date" v-model="filters.date_to" class="w-full border rounded-lg px-3 py-2 text-sm" />
         </div>
-        <div class="flex items-end">
-          <button @click="loadData" class="bg-blue-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-600">
-            ค้นหา
-          </button>
-          <button @click="resetFilters" class="ml-2 bg-gray-200 text-gray-600 px-4 py-2 rounded-lg text-sm hover:bg-gray-300">
-            รีเซ็ต
-          </button>
-        </div>
+      </div>
+      <div class="flex gap-2 mt-3">
+        <button @click="loadData" class="bg-blue-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-600">
+          ค้นหา
+        </button>
+        <button @click="resetFilters" class="bg-gray-200 text-gray-600 px-4 py-2 rounded-lg text-sm hover:bg-gray-300">
+          รีเซ็ต
+        </button>
       </div>
     </div>
 
@@ -286,7 +307,7 @@
                 <label class="block text-sm font-medium text-gray-700 mb-1">พนักงาน *</label>
                 <select v-model="form.emp_id" :disabled="isEditing" class="w-full border rounded-lg px-3 py-2 text-sm">
                   <option value="">เลือกพนักงาน</option>
-                  <option v-for="emp in employees" :key="emp.id" :value="emp.id">
+                  <option v-for="emp in filteredEmployees" :key="emp.id" :value="emp.id">
                     {{ emp.employee_code }} - {{ emp.name }}
                   </option>
                 </select>
@@ -327,7 +348,7 @@
                 <label class="block text-sm font-medium text-gray-700 mb-1">พนักงาน *</label>
                 <select v-model="form.emp_id" :disabled="isEditing" class="w-full border rounded-lg px-3 py-2 text-sm">
                   <option value="">เลือกพนักงาน</option>
-                  <option v-for="emp in employees" :key="emp.id" :value="emp.id">
+                  <option v-for="emp in filteredEmployees" :key="emp.id" :value="emp.id">
                     {{ emp.employee_code }} - {{ emp.name }}
                   </option>
                 </select>
@@ -367,7 +388,7 @@
                 <label class="block text-sm font-medium text-gray-700 mb-1">พนักงาน *</label>
                 <select v-model="form.emp_id" :disabled="isEditing" class="w-full border rounded-lg px-3 py-2 text-sm">
                   <option value="">เลือกพนักงาน</option>
-                  <option v-for="emp in employees" :key="emp.id" :value="emp.id">
+                  <option v-for="emp in filteredEmployees" :key="emp.id" :value="emp.id">
                     {{ emp.employee_code }} - {{ emp.name }}
                   </option>
                 </select>
@@ -400,7 +421,7 @@
                 <label class="block text-sm font-medium text-gray-700 mb-1">พนักงาน *</label>
                 <select v-model="form.emp_id" :disabled="isEditing" class="w-full border rounded-lg px-3 py-2 text-sm">
                   <option value="">เลือกพนักงาน</option>
-                  <option v-for="emp in employees" :key="emp.id" :value="emp.id">
+                  <option v-for="emp in filteredEmployees" :key="emp.id" :value="emp.id">
                     {{ emp.employee_code }} - {{ emp.name }}
                   </option>
                 </select>
@@ -443,7 +464,7 @@
                 <label class="block text-sm font-medium text-gray-700 mb-1">พนักงาน *</label>
                 <select v-model="form.emp_id" :disabled="isEditing" class="w-full border rounded-lg px-3 py-2 text-sm">
                   <option value="">เลือกพนักงาน</option>
-                  <option v-for="emp in employees" :key="emp.id" :value="emp.id">
+                  <option v-for="emp in filteredEmployees" :key="emp.id" :value="emp.id">
                     {{ emp.employee_code }} - {{ emp.name }}
                   </option>
                 </select>
@@ -513,12 +534,23 @@ const tabs = [
 const tabLabel = computed(() => tabs.find(t => t.key === activeTab.value)?.label || '')
 
 const employees = ref([])
+const companies = ref([])
+const divisions = ref([])
+const departments = ref([])
 const leaveTypes = ref([])
 const tableData = ref([])
 const pagination = ref({ current_page: 1, last_page: 1 })
 const loading = ref(false)
 
-const filters = ref({ emp_id: '', date_from: '', date_to: '' })
+const filters = ref({ emp_id: '', date_from: '', date_to: '', company_id: '', division: '', department: '' })
+
+const filteredEmployees = computed(() => {
+  let list = employees.value
+  if (filters.value.company_id) list = list.filter(e => e.company_id == filters.value.company_id)
+  if (filters.value.division) list = list.filter(e => e.division === filters.value.division)
+  if (filters.value.department) list = list.filter(e => e.department === filters.value.department)
+  return list
+})
 
 const showForm = ref(false)
 const isEditing = ref(false)
@@ -552,22 +584,52 @@ const shiftCodes = [
 ]
 
 onMounted(async () => {
-  const [empRes, ltRes] = await Promise.all([
+  const [empRes, ltRes, compRes] = await Promise.all([
     axios.get('/api/employees'),
-    axios.get('/api/leave/types')
+    axios.get('/api/leave/types'),
+    axios.get('/api/companies'),
   ])
   employees.value = empRes.data.data || empRes.data
   leaveTypes.value = ltRes.data.data || ltRes.data
+  companies.value = compRes.data.data?.data || compRes.data.data || compRes.data
   loadData()
 })
 
 watch(activeTab, () => { loadData() })
 
+function onCompanyFilterChange() {
+  filters.value.division = ''
+  filters.value.department = ''
+  filters.value.emp_id = ''
+  updateDivisionsDepartments()
+  loadData()
+}
+
+function onFilterChange() {
+  filters.value.emp_id = ''
+  updateDivisionsDepartments()
+  loadData()
+}
+
+function updateDivisionsDepartments() {
+  const empList = employees.value.filter(e => {
+    if (filters.value.company_id && e.company_id != filters.value.company_id) return false
+    return true
+  })
+  divisions.value = [...new Set(empList.map(e => e.division).filter(Boolean))].sort()
+  departments.value = [...new Set(empList.map(e => e.department).filter(Boolean))].sort()
+}
+
 async function loadData() {
   loading.value = true
   try {
-    const params = { ...filters.value }
-    Object.keys(params).forEach(k => { if (!params[k]) delete params[k] })
+    const params = {}
+    if (filters.value.emp_id) params.emp_id = filters.value.emp_id
+    if (filters.value.date_from) params.date_from = filters.value.date_from
+    if (filters.value.date_to) params.date_to = filters.value.date_to
+    if (filters.value.company_id) params.company_id = filters.value.company_id
+    if (filters.value.division) params.division = filters.value.division
+    if (filters.value.department) params.department = filters.value.department
 
     const url = `/api/manual/${activeTab.value}`
     const res = await axios.get(url, { params })
@@ -584,7 +646,9 @@ async function loadData() {
 }
 
 function resetFilters() {
-  filters.value = { emp_id: '', date_from: '', date_to: '' }
+  filters.value = { emp_id: '', date_from: '', date_to: '', company_id: '', division: '', department: '' }
+  divisions.value = []
+  departments.value = []
   loadData()
 }
 

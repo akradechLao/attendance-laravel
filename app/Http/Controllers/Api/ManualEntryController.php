@@ -24,7 +24,7 @@ class ManualEntryController extends Controller
 
     public function attendanceIndex(Request $request): JsonResponse
     {
-        $query = AttendanceLog::with('employee:id,name,employee_code,department');
+        $query = AttendanceLog::with('employee:id,name,employee_code,department,division,company_id');
 
         if ($request->emp_id) {
             $query->where('emp_id', $request->emp_id);
@@ -34,6 +34,12 @@ class ManualEntryController extends Controller
         }
         if ($request->date_to) {
             $query->where('date', '<=', $request->date_to);
+        }
+        if ($request->company_id) {
+            $query->whereHas('employee', fn($q) => $q->where('company_id', $request->company_id));
+        }
+        if ($request->division) {
+            $query->whereHas('employee', fn($q) => $q->where('division', $request->division));
         }
         if ($request->department) {
             $query->whereHas('employee', fn($q) => $q->where('department', $request->department));
@@ -133,7 +139,7 @@ class ManualEntryController extends Controller
 
     public function otIndex(Request $request): JsonResponse
     {
-        $query = OtRequest::with('employee:id,name,employee_code,department');
+        $query = OtRequest::with('employee:id,name,employee_code,department,division,company_id');
 
         if ($request->emp_id) {
             $query->where('emp_id', $request->emp_id);
@@ -146,6 +152,12 @@ class ManualEntryController extends Controller
         }
         if ($request->status) {
             $query->where('status', $request->status);
+        }
+        if ($request->company_id) {
+            $query->whereHas('employee', fn($q) => $q->where('company_id', $request->company_id));
+        }
+        if ($request->division) {
+            $query->whereHas('employee', fn($q) => $q->where('division', $request->division));
         }
         if ($request->department) {
             $query->whereHas('employee', fn($q) => $q->where('department', $request->department));
@@ -226,7 +238,7 @@ class ManualEntryController extends Controller
 
     public function shiftIndex(Request $request): JsonResponse
     {
-        $query = ShiftSchedule::with('employee:id,name,employee_code,department');
+        $query = ShiftSchedule::with('employee:id,name,employee_code,department,division,company_id');
 
         if ($request->emp_id) {
             $query->where('emp_id', $request->emp_id);
@@ -236,6 +248,12 @@ class ManualEntryController extends Controller
         }
         if ($request->date_to) {
             $query->where('work_date', '<=', $request->date_to);
+        }
+        if ($request->company_id) {
+            $query->whereHas('employee', fn($q) => $q->where('company_id', $request->company_id));
+        }
+        if ($request->division) {
+            $query->whereHas('employee', fn($q) => $q->where('division', $request->division));
         }
         if ($request->department) {
             $query->whereHas('employee', fn($q) => $q->where('department', $request->department));
@@ -318,7 +336,7 @@ class ManualEntryController extends Controller
 
     public function leaveIndex(Request $request): JsonResponse
     {
-        $query = LeaveRequest::with(['employee:id,name,employee_code,department', 'leaveType:id,name,code']);
+        $query = LeaveRequest::with(['employee:id,name,employee_code,department,division,company_id', 'leaveType:id,name,code']);
 
         if ($request->emp_id) {
             $query->where('emp_id', $request->emp_id);
@@ -331,6 +349,12 @@ class ManualEntryController extends Controller
         }
         if ($request->status) {
             $query->where('status', $request->status);
+        }
+        if ($request->company_id) {
+            $query->whereHas('employee', fn($q) => $q->where('company_id', $request->company_id));
+        }
+        if ($request->division) {
+            $query->whereHas('employee', fn($q) => $q->where('division', $request->division));
         }
         if ($request->department) {
             $query->whereHas('employee', fn($q) => $q->where('department', $request->department));
@@ -421,7 +445,7 @@ class ManualEntryController extends Controller
 
     public function wfhIndex(Request $request): JsonResponse
     {
-        $query = WfhRecord::with('employee:id,name,employee_code,department');
+        $query = WfhRecord::with('employee:id,name,employee_code,department,division,company_id');
 
         if ($request->emp_id) {
             $query->where('emp_id', $request->emp_id);
@@ -434,6 +458,15 @@ class ManualEntryController extends Controller
         }
         if ($request->status) {
             $query->where('status', $request->status);
+        }
+        if ($request->company_id) {
+            $query->whereHas('employee', fn($q) => $q->where('company_id', $request->company_id));
+        }
+        if ($request->division) {
+            $query->whereHas('employee', fn($q) => $q->where('division', $request->division));
+        }
+        if ($request->department) {
+            $query->whereHas('employee', fn($q) => $q->where('department', $request->department));
         }
 
         $records = $query->orderBy('date', 'desc')
