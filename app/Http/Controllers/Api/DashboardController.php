@@ -23,6 +23,7 @@ class DashboardController extends Controller
         try {
             $companyId = $request->get('company_id');
             $today = Carbon::now('Asia/Bangkok')->today()->toDateString();
+            $yesterday = Carbon::now('Asia/Bangkok')->yesterday()->toDateString();
 
             $employeeQuery = Employee::where('is_active', true);
             if ($companyId) {
@@ -30,8 +31,14 @@ class DashboardController extends Controller
             }
             $totalEmployees = $employeeQuery->count();
 
-            // ดึงข้อมูลวันนี้เท่านั้น
-            $attendanceQuery = AttendanceLog::where('date', $today)
+            // ดึงข้อมูลวันนี้ + กะข้ามคืนจากเมื่อวาน (ที่ยังไม่ได้เช็คเอาท์)
+            $attendanceQuery = AttendanceLog::where(function ($q) use ($today, $yesterday) {
+                    $q->where('date', $today)
+                      ->orWhere(function ($q2) use ($yesterday) {
+                          $q2->where('date', $yesterday)
+                             ->whereNull('check_out');
+                      });
+                })
                 ->whereHas('employee', function ($q) use ($companyId) {
                     $q->where('is_active', true);
                     if ($companyId) {
@@ -45,8 +52,11 @@ class DashboardController extends Controller
             $checkedOut = (clone $attendanceQuery)->whereNotNull('check_out')->pluck('emp_id')->unique()->count();
             $absentToday = max(0, $totalEmployees - $presentToday);
 
-            // นับลากิจบังคับวันนี้
-            $forcedLeaveQuery = LateForcedLeave::where('date', $today)
+            // นับลากิจบังคับวันนี้ + กะข้ามคืน
+            $forcedLeaveQuery = LateForcedLeave::where(function ($q) use ($today, $yesterday) {
+                    $q->where('date', $today)
+                      ->orWhere('date', $yesterday);
+                })
                 ->whereHas('employee', function ($q) use ($companyId) {
                     $q->where('is_active', true);
                     if ($companyId) {
@@ -84,7 +94,13 @@ class DashboardController extends Controller
                 $totalQ = Employee::where('company_id', $company->id)->where('is_active', true);
                 $total = $totalQ->count();
 
-                $presentQ = AttendanceLog::where('date', $today)
+                $presentQ = AttendanceLog::where(function ($q) use ($today, $yesterday) {
+                        $q->where('date', $today)
+                          ->orWhere(function ($q2) use ($yesterday) {
+                              $q2->where('date', $yesterday)
+                                 ->whereNull('check_out');
+                          });
+                    })
                     ->whereHas('employee', function ($q) use ($company) {
                         $q->where('company_id', $company->id)->where('is_active', true);
                     });
@@ -139,10 +155,17 @@ class DashboardController extends Controller
     {
         try {
             $today = Carbon::today()->toDateString();
+            $yesterday = Carbon::yesterday()->toDateString();
             $companyId = $request->get('company_id');
 
-            // ดึงข้อมูลวันนี้เท่านั้น
-            $query = AttendanceLog::where('date', $today)
+            // ดึงข้อมูลวันนี้ + กะข้ามคืนจากเมื่อวาน (ที่ยังไม่ได้เช็คเอาท์)
+            $query = AttendanceLog::where(function ($q) use ($today, $yesterday) {
+                    $q->where('date', $today)
+                      ->orWhere(function ($q2) use ($yesterday) {
+                          $q2->where('date', $yesterday)
+                             ->whereNull('check_out');
+                      });
+                })
                 ->with(['employee', 'employee.company'])
                 ->whereHas('employee', function ($q) use ($companyId) {
                     $q->where('is_active', true);
