@@ -85,7 +85,7 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
           </svg>
           <p class="text-gray-600 font-medium">ลากไฟล์มาวาง หรือคลิกเพื่อเลือกรูป</p>
-          <p class="text-xs text-gray-400 mt-1">PNG, JPG ไม่เกิน 2MB ต่อไฟล์ (สูงสุด 5 รูป)</p>
+          <p class="text-xs text-gray-400 mt-1">PNG, JPG ไฟล์ใหญ่จะถูกบีบอัดอัตโนมัติ (สูงสุด 5 รูป)</p>
         </div>
         <input ref="fileInput" type="file" accept="image/*" multiple class="hidden" @change="handleFileSelect" />
 
@@ -149,6 +149,7 @@ const error = ref('')
 const success = ref(false)
 
 const facePositions = ['ตรงหน้า', 'ซ้าย 45°', 'ขวา 45°', 'มองขึ้น', 'มองลง']
+const MAX_SIZE = 2 * 1024 * 1024
 
 let searchTimeout = null
 function searchEmployees() {
@@ -193,8 +194,16 @@ function handleDrop(event) {
 function addFiles(files) {
   for (const file of files) {
     if (uploadedPhotos.value.length >= 5) break
-    if (file.size > 2 * 1024 * 1024) {
-      error.value = `ไฟล์ ${file.name} มีขนาดใหญ่เกิน 2MB`
+    if (file.size > MAX_SIZE) {
+      // Auto-compress instead of rejecting
+      compressImage(file).then(compressed => {
+        if (uploadedPhotos.value.length < 5) {
+          uploadedPhotos.value.push({
+            file: compressed,
+            preview: URL.createObjectURL(compressed)
+          })
+        }
+      })
       continue
     }
     uploadedPhotos.value.push({
@@ -203,6 +212,43 @@ function addFiles(files) {
     })
     error.value = ''
   }
+}
+
+function compressImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const img = new Image()
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
+        let { width, height } = img
+        let quality = 0.9
+
+        const tryCompress = () => {
+          canvas.width = width
+          canvas.height = height
+          ctx.drawImage(img, 0, 0, width, height)
+          canvas.toBlob((blob) => {
+            if (blob.size <= MAX_SIZE || width <= 100 || height <= 100) {
+              resolve(new File([blob], file.name, { type: 'image/jpeg' }))
+            } else if (quality > 0.3) {
+              quality -= 0.1
+              tryCompress()
+            } else {
+              width = Math.round(width * 0.9)
+              height = Math.round(height * 0.9)
+              quality = 0.8
+              tryCompress()
+            }
+          }, 'image/jpeg', quality)
+        }
+        tryCompress()
+      }
+      img.src = e.target.result
+    }
+    reader.readAsDataURL(file)
+  })
 }
 
 function removePhoto(index) {

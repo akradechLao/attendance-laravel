@@ -441,11 +441,53 @@ function handleLogoDrop(event) {
 
 function processLogoFile(file) {
   if (file.size > 2 * 1024 * 1024) {
-    alert('ไฟล์มีขนาดใหญ่เกิน 2MB')
+    // Auto-compress
+    compressLogo(file).then(compressed => {
+      companyForm.logoFile = compressed
+      companyForm.logoPreview = URL.createObjectURL(compressed)
+    })
     return
   }
   companyForm.logoFile = file
   companyForm.logoPreview = URL.createObjectURL(file)
+}
+
+function compressLogo(file) {
+  return new Promise((resolve) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const img = new Image()
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
+        let { width, height } = img
+        let quality = 0.9
+        const MAX = 2 * 1024 * 1024
+
+        const tryCompress = () => {
+          canvas.width = width
+          canvas.height = height
+          ctx.drawImage(img, 0, 0, width, height)
+          canvas.toBlob((blob) => {
+            if (blob.size <= MAX || width <= 100 || height <= 100) {
+              resolve(new File([blob], file.name, { type: 'image/jpeg' }))
+            } else if (quality > 0.3) {
+              quality -= 0.1
+              tryCompress()
+            } else {
+              width = Math.round(width * 0.9)
+              height = Math.round(height * 0.9)
+              quality = 0.8
+              tryCompress()
+            }
+          }, 'image/jpeg', quality)
+        }
+        tryCompress()
+      }
+      img.src = e.target.result
+    }
+    reader.readAsDataURL(file)
+  })
 }
 
 async function removeLogo() {

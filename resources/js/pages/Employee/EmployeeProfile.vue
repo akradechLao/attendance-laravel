@@ -158,6 +158,7 @@ import store from '../../store'
 const loading = ref(true)
 const profile = ref(null)
 const uploading = ref(false)
+const MAX_SIZE = 2 * 1024 * 1024 // 2MB
 
 const thMonthsShort = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.']
 
@@ -176,19 +177,71 @@ function fmtStartDate(d) {
   return `${day} ${thMonthsShort[month]} ${year}`
 }
 
+function compressImage(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const img = new Image()
+      img.onload = () => {
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
+
+        let { width, height } = img
+
+        // Scale down proportionally until under MAX_SIZE
+        // Start with quality reduction first for best results
+        let quality = 0.9
+        let blob
+
+        const tryCompress = () => {
+          canvas.width = width
+          canvas.height = height
+          ctx.drawImage(img, 0, 0, width, height)
+
+          canvas.toBlob((b) => {
+            blob = b
+            if (blob.size <= MAX_SIZE || width <= 100 || height <= 100) {
+              // Done - either small enough or at minimum size
+              resolve(new File([blob], file.name, { type: 'image/jpeg' }))
+            } else if (quality > 0.3) {
+              // Reduce quality first
+              quality -= 0.1
+              tryCompress()
+            } else {
+              // Reduce dimensions by 10%
+              width = Math.round(width * 0.9)
+              height = Math.round(height * 0.9)
+              quality = 0.8
+              tryCompress()
+            }
+          }, 'image/jpeg', quality)
+        }
+
+        tryCompress()
+      }
+      img.onerror = () => reject(new Error('ไม่สามารถอ่านรูปภาพได้'))
+      img.src = e.target.result
+    }
+    reader.onerror = () => reject(new Error('ไม่สามารถอ่านไฟล์ได้'))
+    reader.readAsDataURL(file)
+  })
+}
+
 async function handlePhotoUpload(event) {
   const file = event.target.files[0]
   if (!file) return
 
-  if (file.size > 2 * 1024 * 1024) {
-    alert('รูปต้องมีขนาดไม่เกิน 2 MB')
-    return
-  }
-
   uploading.value = true
   try {
+    let uploadFile = file
+
+    // Auto-compress if over 2MB
+    if (file.size > MAX_SIZE) {
+      uploadFile = await compressImage(file)
+    }
+
     const formData = new FormData()
-    formData.append('photo', file)
+    formData.append('photo', uploadFile)
     const res = await api.post('/api/employee/profile/photo', formData, {
       headers: { 'Content-Type': 'multipart/form-data' },
     })
@@ -196,7 +249,7 @@ async function handlePhotoUpload(event) {
       profile.value.photo = res.data.photo
     }
   } catch (e) {
-    alert(e.response?.data?.message || 'เกิดข้อผิดพลาด')
+    alert(e.response?.data?.message || e.message || 'เกิดข้อผิดพลาด')
   } finally {
     uploading.value = false
     event.target.value = ''
