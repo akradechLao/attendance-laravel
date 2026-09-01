@@ -151,15 +151,7 @@ class ShiftAssignmentController extends Controller
             $endDate = date('Y-m-t', strtotime($startDate));
 
             $query = Employee::where('is_active', true)
-                ->with('company')
-                ->withCount(['attendanceLogs as actual_days' => function ($q) use ($startDate, $endDate) {
-                    $q->whereBetween('date', [$startDate, $endDate])
-                        ->where('status', '!=', 'holiday');
-                }])
-                ->withSum(['attendanceLogs as actual_hours' => function ($q) use ($startDate, $endDate) {
-                    $q->whereBetween('date', [$startDate, $endDate])
-                        ->where('status', '!=', 'holiday');
-                }], DB::raw('TIMESTAMPDIFF(MINUTE, check_in, COALESCE(check_out, check_in))'));
+                ->with('company');
 
             if ($companyId) {
                 $query->where('company_id', $companyId);
@@ -178,16 +170,24 @@ class ShiftAssignmentController extends Controller
                     return $s->emp_id . '_' . $s->work_date;
                 });
 
+            // Get actual attendance
+            $empIds = $employees->pluck('id')->toArray();
+            $attendance = DB::table('attendance_logs')
+                ->whereBetween('date', [$startDate, $endDate])
+                ->whereIn('emp_id', $empIds)
+                ->where('status', '!=', 'holiday')
+                ->get()
+                ->groupBy('emp_id');
+
             // Get shifts
             $shifts = WorkShift::orderBy('group_number')->get();
 
             // Build calendar data
-            $calendarData = $employees->map(function ($emp) use ($schedules, $startDate, $endDate) {
+            $calendarData = $employees->map(function ($emp) use ($schedules, $attendance, $startDate, $endDate) {
                 $days = [];
                 $current = strtotime($startDate);
                 $end = strtotime($endDate);
                 $assignedDays = 0;
-                $totalMinutes = 0;
 
                 while ($current <= $end) {
                     $dateStr = date('Y-m-d', $current);
@@ -198,7 +198,7 @@ class ShiftAssignmentController extends Controller
                         'day_of_week' => date('w', $current),
                         'shift_code' => $schedule ? $schedule->shift_code : null,
                         'day_type' => $schedule ? $schedule->day_type : null,
-                        'is_holiday' => in_array(date('w', $current), [0, 6]), // Sun=0, Sat=6
+                        'is_holiday' => in_array(date('w', $current), [0, 6]),
                     ];
 
                     if ($schedule && $schedule->day_type === 'working') {
@@ -207,6 +207,23 @@ class ShiftAssignmentController extends Controller
 
                     $days[] = $dayData;
                     $current = strtotime('+1 day', $current);
+                }
+
+                // Calculate actual attendance
+                $empAttendance = $attendance->get($emp->id, collect());
+                $actualDays = $empAttendance->pluck('date')->unique()->count();
+                $totalMinutes = 0;
+                $grouped = $empAttendance->groupBy('date');
+                foreach ($grouped as $dayLogs) {
+                    $first = $dayLogs->first();
+                    $last = $dayLogs->last();
+                    if ($first->check_in && $last->check_out) {
+                        $in = strtotime($first->check_in);
+                        $out = strtotime($last->check_out);
+                        if ($out > $in) {
+                            $totalMinutes += ($out - $in) / 60;
+                        }
+                    }
                 }
 
                 return [
@@ -219,8 +236,8 @@ class ShiftAssignmentController extends Controller
                     'department' => $emp->department,
                     'days' => $days,
                     'assigned_days' => $assignedDays,
-                    'actual_days' => $emp->actual_days ?? 0,
-                    'actual_hours' => $emp->actual_hours ? round($emp->actual_hours / 60, 1) : 0,
+                    'actual_days' => $actualDays,
+                    'actual_hours' => round($totalMinutes / 60, 1),
                 ];
             });
 

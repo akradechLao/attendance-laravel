@@ -43,18 +43,20 @@
             <select v-model="quickShiftCode" class="input-field text-sm">
               <option value="">เลือกกะ</option>
               <option v-for="s in shifts" :key="s.id" :value="'WC' + String(s.group_number).padStart(4, '0')">
-                กะ {{ s.group_number }} ({{ s.start_time?.slice(0,5) }}-{{ s.end_time?.slice(0,5) }})
+                กะ {{ s.group_number }} ({{ s.start_time ? s.start_time.slice(0,5) : '' }}-{{ s.end_time ? s.end_time.slice(0,5) : '' }})
               </option>
               <option value="__day_off">วันหยุด</option>
             </select>
           </div>
-          <div v-if="hasPendingChanges" class="ml-auto">
+          <div v-if="pendingCount > 0" class="ml-auto">
             <button @click="saveAllChanges" :disabled="saving" class="px-4 py-1.5 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 disabled:opacity-50">
-              {{ saving ? 'กำลังบันทึก...' : '💾 บันทึกทั้งหมด' }}
+              {{ saving ? 'กำลังบันทึก...' : 'บันทึกทั้งหมด (' + pendingCount + ')' }}
             </button>
           </div>
         </div>
       </div>
+
+      <div v-if="error" class="card p-4 bg-red-50 border-red-200 text-red-700 text-sm">{{ error }}</div>
 
       <div v-if="loading" class="text-center py-12 text-gray-500">กำลังโหลด...</div>
 
@@ -96,7 +98,7 @@
                   <tr v-for="emp in filteredEmployees" :key="emp.id" class="hover:bg-gray-50">
                     <td class="sticky left-0 bg-white z-10 px-2 py-1.5">
                       <div class="flex items-center gap-1.5">
-                        <input type="checkbox" :checked="selectedEmpIds.has(emp.id)" @change="toggleEmp(emp.id)" class="rounded" />
+                        <input type="checkbox" :checked="selectedEmpIds.includes(emp.id)" @change="toggleEmp(emp.id)" class="rounded" />
                         <div>
                           <div class="font-medium text-navy text-xs">{{ emp.name }}</div>
                           <div class="text-[10px] text-gray-400">{{ emp.employee_code }}</div>
@@ -111,20 +113,14 @@
                       @click="toggleDay(emp, day)"
                     >
                       <span
-                        v-if="day.shift_code"
+                        v-if="day.shift_code && day.day_type === 'working'"
                         class="inline-block w-5 h-5 rounded text-[9px] leading-5 text-white font-medium"
                         :class="getShiftColorFromCode(day.shift_code)"
-                        :title="`${emp.name} - ${day.date} - ${day.shift_code}`"
+                        :title="emp.name + ' - ' + day.date + ' - ' + day.shift_code"
                       >{{ getShiftNumber(day.shift_code) }}</span>
-                      <span
-                        v-else-if="day.is_holiday"
-                        class="inline-block w-5 h-5 rounded text-[9px] leading-5 text-gray-300 font-medium"
-                        title="วันหยุด"
-                      >-</span>
                       <span
                         v-else
                         class="inline-block w-5 h-5 rounded text-[9px] leading-5 border border-dashed border-gray-200 text-gray-300 font-medium"
-                        title="ไม่ได้กำหนด"
                       ></span>
                     </td>
                     <td class="text-center px-2 py-1.5">
@@ -136,13 +132,16 @@
                 </tbody>
               </table>
             </div>
+            <div v-if="filteredEmployees.length === 0" class="text-center py-8 text-gray-400 text-sm">
+              ไม่พบพนักงาน
+            </div>
           </div>
 
           <!-- Batch actions -->
-          <div v-if="selectedEmpIds.size > 0" class="card p-3 bg-blue-50 border-blue-200 flex items-center justify-between">
-            <span class="text-sm text-blue-700">เลือก {{ selectedEmpIds.size }} คน — คลิกวันในตารางเพื่อมอบหมายกะ</span>
+          <div v-if="selectedEmpIds.length > 0" class="card p-3 bg-blue-50 border-blue-200 flex items-center justify-between">
+            <span class="text-sm text-blue-700">เลือก {{ selectedEmpIds.length }} คน — คลิกวันในตารางเพื่อมอบหมายกะ</span>
             <div class="flex gap-2">
-              <button @click="selectedEmpIds.clear()" class="text-xs text-gray-500 hover:text-gray-700">ยกเลิกเลือก</button>
+              <button @click="selectedEmpIds = []" class="text-xs text-gray-500 hover:text-gray-700">ยกเลิกเลือก</button>
             </div>
           </div>
         </template>
@@ -187,7 +186,7 @@
               </table>
             </div>
             <div v-if="summaryData.length === 0" class="text-center py-8 text-gray-400 text-sm">
-              ไม่ข้อมูล
+              ไม่พบข้อมูล
             </div>
           </div>
         </template>
@@ -197,12 +196,13 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import api from '../../services/api'
 import AppLayout from '../../layouts/AppLayout.vue'
 
 const loading = ref(true)
 const saving = ref(false)
+const error = ref('')
 const activeTab = ref('calendar')
 const employees = ref([])
 const companies = ref([])
@@ -211,21 +211,18 @@ const selectedMonth = ref(new Date().toISOString().slice(0, 7))
 const selectedCompany = ref('')
 const searchQuery = ref('')
 const quickShiftCode = ref('')
-const selectedEmpIds = ref(new Set())
+const selectedEmpIds = ref([])
 const pendingChanges = ref([])
 const summaryData = ref([])
 
 const dayNames = ['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส']
 
 const daysInMonth = computed(() => {
-  return new Date(
-    parseInt(selectedMonth.value.split('-')[0]),
-    parseInt(selectedMonth.value.split('-')[1]),
-    0
-  ).getDate()
+  const parts = selectedMonth.value.split('-')
+  return new Date(parseInt(parts[0]), parseInt(parts[1]), 0).getDate()
 })
 
-const hasPendingChanges = computed(() => pendingChanges.value.length > 0)
+const pendingCount = computed(() => pendingChanges.value.length)
 
 const filteredEmployees = computed(() => {
   if (!searchQuery.value) return employees.value
@@ -236,21 +233,15 @@ const filteredEmployees = computed(() => {
 })
 
 function isWeekend(d) {
-  const date = new Date(
-    parseInt(selectedMonth.value.split('-')[0]),
-    parseInt(selectedMonth.value.split('-')[1]) - 1,
-    d
-  )
+  const parts = selectedMonth.value.split('-')
+  const date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, d)
   const w = date.getDay()
   return w === 0 || w === 6
 }
 
 function getDayName(d) {
-  const date = new Date(
-    parseInt(selectedMonth.value.split('-')[0]),
-    parseInt(selectedMonth.value.split('-')[1]) - 1,
-    d
-  )
+  const parts = selectedMonth.value.split('-')
+  const date = new Date(parseInt(parts[0]), parseInt(parts[1]) - 1, d)
   return dayNames[date.getDay()]
 }
 
@@ -263,11 +254,13 @@ function getShiftColor(groupNumber) {
 }
 
 function getShiftColorFromCode(code) {
+  if (!code) return 'bg-gray-500'
   const num = parseInt(code.replace('WC', '')) || 0
   return getShiftColor(num)
 }
 
 function getShiftNumber(code) {
+  if (!code) return '?'
   return parseInt(code.replace('WC', '')) || '?'
 }
 
@@ -276,15 +269,15 @@ function getShiftCodeFromNumber(num) {
 }
 
 function toggleEmp(empId) {
-  if (selectedEmpIds.value.has(empId)) {
-    selectedEmpIds.value.delete(empId)
+  const idx = selectedEmpIds.value.indexOf(empId)
+  if (idx === -1) {
+    selectedEmpIds.value = [...selectedEmpIds.value, empId]
   } else {
-    selectedEmpIds.value.add(empId)
+    selectedEmpIds.value = selectedEmpIds.value.filter(id => id !== empId)
   }
 }
 
 function toggleDay(emp, day) {
-  // Determine what to assign
   let shiftCode = null
   let dayType = 'day_off'
 
@@ -295,8 +288,7 @@ function toggleDay(emp, day) {
     shiftCode = quickShiftCode.value
     dayType = 'working'
   } else {
-    // Toggle: if has shift → remove; if no shift → add first shift
-    if (day.shift_code) {
+    if (day.shift_code && day.day_type === 'working') {
       shiftCode = null
       dayType = 'day_off'
     } else {
@@ -305,34 +297,32 @@ function toggleDay(emp, day) {
     }
   }
 
-  // If employees are selected, apply to all selected
-  const targets = selectedEmpIds.value.size > 0
-    ? employees.value.filter(e => selectedEmpIds.value.has(e.id))
+  const targets = selectedEmpIds.value.length > 0
+    ? employees.value.filter(e => selectedEmpIds.value.includes(e.id))
     : [emp]
 
+  const newPending = []
   for (const target of targets) {
     const targetDay = target.days.find(d => d.date === day.date)
     if (targetDay) {
       targetDay.shift_code = shiftCode
       targetDay.day_type = dayType
-
-      // Recalculate assigned_days
       target.assigned_days = target.days.filter(d => d.day_type === 'working').length
     }
-
-    // Add to pending changes
-    pendingChanges.value.push({
+    newPending.push({
       emp_id: target.id,
       work_date: day.date,
       shift_code: shiftCode,
       day_type: dayType,
     })
   }
+  pendingChanges.value = [...pendingChanges.value, ...newPending]
 }
 
 async function saveAllChanges() {
   if (pendingChanges.value.length === 0) return
   saving.value = true
+  error.value = ''
   try {
     await api.post('/api/shift-assignments/bulk-day', {
       updates: pendingChanges.value,
@@ -340,7 +330,7 @@ async function saveAllChanges() {
     pendingChanges.value = []
     await loadData()
   } catch (e) {
-    alert('เกิดข้อผิดพลาด: ' + (e.response?.data?.message || e.message))
+    error.value = 'เกิดข้อผิดพลาด: ' + (e.response?.data?.message || e.message)
   } finally {
     saving.value = false
   }
@@ -353,12 +343,13 @@ async function loadSummary() {
     })
     summaryData.value = res.data.data || []
   } catch (e) {
-    console.error(e)
+    error.value = 'โหลดสรุปไม่สำเร็จ: ' + (e.response?.data?.message || e.message)
   }
 }
 
 async function loadData() {
   loading.value = true
+  error.value = ''
   pendingChanges.value = []
   try {
     const [calendarRes, compRes] = await Promise.all([
@@ -375,14 +366,12 @@ async function loadData() {
       await loadSummary()
     }
   } catch (e) {
-    console.error(e)
+    error.value = 'โหลดข้อมูลไม่สำเร็จ: ' + (e.response?.data?.message || e.message)
   } finally {
     loading.value = false
   }
 }
 
-// Watch tab changes
-import { watch } from 'vue'
 watch(activeTab, async (tab) => {
   if (tab === 'summary') {
     await loadSummary()
