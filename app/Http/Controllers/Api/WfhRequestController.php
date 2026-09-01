@@ -10,6 +10,7 @@ use App\Constants\RoleConstants;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class WfhRequestController extends Controller
 {
@@ -188,37 +189,39 @@ class WfhRequestController extends Controller
             ], 400);
         }
 
-        $record->update([
-            'date' => $approvedDate,
-            'approved_date' => $approvedDate,
-            'supervisor_id' => $request->get('supervisor_id'),
-            'supervisor_note' => $request->get('supervisor_note'),
-            'status' => 'approved',
-        ]);
-
-        // ─── สร้าง RemoteAssignment อัตโนมัติ เพื่อให้พนักงาน remote scan ได้ ───
-        $employee = $record->employee;
-        if ($employee) {
-            $approvedDateStr = Carbon::parse($approvedDate)->format('Y-m-d');
-
-            // ลบ RemoteAssignment เดิมของวันนี้ (ถ้ามี)
-            RemoteAssignment::where('emp_id', $record->emp_id)
-                ->where('start_date', $approvedDateStr)
-                ->where('end_date', $approvedDateStr)
-                ->delete();
-
-            RemoteAssignment::create([
-                'emp_id' => $record->emp_id,
-                'company_id' => $employee->company_id,
-                'start_date' => $approvedDateStr,
-                'end_date' => $approvedDateStr,
-                'destination' => 'WFH',
-                'reason' => $record->reason ?: 'ปฏิบัติงานนอกสถานที่ (WFH)',
+        DB::transaction(function () use ($record, $request, $approvedDate) {
+            $record->update([
+                'date' => $approvedDate,
+                'approved_date' => $approvedDate,
+                'supervisor_id' => $request->get('supervisor_id'),
+                'supervisor_note' => $request->get('supervisor_note'),
                 'status' => 'approved',
-                'approved_by' => $request->get('supervisor_id'),
-                'approved_at' => now(),
             ]);
-        }
+
+            // ─── สร้าง RemoteAssignment อัตโนมัติ เพื่อให้พนักงาน remote scan ได้ ───
+            $employee = $record->employee;
+            if ($employee) {
+                $approvedDateStr = Carbon::parse($approvedDate)->format('Y-m-d');
+
+                // ลบ RemoteAssignment เดิมของวันนี้ (ถ้ามี)
+                RemoteAssignment::where('emp_id', $record->emp_id)
+                    ->where('start_date', $approvedDateStr)
+                    ->where('end_date', $approvedDateStr)
+                    ->delete();
+
+                RemoteAssignment::create([
+                    'emp_id' => $record->emp_id,
+                    'company_id' => $employee->company_id,
+                    'start_date' => $approvedDateStr,
+                    'end_date' => $approvedDateStr,
+                    'destination' => 'WFH',
+                    'reason' => $record->reason ?: 'ปฏิบัติงานนอกสถานที่ (WFH)',
+                    'status' => 'approved',
+                    'approved_by' => $request->get('supervisor_id'),
+                    'approved_at' => now(),
+                ]);
+            }
+        });
 
         return response()->json([
             'success' => true,
@@ -240,6 +243,13 @@ class WfhRequestController extends Controller
     public function reject(Request $request, $id): JsonResponse
     {
         $record = WfhRecord::findOrFail($id);
+
+        if (!in_array($record->status, ['pending', 'approved'])) {
+            return response()->json([
+                'success' => false,
+                'message' => 'รายการนี้ดำเนินการแล้ว',
+            ], 400);
+        }
 
         // Authorization: must be subordinate or HR admin
         $user = $request->user();
