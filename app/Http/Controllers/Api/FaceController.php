@@ -420,6 +420,33 @@ class FaceController extends Controller
                 $encodings = $request->encodings;
                 $angles = ['front', 'left', 'right', 'up', 'down'];
 
+                // ─── Server-side quality validation ───
+                // ตรวจว่า encoding แต่ละตัวไม่เหมือนกัน (ป้องกันถ่ายรูปซ้ำ 5 ใบ)
+                $parsedEncodings = array_map(function ($e) {
+                    return is_string($e) ? json_decode($e, true) : $e;
+                }, $encodings);
+
+                for ($i = 0; $i < count($parsedEncodings); $i++) {
+                    for ($j = $i + 1; $j < count($parsedEncodings); $j++) {
+                        $e1 = $parsedEncodings[$i];
+                        $e2 = $parsedEncodings[$j];
+                        if ($e1 && $e2 && is_array($e1) && is_array($e2) && count($e1) === count($e2)) {
+                            $distance = 0;
+                            for ($k = 0; $k < count($e1); $k++) {
+                                $distance += ($e1[$k] - $e2[$k]) ** 2;
+                            }
+                            $distance = sqrt($distance);
+                            if ($distance < 0.3) {
+                                return response()->json([
+                                    'success' => false,
+                                    'data' => null,
+                                    'message' => 'รูปที่ ' . ($i + 1) . ' และรูปที่ ' . ($j + 1) . ' เหมือนกัน กรุณาหันหน้าในมุมที่ต่างกัน',
+                                ], 422);
+                            }
+                        }
+                    }
+                }
+
                 EmployeeFaceData::where('employee_id', $employee->id)->delete();
 
                 $savedFaceData = [];

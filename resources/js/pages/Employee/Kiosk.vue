@@ -67,6 +67,33 @@
         <p class="text-sm sm:text-base text-blue-600 font-medium">ETC Group</p>
       </div>
 
+      <!-- Offline Queue Status Bar -->
+      <Transition name="slide-down">
+        <div v-if="queuedCount > 0" class="mb-4 animate-fadeIn">
+          <div class="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-300 rounded-xl px-4 py-3 shadow-sm">
+            <div class="flex items-center justify-between">
+              <div class="flex items-center gap-2">
+                <span class="w-2 h-2 bg-amber-400 rounded-full animate-pulse"></span>
+                <span class="text-sm text-amber-800 font-medium">
+                  ข้อมูล {{ queuedCount }} รายการ รอส่งให้ระบบฯ ส่วนกลาง
+                </span>
+              </div>
+              <button
+                @click="syncQueuedData"
+                :disabled="syncingQueue"
+                class="ml-3 px-3 py-1.5 bg-amber-500 hover:bg-amber-600 disabled:bg-amber-300 text-white text-xs font-medium rounded-lg transition-colors flex items-center gap-1.5"
+              >
+                <svg v-if="!syncingQueue" class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span v-if="syncingQueue" class="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></span>
+                {{ syncingQueue ? 'กำลังส่ง...' : 'ส่งตอนนี้' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
+
       <!-- Step 1: Company Selection -->
       <div v-if="step === 1" class="animate-fadeIn">
         <div class="card p-4 sm:p-6">
@@ -203,52 +230,6 @@
               <div class="text-3xl sm:text-4xl mb-2 sm:mb-3">📍</div>
               <p class="font-bold text-navy text-sm sm:text-base">สแกนนอกสถานที่</p>
               <p class="text-xs sm:text-sm text-blue-600">ระหว่างเดินทาง</p>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Step 2.65: PIN Verification (before face registration) -->
-      <div v-if="step === 2.65" class="animate-fadeIn">
-        <div class="card p-4 sm:p-6">
-          <div class="flex items-center justify-between mb-3">
-            <button @click="step = 2; pinEntry = ''; pinError = ''" class="text-blue-500 active:text-blue-600 flex items-center gap-1 touch-target">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-              </svg>
-              <span class="text-sm sm:text-base">กลับ</span>
-            </button>
-            <div class="text-center">
-              <p class="text-sm sm:text-base font-semibold text-navy">{{ selectedEmployee?.name }}</p>
-              <p class="text-xs text-orange-500 font-medium">ยืนยันตัวตนด้วย PIN</p>
-            </div>
-            <div class="w-16"></div>
-          </div>
-
-          <h2 class="text-lg sm:text-xl font-semibold text-navy mb-2 text-center">กรอก PIN เพื่อยืนยันตัวตน</h2>
-          <p class="text-xs text-gray-500 text-center mb-6">เพื่อความปลอดภัย กรุณากรอก PIN ของคุณก่อนลงทะเบียนใบหน้า</p>
-
-          <div v-if="pinError" class="mb-4 p-3 bg-red-50 rounded-lg text-center">
-            <p class="text-red-600 text-sm">{{ pinError }}</p>
-          </div>
-
-          <div class="max-w-xs mx-auto">
-            <input
-              v-model="pinEntry"
-              type="password"
-              inputmode="numeric"
-              maxlength="8"
-              placeholder="กรอก PIN"
-              class="w-full text-center text-2xl tracking-[0.5em] border border-gray-300 rounded-xl px-4 py-4 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-              @keyup.enter="verifyPinAndProceed"
-              autofocus
-            />
-            <button
-              @click="verifyPinAndProceed"
-              :disabled="pinVerifying || !pinEntry"
-              class="w-full mt-4 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 disabled:from-gray-300 disabled:to-gray-400 text-white font-bold text-base rounded-xl shadow-lg active:scale-95 transition-all touch-target"
-            >
-              {{ pinVerifying ? 'กำลังตรวจสอบ...' : 'ยืนยัน PIN' }}
             </button>
           </div>
         </div>
@@ -649,6 +630,7 @@ import LoadingSpinner from '../../components/LoadingSpinner.vue'
 import FaceScanner from '../../components/FaceScanner.vue'
 import Camera from '../../components/Camera.vue'
 import { setCurrentUser, setToken } from '../../store'
+import offlineQueue from '../../services/offlineQueue'
 
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
@@ -708,9 +690,8 @@ const showReregisterModal = ref(false)
 const reregisterEmployee = ref(null)
 const reregisterLoading = ref(false)
 
-const pinEntry = ref('')
-const pinVerifying = ref(false)
-const pinError = ref('')
+const queuedCount = ref(0)
+const syncingQueue = ref(false)
 
 const scanMode = ref('verify_only')  // 'verify_only', 'check_in', or 'check_out'
 const capturedImage = ref(null)
@@ -777,6 +758,24 @@ onMounted(async () => {
     await fetchServerTime()
   }, 300000)
   await fetchCompanies()
+
+  // Offline queue: auto-sync + status listener
+  offlineQueue.startAutoSync()
+  offlineQueue.onStatusChange((count) => {
+    queuedCount.value = count
+  })
+  offlineQueue.onSyncComplete((item) => {
+    if (item.type === 'face_register') {
+      faceRegPhotos.value = []
+      faceRegEncodings.value = []
+      faceRegResults.value = []
+      faceRegAllDone.value = false
+      faceRegCurrentPosition.value = 0
+      faceRegCapturing.value = false
+      faceRegDetecting.value = false
+      scanningError.value = ''
+    }
+  })
 })
 
 onUnmounted(() => {
@@ -992,26 +991,6 @@ async function doReregister() {
   }
 }
 
-async function verifyPinAndProceed() {
-  if (!pinEntry.value || pinEntry.value.length < 4) {
-    pinError.value = 'กรุณากรอก PIN อย่างน้อย 4 หลัก'
-    return
-  }
-  pinVerifying.value = true
-  pinError.value = ''
-  try {
-    await axios.post('/api/employee/auth/verify-pin', {
-      employee_id: selectedEmployee.value.id,
-      pin: pinEntry.value,
-    })
-    step.value = 2.7
-  } catch (e) {
-    pinError.value = e.response?.data?.message || 'PIN ไม่ถูกต้อง'
-  } finally {
-    pinVerifying.value = false
-  }
-}
-
 async function selectEmployee(employee) {
   selectedEmployee.value = employee
   scanningError.value = ''
@@ -1041,9 +1020,7 @@ async function selectEmployee(employee) {
       faceRegAllDone.value = false
       faceRegEncodings.value = []
       faceRegCurrentPosition.value = 0
-      pinEntry.value = ''
-      pinError.value = ''
-      step.value = 2.65
+      step.value = 2.7
       return
     }
   } catch (e) {
@@ -1107,6 +1084,57 @@ function captureFaceRegPhoto() {
 
 async function handleFaceRegCaptured(imageData) {
   faceRegDetecting.value = true
+
+  // ─── Client-side quality validation ───
+  try {
+    const img = new Image()
+    img.src = imageData
+    await new Promise((resolve, reject) => {
+      img.onload = resolve
+      img.onerror = reject
+    })
+
+    if (img.width < 480 || img.height < 480) {
+      faceRegResults.value[faceRegCurrentPosition.value] = 'error'
+      faceRegDetectError.value = 'ภาพคมชัดไม่พอ กรุณาใช้กล้องความละเอียดสูงกว่านี้'
+      faceRegCapturing.value = false
+      faceRegDetecting.value = false
+      return
+    }
+
+    // ตรวจ brightness
+    const canvas = document.createElement('canvas')
+    const ctx = canvas.getContext('2d')
+    const sampleSize = 100
+    canvas.width = sampleSize
+    canvas.height = sampleSize
+    ctx.drawImage(img, 0, 0, img.width, img.height, 0, 0, sampleSize, sampleSize)
+    const imageDataObj = ctx.getImageData(0, 0, sampleSize, sampleSize)
+    const data = imageDataObj.data
+    let totalBrightness = 0
+    for (let i = 0; i < data.length; i += 4) {
+      totalBrightness += (data[i] + data[i + 1] + data[i + 2]) / 3
+    }
+    const avgBrightness = totalBrightness / (sampleSize * sampleSize)
+
+    if (avgBrightness < 30) {
+      faceRegResults.value[faceRegCurrentPosition.value] = 'error'
+      faceRegDetectError.value = 'ภาพมืดเกินไป กรุณาถ่ายในที่ที่มีแสงสว่างเพียงพอ'
+      faceRegCapturing.value = false
+      faceRegDetecting.value = false
+      return
+    }
+    if (avgBrightness > 230) {
+      faceRegResults.value[faceRegCurrentPosition.value] = 'error'
+      faceRegDetectError.value = 'ภาพสว่างเกินไป กรุณาหลีกเลี่ยงแสงโดยตรง'
+      faceRegCapturing.value = false
+      faceRegDetecting.value = false
+      return
+    }
+  } catch (e) {
+    // skip image validation if Image API not available
+  }
+
   try {
     const res = await axios.post('/api/face/detect', { image: imageData }, { timeout: 15000 })
     if (res.data.detected) {
@@ -1179,9 +1207,42 @@ async function registerFace() {
       step.value = 3
     }
   } catch (error) {
-    scanningError.value = error.response?.data?.message || 'เกิดข้อผิดพลาดในการลงทะเบียนใบหน้า'
+    // ─── Offline queue: เก็บลง localStorage แล้วส่งอัตโนมัติเมื่อเน็ตกลับมา ───
+    const isNetworkError = !error.response || error.code === 'ECONNABORTED' || error.message?.includes('Network Error')
+    if (isNetworkError) {
+      const queueUrl = `/api/employees/${selectedEmployee.value.id}/face`
+      offlineQueue.enqueue({
+        type: 'face_register',
+        url: queueUrl,
+        data: { encodings: successfulEncodings },
+      })
+      queuedCount.value = offlineQueue.getCount()
+      scanningError.value = '网络ไม่เสถียร ข้อมูลถูกบันทึกแล้ว จะส่งอัตโนมัติเมื่อเน็ตกลับมา'
+    } else {
+      scanningError.value = error.response?.data?.message || 'เกิดข้อผิดพลาดในการลงทะเบียนใบหน้า'
+    }
   } finally {
     faceRegRegistering.value = false
+  }
+}
+
+async function syncQueuedData() {
+  if (syncingQueue.value || queuedCount.value === 0) return
+  syncingQueue.value = true
+  try {
+    const syncResult = await offlineQueue.processQueue()
+    if (syncResult.synced > 0) {
+      scanningError.value = ''
+      result.value = {
+        success: true,
+        message: `✓ ส่งข้อมูล ${syncResult.synced} รายการ สำเร็จ`,
+        time: new Date().toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' }),
+        location: null,
+      }
+      step.value = 4
+    }
+  } finally {
+    syncingQueue.value = false
   }
 }
 
@@ -1298,8 +1359,6 @@ function reset() {
   faceRegAllDone.value = false
   faceRegEncodings.value = []
   faceRegCurrentPosition.value = 0
-  pinEntry.value = ''
-  pinError.value = ''
   currentLatitude.value = null
   currentLongitude.value = null
   currentAccuracy.value = null
@@ -1313,3 +1372,15 @@ function reset() {
   if (map) { map.remove(); map = null; officeMarker = null; userMarker = null; radiusCircle = null }
 }
 </script>
+
+<style scoped>
+.slide-down-enter-active,
+.slide-down-leave-active {
+  transition: all 0.3s ease;
+}
+.slide-down-enter-from,
+.slide-down-leave-to {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+</style>

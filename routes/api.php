@@ -73,7 +73,6 @@ Route::get('/time', function () {
 
 Route::post('/employee/auth/search', [EmployeeAuthController::class, 'search'])->middleware('throttle:30,1');
 Route::post('/employee/auth/verify', [EmployeeAuthController::class, 'verify'])->middleware('throttle:60,1');
-Route::post('/employee/auth/verify-pin', [EmployeeAuthController::class, 'verifyPin'])->middleware('throttle:10,1');
 Route::post('/face/verify', [FaceController::class, 'verify'])->middleware('throttle:30,1');
 
 Route::post('/face/detect', function () {
