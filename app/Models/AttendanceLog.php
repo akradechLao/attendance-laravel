@@ -37,7 +37,6 @@ class AttendanceLog extends Model
     ];
 
     protected $casts = [
-        'date' => 'date',
         'check_in' => 'datetime:H:i',
         'check_out' => 'datetime:H:i',
         'remote_latitude' => 'decimal:8',
