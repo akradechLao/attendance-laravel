@@ -132,16 +132,16 @@ class OtRequestController extends Controller
                 'manager_approved_at' => now(),
             ]);
 
-            // Notify employee that manager approved with position
+            // Notify employee that manager approved with name & position
             $emp = $otRequest->employee;
             if ($emp) {
                 $approver = Employee::find($request->user()->id ?? null);
-                $approverPosition = $approver ? $approver->getPositionName() : 'ผู้จัดการ';
+                $approverText = $approver ? "คุณ {$approver->name} ({$approver->getPositionName()})" : 'ผู้จัดการ';
                 EmployeeNotification::notify(
                     $otRequest->emp_id,
                     'ot_approved',
-                    'อนุมัติโอทีโดย ' . $approverPosition,
-                    "คำขอโอทีวันที่ {$otRequest->date} เวลา {$otRequest->start_time}-{$otRequest->end_time} ได้รับการอนุมัติโดย {$approverPosition} แล้ว รอ HR อนุมัติขั้นสุดท้าย",
+                    'อนุมัติโอทีโดย ' . ($approver ? $approver->getPositionName() : 'ผู้จัดการ'),
+                    "คำขอโอทีวันที่ {$otRequest->date} เวลา {$otRequest->start_time}-{$otRequest->end_time} ได้รับการอนุมัติโดย {$approverText} แล้ว รอ HR อนุมัติขั้นสุดท้าย",
                     $otRequest->id,
                     'OtRequest'
                 );
@@ -190,14 +190,14 @@ class OtRequestController extends Controller
 
             $this->sendOtNotification($otRequest, 'approved');
 
-            // Send in-app notification to employee with approver's position
+            // Send in-app notification to employee with approver's name & position
             $approver = Employee::find($request->user()->id ?? null);
-            $approverPosition = $approver ? $approver->getPositionName() : 'HR';
+            $approverText = $approver ? "คุณ {$approver->name} ({$approver->getPositionName()})" : 'HR';
             EmployeeNotification::notify(
                 $otRequest->emp_id,
                 'ot_approved',
                 'อนุมัติโอทีสำเร็จ',
-                "คำขอโอทีวันที่ {$otRequest->date} เวลา {$otRequest->start_time}-{$otRequest->end_time} ได้รับการอนุมัติขั้นสุดท้ายโดย {$approverPosition}",
+                "คำขอโอทีวันที่ {$otRequest->date} เวลา {$otRequest->start_time}-{$otRequest->end_time} ได้รับการอนุมัติขั้นสุดท้ายโดย {$approverText}",
                 $otRequest->id,
                 'OtRequest'
             );
@@ -259,14 +259,14 @@ class OtRequestController extends Controller
 
             $this->sendOtNotification($otRequest, 'rejected');
 
-            // Send in-app notification to employee with approver's position
+            // Send in-app notification to employee with approver's name & position
             $approver = Employee::find($request->user()->id ?? null);
-            $approverPosition = $approver ? $approver->getPositionName() : 'ผู้อนุมัติ';
+            $approverText = $approver ? "คุณ {$approver->name} ({$approver->getPositionName()})" : 'ผู้อนุมัติ';
             EmployeeNotification::notify(
                 $otRequest->emp_id,
                 'ot_rejected',
                 'ไม่อนุมัติโอที',
-                "คำขอโอทีวันที่ {$otRequest->date} เวลา {$otRequest->start_time}-{$otRequest->end_time} ไม่ได้รับการอนุมัติโดย {$approverPosition}" . ($otRequest->rejection_reason ? " เหตุผล: {$otRequest->rejection_reason}" : ''),
+                "คำขอโอทีวันที่ {$otRequest->date} เวลา {$otRequest->start_time}-{$otRequest->end_time} ไม่ได้รับการอนุมัติโดย {$approverText}" . ($otRequest->rejection_reason ? " เหตุผล: {$otRequest->rejection_reason}" : ''),
                 $otRequest->id,
                 'OtRequest'
             );
