@@ -54,6 +54,7 @@
             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">รหัส</th>
             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">ชื่อ</th>
             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">แผนก</th>
+            <th v-if="showCompany" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">บริษัท</th>
             <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">สถานะ</th>
             <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">เงินสุทธิ</th>
             <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">บันทึก</th>
@@ -86,6 +87,7 @@
               <td class="px-4 py-3 text-sm text-gray-900">{{ emp.employee_code }}</td>
               <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ emp.name }}</td>
               <td class="px-4 py-3 text-sm text-gray-500">{{ emp.department || '-' }}</td>
+              <td v-if="showCompany" class="px-4 py-3 text-sm text-gray-500">{{ getCompanyName(emp.company_id) }}</td>
               <td class="px-4 py-3">
                 <span :class="[
                   'text-[10px] font-bold px-2 py-0.5 rounded-full',
@@ -114,7 +116,7 @@
               </td>
             </tr>
             <tr v-if="expanded[emp.id]">
-              <td colspan="7" class="px-4 py-4 bg-blue-50/50" @click.stop>
+              <td :colspan="showCompany ? 8 : 7" class="px-4 py-4 bg-blue-50/50" @click.stop>
                 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                   <div>
                     <p class="text-xs font-bold text-emerald-600 mb-3 uppercase">รายรับ</p>
@@ -206,6 +208,7 @@
 import { ref, reactive, computed, watch, onMounted } from 'vue'
 import axios from 'axios'
 import AppLayout from '@/layouts/AppLayout.vue'
+import store from '../../store'
 
 const months = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม']
 
@@ -218,6 +221,16 @@ const expanded = reactive({})
 const forms = reactive({})
 const dirty = reactive({})
 const savingIds = reactive({})
+
+const showCompany = computed(() => store.user?.role === 'super_admin')
+
+const companyMap = {
+  1: 'NTC', 2: 'ETC', 3: 'ETECH', 4: 'STC'
+}
+
+function getCompanyName(companyId) {
+  return companyMap[companyId] || `บริษัท ${companyId}`
+}
 
 const yearOptions = computed(() => {
   const y = new Date().getFullYear()

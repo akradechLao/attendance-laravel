@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\Payslip;
+use App\Constants\RoleConstants;
 use App\Services\AuditLogService;
 use App\Services\TelegramService;
 use Illuminate\Http\JsonResponse;
@@ -108,18 +109,27 @@ class PayslipController extends Controller
     // HR: list employees for payslip entry
     public function hrList(Request $request): JsonResponse
     {
-        $company = $request->user()?->company_id;
-        if (!$company) {
-            return response()->json(['success' => false, 'message' => 'Unauthorized'], 403);
+        $user = $request->user();
+        $userRole = $user->role ?? 'employee';
+
+        // Super admin: see all employees from all companies
+        // Admin: see only employees from own company
+        // Admin without company_id: cannot access
+        if ($userRole === RoleConstants::SUPER_ADMIN) {
+            $query = Employee::where('is_active', true);
+        } elseif ($userRole === RoleConstants::ADMIN) {
+            if (!$user->company_id) {
+                return response()->json(['success' => false, 'message' => 'ไม่มีสังกัดบริษัท'], 403);
+            }
+            $query = Employee::where('company_id', $user->company_id)->where('is_active', true);
+        } else {
+            return response()->json(['success' => false, 'message' => 'ไม่มีสิทธิ์เข้าถึง'], 403);
         }
 
         $month = $request->get('month', now()->month);
         $year = $request->get('year', now()->year);
 
-        $employees = Employee::where('company_id', $company)
-            ->where('is_active', true)
-            ->orderBy('name')
-            ->get()
+        $employees = $query->orderBy('name')->get()
             ->map(function ($emp) use ($month, $year) {
                 $payslip = Payslip::where('emp_id', $emp->id)
                     ->where('month', $month)
@@ -131,6 +141,7 @@ class PayslipController extends Controller
                     'name' => $emp->name,
                     'employee_code' => $emp->employee_code,
                     'department' => $emp->department,
+                    'company_id' => $emp->company_id,
                     'has_payslip' => (bool) $payslip,
                     'net_salary' => $payslip ? $payslip->net_salary : 0,
                 ];
