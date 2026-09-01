@@ -180,15 +180,44 @@ class DashboardController extends Controller
 
             // Group by employee, combine rounds
             $grouped = $logs->groupBy('emp_id');
-            $records = $grouped->map(function ($empLogs) {
-                $first = $empLogs->first();
-                $employee = $first->employee;
+            $records = $grouped->map(function ($empLogs) use ($today, $yesterday) {
+                $employee = $empLogs->first()->employee;
                 if (!$employee) return null;
-                $logDate = $first->date instanceof Carbon ? $first->date->toDateString() : $first->date;
 
-                $firstIn = AttendanceHelper::getFirstCheckIn($employee->id, $logDate);
-                $lastOut = AttendanceHelper::getLastCheckOut($employee->id, $logDate);
-                $workedHours = AttendanceHelper::calculateWorkedHours($employee->id, $logDate);
+                // Collect all unique dates for this employee
+                $dates = $empLogs->pluck('date')->map(fn($d) => $d instanceof Carbon ? $d->toDateString() : $d)->unique()->values()->all();
+                $isOvernight = count($dates) > 1;
+
+                // Find earliest check-in and latest check-out across all dates
+                $firstIn = null;
+                $lastOut = null;
+                foreach ($dates as $d) {
+                    $in = AttendanceHelper::getFirstCheckIn($employee->id, $d);
+                    $out = AttendanceHelper::getLastCheckOut($employee->id, $d);
+                    if ($in && (!$firstIn || $in < $firstIn)) $firstIn = $in;
+                    if ($out && (!$lastOut || $out > $lastOut)) $lastOut = $out;
+                }
+
+                // Calculate worked hours
+                if ($isOvernight) {
+                    // Overnight shift: one continuous session from earliest check-in
+                    $start = Carbon::parse($firstIn)->setTimezone('Asia/Bangkok');
+                    $end = $lastOut
+                        ? Carbon::parse($lastOut)->setTimezone('Asia/Bangkok')
+                        : Carbon::now('Asia/Bangkok');
+                    $totalMinutes = (int) $start->diffInMinutes($end);
+                    // Break deduction: only if session overlaps break window 11:45-12:45
+                    $breakWindowStart = Carbon::parse($today . ' 11:45:00')->setTimezone('Asia/Bangkok');
+                    $breakWindowEnd = Carbon::parse($today . ' 12:45:00')->setTimezone('Asia/Bangkok');
+                    if ($start->lt($breakWindowEnd) && $end->gt($breakWindowStart)) {
+                        $totalMinutes -= 60;
+                    }
+                    $totalMinutes = max(0, $totalMinutes);
+                    $workedHours = round($totalMinutes / 60, 1);
+                } else {
+                    $workedHours = AttendanceHelper::calculateWorkedHours($employee->id, $dates[0]);
+                }
+
                 $hasLate = $empLogs->contains('check_in_status', 'late') ||
                            $empLogs->contains('original_status', 'late');
                 $lateMinutes = $empLogs->min('late_minutes') ?? 0;
@@ -200,25 +229,27 @@ class DashboardController extends Controller
                     ? Carbon::parse($lastOut)->setTimezone('Asia/Bangkok')->format('H:i')
                     : '-';
 
-                $resolved = ShiftResolver::resolve($employee, $logDate);
+                // Use today for shift resolution, fallback to first date
+                $shiftDate = in_array($today, $dates) ? $today : $dates[0];
+                $resolved = ShiftResolver::resolve($employee, $shiftDate);
 
                 return [
-                    'id' => $first->id,
+                    'id' => $empLogs->first()->id,
                     'employee_name' => $employee->name ?? '-',
                     'employee_code' => $employee->employee_code ?? '-',
                     'company_name' => $employee->company->name ?? '-',
                     'company_code' => $employee->company->code_prefix ?? '-',
-                    'date' => $first->date,
+                    'date' => $today,
                     'check_in' => $checkInFormatted,
                     'check_out' => $checkOutFormatted,
                     'original_status' => $hasLate ? 'late' : 'on_time',
                     'final_status' => $hasLate ? 'late' : 'on_time',
                     'late_minutes' => $lateMinutes,
-                    'scan_type' => $first->scan_type,
+                    'scan_type' => $empLogs->first()->scan_type,
                     'is_late' => $hasLate,
-                    'has_forced_leave' => method_exists($first, 'lateForcedLeave') ? $first->lateForcedLeave()->exists() : false,
-                    'work_minutes' => $workedHours !== null ? (int) ($workedHours * 60) : null,
-                    'work_hours_display' => $workedHours !== null ? AttendanceCalculator::formatMinutes((int) ($workedHours * 60)) : '-',
+                    'has_forced_leave' => method_exists($empLogs->first(), 'lateForcedLeave') ? $empLogs->first()->lateForcedLeave()->exists() : false,
+                    'work_minutes' => $workedHours > 0 ? (int) ($workedHours * 60) : null,
+                    'work_hours_display' => $workedHours > 0 ? AttendanceCalculator::formatMinutes((int) ($workedHours * 60)) : '-',
                     'shift_code' => $resolved['shift_code'],
                     'shift_time' => ($resolved['start_time'] && $resolved['end_time'])
                         ? $resolved['start_time'] . '-' . $resolved['end_time']
