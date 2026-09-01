@@ -31,14 +31,8 @@ class DashboardController extends Controller
             }
             $totalEmployees = $employeeQuery->count();
 
-            // ดึงข้อมูลวันนี้ + กะข้ามคืนจากเมื่อวาน (ที่ยังไม่ได้เช็คเอาท์)
-            $attendanceQuery = AttendanceLog::where(function ($q) use ($today, $yesterday) {
-                    $q->where('date', $today)
-                      ->orWhere(function ($q2) use ($yesterday) {
-                          $q2->where('date', $yesterday)
-                             ->whereNull('check_out');
-                      });
-                })
+            // ดึงข้อมูลวันนี้
+            $todayQuery = AttendanceLog::where('date', $today)
                 ->whereHas('employee', function ($q) use ($companyId) {
                     $q->where('is_active', true);
                     if ($companyId) {
@@ -46,10 +40,23 @@ class DashboardController extends Controller
                     }
                 });
 
-            $presentToday = (clone $attendanceQuery)->pluck('emp_id')->unique()->count();
-            $lateToday = (clone $attendanceQuery)->where('check_in_status', 'late')->count();
-            $onTimeToday = (clone $attendanceQuery)->where('check_in_status', 'on_time')->count();
-            $checkedOut = (clone $attendanceQuery)->whereNotNull('check_out')->pluck('emp_id')->unique()->count();
+            // Present today (has today's record)
+            $presentToday = (clone $todayQuery)->pluck('emp_id')->unique()->count();
+            $lateToday = (clone $todayQuery)->where('check_in_status', 'late')->pluck('emp_id')->unique()->count();
+            $onTimeToday = $presentToday - $lateToday;
+            $checkedOut = (clone $todayQuery)->whereNotNull('check_out')->pluck('emp_id')->unique()->count();
+            // Overnight workers: have yesterday's unchecked-out record but no today record
+            $overnightOnly = AttendanceLog::where('date', $yesterday)
+                ->whereNull('check_out')
+                ->whereHas('employee', function ($q) use ($companyId) {
+                    $q->where('is_active', true);
+                    if ($companyId) {
+                        $q->where('company_id', $companyId);
+                    }
+                })
+                ->pluck('emp_id')->unique()
+                ->filter(fn($empId) => !AttendanceLog::where('emp_id', $empId)->where('date', $today)->exists());
+            $presentToday += $overnightOnly->count();
             $absentToday = max(0, $totalEmployees - $presentToday);
 
             // นับลากิจบังคับวันนี้ + กะข้ามคืน
@@ -94,18 +101,23 @@ class DashboardController extends Controller
                 $totalQ = Employee::where('company_id', $company->id)->where('is_active', true);
                 $total = $totalQ->count();
 
-                $presentQ = AttendanceLog::where(function ($q) use ($today, $yesterday) {
-                        $q->where('date', $today)
-                          ->orWhere(function ($q2) use ($yesterday) {
-                              $q2->where('date', $yesterday)
-                                 ->whereNull('check_out');
-                          });
-                    })
+                // Today's records for this company
+                $todayPresentQ = AttendanceLog::where('date', $today)
                     ->whereHas('employee', function ($q) use ($company) {
                         $q->where('company_id', $company->id)->where('is_active', true);
                     });
-                $present = (clone $presentQ)->pluck('emp_id')->unique()->count();
-                $late = (clone $presentQ)->where('check_in_status', 'late')->count();
+                $present = (clone $todayPresentQ)->pluck('emp_id')->unique()->count();
+                $late = (clone $todayPresentQ)->where('check_in_status', 'late')->pluck('emp_id')->unique()->count();
+
+                // Overnight-only: yesterday unchecked, no today record
+                $overnightOnly = AttendanceLog::where('date', $yesterday)
+                    ->whereNull('check_out')
+                    ->whereHas('employee', function ($q) use ($company) {
+                        $q->where('company_id', $company->id)->where('is_active', true);
+                    })
+                    ->pluck('emp_id')->unique()
+                    ->filter(fn($empId) => !AttendanceLog::where('emp_id', $empId)->where('date', $today)->exists());
+                $present += $overnightOnly->count();
 
                 $companyStats[] = [
                     'company_id' => $company->id,
@@ -184,43 +196,22 @@ class DashboardController extends Controller
                 $employee = $empLogs->first()->employee;
                 if (!$employee) return null;
 
-                // Collect all unique dates for this employee
-                $dates = $empLogs->pluck('date')->map(fn($d) => $d instanceof Carbon ? $d->toDateString() : $d)->unique()->values()->all();
-                $isOvernight = count($dates) > 1;
+                // Separate logs by date
+                $todayLogs = $empLogs->filter(fn($log) => ($log->date instanceof Carbon ? $log->date->toDateString() : $log->date) === $today);
+                $hasToday = $todayLogs->isNotEmpty();
 
-                // Find earliest check-in and latest check-out across all dates
-                $firstIn = null;
-                $lastOut = null;
-                foreach ($dates as $d) {
-                    $in = AttendanceHelper::getFirstCheckIn($employee->id, $d);
-                    $out = AttendanceHelper::getLastCheckOut($employee->id, $d);
-                    if ($in && (!$firstIn || $in < $firstIn)) $firstIn = $in;
-                    if ($out && (!$lastOut || $out > $lastOut)) $lastOut = $out;
-                }
+                // If has today's records → use only today (ignore yesterday's mistake/old data)
+                // If no today's records → use yesterday's (overnight worker still on shift)
+                $activeLogs = $hasToday ? $todayLogs : $empLogs;
+                $activeDate = $hasToday ? $today : $yesterday;
 
-                // Calculate worked hours
-                if ($isOvernight) {
-                    // Overnight shift: one continuous session from earliest check-in
-                    $start = Carbon::parse($firstIn)->setTimezone('Asia/Bangkok');
-                    $end = $lastOut
-                        ? Carbon::parse($lastOut)->setTimezone('Asia/Bangkok')
-                        : Carbon::now('Asia/Bangkok');
-                    $totalMinutes = (int) $start->diffInMinutes($end);
-                    // Break deduction: only if session overlaps break window 11:45-12:45
-                    $breakWindowStart = Carbon::parse($today . ' 11:45:00')->setTimezone('Asia/Bangkok');
-                    $breakWindowEnd = Carbon::parse($today . ' 12:45:00')->setTimezone('Asia/Bangkok');
-                    if ($start->lt($breakWindowEnd) && $end->gt($breakWindowStart)) {
-                        $totalMinutes -= 60;
-                    }
-                    $totalMinutes = max(0, $totalMinutes);
-                    $workedHours = round($totalMinutes / 60, 1);
-                } else {
-                    $workedHours = AttendanceHelper::calculateWorkedHours($employee->id, $dates[0]);
-                }
+                $firstIn = AttendanceHelper::getFirstCheckIn($employee->id, $activeDate);
+                $lastOut = AttendanceHelper::getLastCheckOut($employee->id, $activeDate);
+                $workedHours = AttendanceHelper::calculateWorkedHours($employee->id, $activeDate);
 
-                $hasLate = $empLogs->contains('check_in_status', 'late') ||
-                           $empLogs->contains('original_status', 'late');
-                $lateMinutes = $empLogs->min('late_minutes') ?? 0;
+                $hasLate = $activeLogs->contains('check_in_status', 'late') ||
+                           $activeLogs->contains('original_status', 'late');
+                $lateMinutes = $activeLogs->min('late_minutes') ?? 0;
 
                 $checkInFormatted = $firstIn
                     ? Carbon::parse($firstIn)->setTimezone('Asia/Bangkok')->format('H:i')
@@ -229,9 +220,8 @@ class DashboardController extends Controller
                     ? Carbon::parse($lastOut)->setTimezone('Asia/Bangkok')->format('H:i')
                     : '-';
 
-                // Use today for shift resolution, fallback to first date
-                $shiftDate = in_array($today, $dates) ? $today : $dates[0];
-                $resolved = ShiftResolver::resolve($employee, $shiftDate);
+                // Use today for shift resolution, fallback to active date
+                $resolved = ShiftResolver::resolve($employee, $activeDate);
 
                 return [
                     'id' => $empLogs->first()->id,
