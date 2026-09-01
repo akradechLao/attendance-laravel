@@ -667,6 +667,7 @@ const capturedImage = ref(null)
 const verifiedEmployeeData = ref(null)
 const selectedAction = ref(null)
 const actionLoading = ref(false)
+const verificationToken = ref(null)
 
 // Admin/HR Login
 const showAdminLogin = ref(false)
@@ -951,26 +952,8 @@ async function selectEmployee(employee) {
     const faceCount = faceData.length
 
     if (faceCount < 5) {
-      const registeredToday = faceData.some(f => {
-        const created = new Date(f.created_at)
-        const today = new Date()
-        return created.toDateString() === today.toDateString()
-      })
-
-      if (registeredToday) {
-        scanningError.value = 'ลงทะเบียนใบหน้าวันนี้แล้ว กรุณากลับมาลงทะเบียนใหม่วันถัดไป'
-        step.value = 2
-        return
-      }
-
-      faceRegPhotos.value = []
-      faceRegResults.value = []
-      faceRegDetecting.value = false
-      faceRegDetectError.value = ''
-      faceRegAllDone.value = false
-      faceRegEncodings.value = []
-      faceRegCurrentPosition.value = 0
-      step.value = 2.7
+      scanningError.value = 'ยังไม่ได้ลงทะเบียนใบหน้า กรุณาติดต่อ HR เพื่อลงทะเบียนใบหน้า'
+      step.value = 2
       return
     }
   } catch (e) {
@@ -1117,6 +1100,7 @@ function handleVerified(data) {
   if (scanMode.value === 'verify_only') {
     capturedImage.value = data.image || null
     verifiedEmployeeData.value = data.data?.employee || selectedEmployee.value
+    verificationToken.value = data.data?.verification_token || null
     scanningError.value = ''
     triggerScan.value = false
     step.value = 3.5
@@ -1162,6 +1146,7 @@ async function handleActionSelect(type) {
       type: type,
       latitude: currentLatitude.value,
       longitude: currentLongitude.value,
+      verification_token: verificationToken.value,
     })
 
     if (response.data.success) {
@@ -1211,6 +1196,7 @@ function reset() {
   scanMode.value = 'verify_only'
   capturedImage.value = null
   verifiedEmployeeData.value = null
+  verificationToken.value = null
   selectedAction.value = null
   actionLoading.value = false
   customLocationName.value = ''

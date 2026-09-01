@@ -34,6 +34,13 @@ class AttendanceLog extends Model
         'is_verified',
         'verified_by',
         'verified_at',
+        'face_image',
+        'check_out_face_image',
+    ];
+
+    protected $hidden = [
+        'face_image',
+        'check_out_face_image',
     ];
 
     protected $casts = [

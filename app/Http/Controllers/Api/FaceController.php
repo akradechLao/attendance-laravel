@@ -17,8 +17,10 @@ use App\Helpers\AttendanceCalculator;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class FaceController extends Controller
 {
@@ -86,11 +88,19 @@ class FaceController extends Controller
             $now = Carbon::now('Asia/Bangkok');
 
             // ─── verify_only: ยืนยันตัวตนอย่างเดียว ไม่บันทึกเวลา ───
+            // ออก verification token สำหรับ check_in/check_out (หมดอายุ 30 วินาที)
             if ($request->type === 'verify_only') {
+                $token = Str::random(64);
+                Cache::put("face_verify:{$token}", [
+                    'employee_id' => $employee->id,
+                    'created_at' => now()->timestamp,
+                ], 30);
+
                 return response()->json([
                     'success' => true,
                     'data' => [
                         'face_match' => $result,
+                        'verification_token' => $token,
                         'employee' => [
                             'id' => $employee->id,
                             'name' => $employee->name,
@@ -100,6 +110,40 @@ class FaceController extends Controller
                     ],
                     'message' => 'ยืนยันตัวตนสำเร็จ',
                 ]);
+            }
+
+            // ─── check_in / check_out: ต้องมี verification_token ───
+            if (in_array($request->type, ['check_in', 'check_out'])) {
+                $token = $request->input('verification_token');
+                if (!$token) {
+                    return response()->json([
+                        'success' => false,
+                        'data' => null,
+                        'message' => 'กรุณายืนยันตัวตนด้วยการสแกนใบหน้าก่อน',
+                    ], 400);
+                }
+
+                $tokenData = Cache::get("face_verify:{$token}");
+                if (!$tokenData) {
+                    return response()->json([
+                        'success' => false,
+                        'data' => null,
+                        'message' => 'หมดเวลาการยืนยันตัวตน กรุณาสแกนใบหน้าใหม่',
+                    ], 400);
+                }
+
+                if ($tokenData['employee_id'] !== $employee->id) {
+                    Log::warning("Face verification token mismatch: token emp_id={$tokenData['employee_id']}, request emp_id={$employee->id}");
+                    Cache::forget("face_verify:{$token}");
+                    return response()->json([
+                        'success' => false,
+                        'data' => null,
+                        'message' => 'การยืนยันตัวตนไม่ตรงกับพนักงานที่เลือก',
+                    ], 403);
+                }
+
+                // ใช้ token แล้วลบออก (one-time use)
+                Cache::forget("face_verify:{$token}");
             }
 
             if ($request->type === 'check_in') {
@@ -205,6 +249,7 @@ class FaceController extends Controller
                     'remote_accuracy' => $remoteAccuracy,
                     'remote_location_name' => $remoteLocationName,
                     'is_verified' => true,
+                    'face_image' => $request->input('image'),
                 ]);
 
                 // ─── สายเกิน 30 นาที → บังคับลากิจ 1 ชม. ───
@@ -300,6 +345,10 @@ class FaceController extends Controller
                     $updateData['remote_latitude'] = $request->latitude;
                     $updateData['remote_longitude'] = $request->longitude;
                     $updateData['remote_accuracy'] = $request->accuracy ?? null;
+                }
+
+                if ($request->input('image')) {
+                    $updateData['check_out_face_image'] = $request->input('image');
                 }
 
                 $log->update($updateData);
