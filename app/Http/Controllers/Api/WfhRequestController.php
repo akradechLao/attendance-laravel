@@ -224,12 +224,15 @@ class WfhRequestController extends Controller
             }
         });
 
-        // Send in-app notification to employee
+        // Send in-app notification to employee with approver's position
+        $approverId = $request->get('supervisor_id');
+        $approver = $approverId ? Employee::find($approverId) : null;
+        $approverPosition = $approver ? $approver->getPositionName() : 'ผู้อนุมัติ';
         EmployeeNotification::notify(
             $record->emp_id,
             'wfh_approved',
             'อนุมัติ WFH',
-            "คำขอ WFH วันที่ {$approvedDate} ของคุณได้รับการอนุมัติ",
+            "คำขอ WFH วันที่ {$approvedDate} ของคุณได้รับการอนุมัติโดย {$approverPosition}",
             $record->id,
             'WfhRecord'
         );
@@ -285,12 +288,15 @@ class WfhRequestController extends Controller
             ->where('destination', 'WFH')
             ->delete();
 
-        // Send in-app notification to employee
+        // Send in-app notification to employee with approver's position
+        $approverId = $request->get('supervisor_id');
+        $approver = $approverId ? Employee::find($approverId) : null;
+        $approverPosition = $approver ? $approver->getPositionName() : 'ผู้อนุมัติ';
         EmployeeNotification::notify(
             $record->emp_id,
             'wfh_rejected',
             'ไม่อนุมัติ WFH',
-            "คำขอ WFH วันที่ {$wfhDate} ของคุณไม่ได้รับการอนุมัติ" . ($record->supervisor_note ? " เหตุผล: {$record->supervisor_note}" : ''),
+            "คำขอ WFH วันที่ {$wfhDate} ของคุณไม่ได้รับการอนุมัติโดย {$approverPosition}" . ($record->supervisor_note ? " เหตุผล: {$record->supervisor_note}" : ''),
             $record->id,
             'WfhRecord'
         );

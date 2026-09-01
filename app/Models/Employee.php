@@ -164,6 +164,24 @@ class Employee extends Authenticatable
     }
 
     /**
+     * Get human-readable Thai position name.
+     */
+    public function getPositionName(): string
+    {
+        $names = [
+            'chairman' => 'ประธานกรรมการ',
+            'md' => 'Managing Director',
+            'executive_director' => 'ผู้อำนวยการบริหาร',
+            'assistant_md' => 'รองผู้จัดการใหญ่',
+            'division_manager' => 'ผู้จัดการฝ่าย',
+            'sub_division_manager' => 'ผู้จัดการแผนก',
+            'team_lead' => 'หัวหน้าทีม',
+            'employee' => 'พนักงาน',
+        ];
+        return $names[$this->position] ?? 'พนักงาน';
+    }
+
+    /**
      * Check if $employeeId is a direct or indirect subordinate of this employee.
      * Walks up the reports_to chain from the target employee.
      */

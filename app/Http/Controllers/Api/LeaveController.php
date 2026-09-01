@@ -140,13 +140,16 @@ class LeaveController extends Controller
             // Send Telegram notification
             $this->sendLeaveNotification($leave, 'approved');
 
-            // Send in-app notification to employee
+            // Send in-app notification to employee with approver's position
             $leaveType = $leave->leaveType;
+            $approverId = $request->get('supervisor_id') ?? $request->user()->id;
+            $approver = $approverId ? Employee::find($approverId) : null;
+            $approverPosition = $approver ? $approver->getPositionName() : 'ผู้อนุมัติ';
             EmployeeNotification::notify(
                 $leave->emp_id,
                 'leave_approved',
                 'อนุมัติลางาน',
-                "คำขอลาของคุณ (" . ($leaveType->name ?? '-') . " {$leave->start_date} ถึง {$leave->end_date}) ได้รับการอนุมัติ",
+                "คำขอลาของคุณ (" . ($leaveType->name ?? '-') . " {$leave->start_date} ถึง {$leave->end_date}) ได้รับการอนุมัติโดย {$approverPosition}",
                 $leave->id,
                 'LeaveRequest'
             );
@@ -218,13 +221,16 @@ class LeaveController extends Controller
             // Send Telegram notification
             $this->sendLeaveNotification($leave, 'rejected');
 
-            // Send in-app notification to employee
+            // Send in-app notification to employee with approver's position
             $leaveType = $leave->leaveType;
+            $approverId = $request->get('supervisor_id') ?? $request->user()->id;
+            $approver = $approverId ? Employee::find($approverId) : null;
+            $approverPosition = $approver ? $approver->getPositionName() : 'ผู้อนุมัติ';
             EmployeeNotification::notify(
                 $leave->emp_id,
                 'leave_rejected',
                 'ไม่อนุมัติลางาน',
-                "คำขอลาของคุณ (" . ($leaveType->name ?? '-') . " {$leave->start_date} ถึง {$leave->end_date}) ไม่ได้รับการอนุมัติ" . ($leave->rejection_reason ? " เหตุผล: {$leave->rejection_reason}" : ''),
+                "คำขอลาของคุณ (" . ($leaveType->name ?? '-') . " {$leave->start_date} ถึง {$leave->end_date}) ไม่ได้รับการอนุมัติโดย {$approverPosition}" . ($leave->rejection_reason ? " เหตุผล: {$leave->rejection_reason}" : ''),
                 $leave->id,
                 'LeaveRequest'
             );
