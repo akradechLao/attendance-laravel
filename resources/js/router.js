@@ -246,7 +246,13 @@ const routes = [
     path: '/shift-assignments',
     name: 'ShiftAssignment',
     component: () => import('./pages/HR/ShiftAssignment.vue'),
-    meta: { requiresAuth: true, layout: 'app', requiresRole: 'admin' }
+    meta: { requiresAuth: true, role: 'admin' },
+  },
+  {
+    path: '/shift-calendar',
+    name: 'ShiftCalendar',
+    component: () => import('./pages/HR/ShiftCalendar.vue'),
+    meta: { requiresAuth: true, role: 'admin' },
   },
   {
     path: '/mandatory-ot',

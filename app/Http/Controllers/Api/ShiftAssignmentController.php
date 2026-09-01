@@ -138,4 +138,301 @@ class ShiftAssignmentController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Calendar view: Get all shift_schedules for a month
+     */
+    public function calendar(Request $request): JsonResponse
+    {
+        try {
+            $month = $request->get('month', now()->format('Y-m'));
+            $companyId = $request->get('company_id');
+            $startDate = $month . '-01';
+            $endDate = date('Y-m-t', strtotime($startDate));
+
+            $query = Employee::where('is_active', true)
+                ->with('company')
+                ->withCount(['attendanceLogs as actual_days' => function ($q) use ($startDate, $endDate) {
+                    $q->whereBetween('date', [$startDate, $endDate])
+                        ->where('status', '!=', 'holiday');
+                }])
+                ->withSum(['attendanceLogs as actual_hours' => function ($q) use ($startDate, $endDate) {
+                    $q->whereBetween('date', [$startDate, $endDate])
+                        ->where('status', '!=', 'holiday');
+                }], DB::raw('TIMESTAMPDIFF(MINUTE, check_in, COALESCE(check_out, check_in))'));
+
+            if ($companyId) {
+                $query->where('company_id', $companyId);
+            }
+
+            $employees = $query->orderBy('employee_code')->get();
+
+            // Get shift schedules for this month
+            $schedules = DB::table('shift_schedules')
+                ->whereBetween('work_date', [$startDate, $endDate])
+                ->when($companyId, function ($q) use ($companyId) {
+                    $q->where('company_id', $companyId);
+                })
+                ->get()
+                ->keyBy(function ($s) {
+                    return $s->emp_id . '_' . $s->work_date;
+                });
+
+            // Get shifts
+            $shifts = WorkShift::orderBy('group_number')->get();
+
+            // Build calendar data
+            $calendarData = $employees->map(function ($emp) use ($schedules, $startDate, $endDate) {
+                $days = [];
+                $current = strtotime($startDate);
+                $end = strtotime($endDate);
+                $assignedDays = 0;
+                $totalMinutes = 0;
+
+                while ($current <= $end) {
+                    $dateStr = date('Y-m-d', $current);
+                    $schedule = $schedules->get($emp->id . '_' . $dateStr);
+
+                    $dayData = [
+                        'date' => $dateStr,
+                        'day_of_week' => date('w', $current),
+                        'shift_code' => $schedule ? $schedule->shift_code : null,
+                        'day_type' => $schedule ? $schedule->day_type : null,
+                        'is_holiday' => in_array(date('w', $current), [0, 6]), // Sun=0, Sat=6
+                    ];
+
+                    if ($schedule && $schedule->day_type === 'working') {
+                        $assignedDays++;
+                    }
+
+                    $days[] = $dayData;
+                    $current = strtotime('+1 day', $current);
+                }
+
+                return [
+                    'id' => $emp->id,
+                    'employee_code' => $emp->employee_code,
+                    'name' => $emp->name,
+                    'company_id' => $emp->company_id,
+                    'company_name' => $emp->company->name ?? '-',
+                    'division' => $emp->division,
+                    'department' => $emp->department,
+                    'days' => $days,
+                    'assigned_days' => $assignedDays,
+                    'actual_days' => $emp->actual_days ?? 0,
+                    'actual_hours' => $emp->actual_hours ? round($emp->actual_hours / 60, 1) : 0,
+                ];
+            });
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'employees' => $calendarData,
+                    'shifts' => $shifts,
+                    'month' => $month,
+                    'days_in_month' => (int) date('t', strtotime($startDate)),
+                    'start_date' => $startDate,
+                    'end_date' => $endDate,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Update a single day's shift for an employee
+     */
+    public function updateDay(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'emp_id' => 'required|exists:employees,id',
+                'work_date' => 'required|date',
+                'shift_code' => 'nullable|string',
+                'day_type' => 'required|in:working,holiday,day_off',
+            ]);
+
+            $employee = Employee::findOrFail($validated['emp_id']);
+
+            if ($validated['day_type'] === 'working' && empty($validated['shift_code'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ต้องเลือก shift_code สำหรับวันทำงาน',
+                ], 422);
+            }
+
+            DB::table('shift_schedules')->updateOrInsert(
+                ['emp_id' => $validated['emp_id'], 'work_date' => $validated['work_date']],
+                [
+                    'company_id' => $employee->company_id,
+                    'shift_code' => $validated['shift_code'] ?? 'WC0002',
+                    'day_type' => $validated['day_type'],
+                    'updated_at' => now(),
+                    'created_at' => now(),
+                ]
+            );
+
+            return response()->json([
+                'success' => true,
+                'message' => 'อัปเดตกะเรียบร้อย',
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Bulk update: save multiple days at once
+     */
+    public function bulkUpdateDay(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'updates' => 'required|array',
+                'updates.*.emp_id' => 'required|exists:employees,id',
+                'updates.*.work_date' => 'required|date',
+                'updates.*.shift_code' => 'nullable|string',
+                'updates.*.day_type' => 'required|in:working,holiday,day_off',
+            ]);
+
+            $count = 0;
+            foreach ($validated['updates'] as $update) {
+                $employee = Employee::find($update['emp_id']);
+                if (!$employee) continue;
+
+                DB::table('shift_schedules')->updateOrInsert(
+                    ['emp_id' => $update['emp_id'], 'work_date' => $update['work_date']],
+                    [
+                        'company_id' => $employee->company_id,
+                        'shift_code' => $update['shift_code'] ?? 'WC0002',
+                        'day_type' => $update['day_type'],
+                        'updated_at' => now(),
+                        'created_at' => now(),
+                    ]
+                );
+                $count++;
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => "อัปเดต {$count} วันเรียบร้อย",
+            ]);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    /**
+     * Summary for payroll review
+     */
+    public function summary(Request $request): JsonResponse
+    {
+        try {
+            $month = $request->get('month', now()->format('Y-m'));
+            $companyId = $request->get('company_id');
+            $startDate = $month . '-01';
+            $endDate = date('Y-m-t', strtotime($startDate));
+
+            $schedules = DB::table('shift_schedules')
+                ->whereBetween('work_date', [$startDate, $endDate])
+                ->when($companyId, function ($q) use ($companyId) {
+                    $q->where('company_id', $companyId);
+                })
+                ->get()
+                ->groupBy('emp_id');
+
+            $empIds = $schedules->keys()->toArray();
+            if (empty($empIds)) {
+                return response()->json([
+                    'success' => true,
+                    'data' => [],
+                ]);
+            }
+
+            $employees = Employee::whereIn('id', $empIds)
+                ->with('company')
+                ->get()
+                ->keyBy('id');
+
+            // Get actual attendance
+            $attendance = DB::table('attendance_logs')
+                ->whereBetween('date', [$startDate, $endDate])
+                ->whereIn('emp_id', $empIds)
+                ->where('status', '!=', 'holiday')
+                ->get()
+                ->groupBy('emp_id');
+
+            $result = [];
+            foreach ($schedules as $empId => $days) {
+                $emp = $employees->get($empId);
+                if (!$emp) continue;
+
+                $workingDays = $days->where('day_type', 'working')->count();
+                $empAttendance = $attendance->get($empId, collect());
+                $actualDays = $empAttendance->pluck('date')->unique()->count();
+
+                // Calculate actual hours
+                $totalMinutes = 0;
+                $grouped = $empAttendance->groupBy('date');
+                foreach ($grouped as $dayLogs) {
+                    $first = $dayLogs->first();
+                    $last = $dayLogs->last();
+                    if ($first->check_in && $last->check_out) {
+                        $in = strtotime($first->check_in);
+                        $out = strtotime($last->check_out);
+                        $totalMinutes += ($out - $in) / 60;
+                    }
+                }
+
+                $result[] = [
+                    'emp_id' => $empId,
+                    'employee_code' => $emp->employee_code,
+                    'name' => $emp->name,
+                    'company_name' => $emp->company->name ?? '-',
+                    'division' => $emp->division,
+                    'department' => $emp->department,
+                    'scheduled_days' => $workingDays,
+                    'actual_days' => $actualDays,
+                    'diff_days' => $actualDays - $workingDays,
+                    'actual_hours' => round($totalMinutes / 60, 1),
+                    'status' => $actualDays >= $workingDays ? 'ok' : 'short',
+                ];
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $result,
+                'month' => $month,
+                'start_date' => $startDate,
+                'end_date' => $endDate,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }
