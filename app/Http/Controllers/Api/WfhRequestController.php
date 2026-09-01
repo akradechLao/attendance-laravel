@@ -231,7 +231,7 @@ class WfhRequestController extends Controller
         EmployeeNotification::notify(
             $record->emp_id,
             'wfh_approved',
-            'อนุมัติ WFH',
+            '✅ อนุมัติ WFH',
             "คำขอ WFH วันที่ {$approvedDate} ของคุณได้รับการอนุมัติโดย {$approverText}",
             $record->id,
             'WfhRecord'
@@ -295,7 +295,7 @@ class WfhRequestController extends Controller
         EmployeeNotification::notify(
             $record->emp_id,
             'wfh_rejected',
-            'ไม่อนุมัติ WFH',
+            '❌ ไม่อนุมัติ WFH',
             "คำขอ WFH วันที่ {$wfhDate} ของคุณไม่ได้รับการอนุมัติโดย {$approverText}" . ($record->supervisor_note ? " เหตุผล: {$record->supervisor_note}" : ''),
             $record->id,
             'WfhRecord'

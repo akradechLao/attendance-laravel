@@ -140,7 +140,7 @@ class OtRequestController extends Controller
                 EmployeeNotification::notify(
                     $otRequest->emp_id,
                     'ot_approved',
-                    'อนุมัติโอทีโดย ' . ($approver ? $approver->getPositionName() : 'ผู้จัดการ'),
+                    '✅ อนุมัติโอทีโดย ' . ($approver ? $approver->getPositionName() : 'ผู้จัดการ'),
                     "คำขอโอทีวันที่ {$otRequest->date} เวลา {$otRequest->start_time}-{$otRequest->end_time} ได้รับการอนุมัติโดย {$approverText} แล้ว รอ HR อนุมัติขั้นสุดท้าย",
                     $otRequest->id,
                     'OtRequest'
@@ -196,7 +196,7 @@ class OtRequestController extends Controller
             EmployeeNotification::notify(
                 $otRequest->emp_id,
                 'ot_approved',
-                'อนุมัติโอทีสำเร็จ',
+                '✅ อนุมัติโอทีสำเร็จ',
                 "คำขอโอทีวันที่ {$otRequest->date} เวลา {$otRequest->start_time}-{$otRequest->end_time} ได้รับการอนุมัติขั้นสุดท้ายโดย {$approverText}",
                 $otRequest->id,
                 'OtRequest'
@@ -265,7 +265,7 @@ class OtRequestController extends Controller
             EmployeeNotification::notify(
                 $otRequest->emp_id,
                 'ot_rejected',
-                'ไม่อนุมัติโอที',
+                '❌ ไม่อนุมัติโอที',
                 "คำขอโอทีวันที่ {$otRequest->date} เวลา {$otRequest->start_time}-{$otRequest->end_time} ไม่ได้รับการอนุมัติโดย {$approverText}" . ($otRequest->rejection_reason ? " เหตุผล: {$otRequest->rejection_reason}" : ''),
                 $otRequest->id,
                 'OtRequest'

@@ -147,9 +147,9 @@ class LeaveController extends Controller
             $approverText = $approver ? "คุณ {$approver->name} ({$approver->getPositionName()})" : 'ผู้อนุมัติ';
             EmployeeNotification::notify(
                 $leave->emp_id,
-                'leave_rejected',
-                'ไม่อนุมัติลางาน',
-                "คำขอลาของคุณ (" . ($leaveType->name ?? '-') . " {$leave->start_date} ถึง {$leave->end_date}) ไม่ได้รับการอนุมัติโดย {$approverText}" . ($leave->rejection_reason ? " เหตุผล: {$leave->rejection_reason}" : ''),
+                'leave_approved',
+                '✅ อนุมัติลางาน',
+                "คำขอลาของคุณ (" . ($leaveType->name ?? '-') . " {$leave->start_date} ถึง {$leave->end_date}) ได้รับการอนุมัติโดย {$approverText}",
                 $leave->id,
                 'LeaveRequest'
             );
@@ -229,8 +229,8 @@ class LeaveController extends Controller
             EmployeeNotification::notify(
                 $leave->emp_id,
                 'leave_rejected',
-                'ไม่อนุมัติลางาน',
-                "คำขอลาของคุณ (" . ($leaveType->name ?? '-') . " {$leave->start_date} ถึง {$leave->end_date}) ไม่ได้รับการอนุมัติโดย {$approverPosition}" . ($leave->rejection_reason ? " เหตุผล: {$leave->rejection_reason}" : ''),
+                '❌ ไม่อนุมัติลางาน',
+                "คำขอลาของคุณ (" . ($leaveType->name ?? '-') . " {$leave->start_date} ถึง {$leave->end_date}) ไม่ได้รับการอนุมัติโดย {$approverText}" . ($leave->rejection_reason ? " เหตุผล: {$leave->rejection_reason}" : ''),
                 $leave->id,
                 'LeaveRequest'
             );
