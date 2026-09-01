@@ -35,7 +35,7 @@ class ReportController extends Controller
                 $query->where('company_id', $request->company_id);
             }
 
-            $logs = $query->with('employee.company')
+            $logs = $query->with('employee:id,id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id', 'employee.company:id,name,code_prefix')
                 ->orderBy('date', 'desc')
                 ->orderBy('check_in', 'asc')
                 ->get();
@@ -258,7 +258,7 @@ class ReportController extends Controller
                 $query->where('company_id', $request->company_id);
             }
 
-            $logs = $query->with('employee.company')
+            $logs = $query->with('employee:id,id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id', 'employee.company:id,name,code_prefix')
                 ->orderBy('check_in', 'asc')
                 ->get();
 
@@ -300,7 +300,7 @@ class ReportController extends Controller
                 $query->where('company_id', $request->company_id);
             }
 
-            $leaves = $query->with('employee.company', 'leaveType')
+            $leaves = $query->with('employee:id,id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id', 'employee.company:id,name,code_prefix', 'leaveType')
                 ->orderBy('start_date', 'desc')
                 ->get();
 
@@ -353,7 +353,7 @@ class ReportController extends Controller
                 $query->where('company_id', $request->company_id);
             }
 
-            $ots = $query->with('employee.company')
+            $ots = $query->with('employee:id,id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id', 'employee.company:id,name,code_prefix')
                 ->orderBy('date', 'desc')
                 ->get();
 
@@ -405,7 +405,7 @@ class ReportController extends Controller
             $query->where('company_id', $request->company_id);
         }
 
-        $logs = $query->with('employee.company')->orderBy('date', 'desc')->orderBy('check_in', 'asc')->get();
+        $logs = $query->with('employee:id,id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id', 'employee.company:id,name,code_prefix')->orderBy('date', 'desc')->orderBy('check_in', 'asc')->get();
 
         $html = $this->buildAttendancePdfHtml($logs, $request->start_date, $request->end_date);
 
@@ -427,7 +427,7 @@ class ReportController extends Controller
             $query->where('company_id', $request->company_id);
         }
 
-        $leaves = $query->with('employee.company', 'leaveType')->orderBy('start_date', 'desc')->get();
+        $leaves = $query->with('employee:id,id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id', 'employee.company:id,name,code_prefix', 'leaveType')->orderBy('start_date', 'desc')->get();
 
         $html = $this->buildLeavePdfHtml($leaves, $request->start_date, $request->end_date);
 
@@ -449,7 +449,7 @@ class ReportController extends Controller
             $query->where('company_id', $request->company_id);
         }
 
-        $ots = $query->with('employee.company')->orderBy('date', 'desc')->get();
+        $ots = $query->with('employee:id,id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id', 'employee.company:id,name,code_prefix')->orderBy('date', 'desc')->get();
 
         $html = $this->buildOtPdfHtml($ots, $request->start_date, $request->end_date);
 

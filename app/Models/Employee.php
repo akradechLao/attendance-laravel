@@ -50,6 +50,15 @@ class Employee extends Authenticatable
 
     protected $hidden = [
         'password',
+        'id_card',
+        'social_security',
+        'phone',
+        'email',
+        'birth_date',
+        'telegram_chat_id',
+        'supervisor_phone',
+        'supervisor_line',
+        'pin',
     ];
 
     protected $casts = [

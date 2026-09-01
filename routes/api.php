@@ -71,9 +71,9 @@ Route::get('/time', function () {
     ]);
 });
 
-Route::post('/employee/auth/search', [EmployeeAuthController::class, 'search']);
-Route::post('/employee/auth/verify', [EmployeeAuthController::class, 'verify']);
-Route::post('/face/verify', [FaceController::class, 'verify']);
+Route::post('/employee/auth/search', [EmployeeAuthController::class, 'search'])->middleware('throttle:30,1');
+Route::post('/employee/auth/verify', [EmployeeAuthController::class, 'verify'])->middleware('throttle:60,1');
+Route::post('/face/verify', [FaceController::class, 'verify'])->middleware('throttle:30,1');
 
 Route::post('/face/detect', function () {
     $request = request();
@@ -89,8 +89,8 @@ Route::post('/face/detect', function () {
     }
 });
 
-Route::get('/employees/{id}/face-data', [EmployeeController::class, 'faceData']);
-Route::delete('/employees/{id}/face-data', [EmployeeController::class, 'deleteFaceData']);
+Route::get('/employees/{id}/face-data', [EmployeeController::class, 'faceData'])->middleware('throttle:60,1');
+Route::delete('/employees/{id}/face-data', [EmployeeController::class, 'deleteFaceData'])->middleware('throttle:10,1');
 
 Route::post('/employees/{id}/face', function ($id) {
     $employee = \App\Models\Employee::find($id);

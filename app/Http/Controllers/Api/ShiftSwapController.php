@@ -17,7 +17,7 @@ class ShiftSwapController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = ShiftSwap::with(['requester', 'target', 'supervisor']);
+        $query = ShiftSwap::with(['requester:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id', 'target:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id', 'supervisor:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id']);
 
         if ($request->has('status') && $request->status) {
             $query->where('status', $request->status);
@@ -59,7 +59,7 @@ class ShiftSwapController extends Controller
 
         return response()->json([
             'success' => true,
-            'data' => $swap->load(['requester', 'target']),
+            'data' => $swap->load(['requester:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id', 'target:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id']),
             'message' => 'ส่งคำขอสลับกะสำเร็จ',
         ]);
     }
@@ -170,7 +170,7 @@ class ShiftSwapController extends Controller
 
         $swaps = ShiftSwap::where('requester_id', $employee->id)
             ->orWhere('target_id', $employee->id)
-            ->with(['requester', 'target', 'supervisor'])
+            ->with(['requester:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id', 'target:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id', 'supervisor:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id'])
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -193,7 +193,7 @@ class ShiftSwapController extends Controller
         }
 
         $swaps = ShiftSwap::whereIn('requester_id', $employeeIds)
-            ->with(['requester', 'target'])
+            ->with(['requester:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id', 'target:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id'])
             ->orderBy('created_at', 'desc')
             ->get();
 
@@ -223,7 +223,7 @@ class ShiftSwapController extends Controller
         $schedules = ShiftSchedule::where('company_id', $employee->company_id)
             ->where('work_date', $date)
             ->where('emp_id', '!=', $employee->id)
-            ->with('employee:id,name,employee_code,nickname')
+            ->with('employee:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id')
             ->get()
             ->filter(fn($s) => $s->employee);
 

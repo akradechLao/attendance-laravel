@@ -28,7 +28,8 @@ class EmployeeAuthController extends Controller
                           ->orWhere('nickname', 'like', "%{$query}%");
                     }
                 })
-                ->with('company')
+                ->select('id', 'name', 'nickname', 'employee_code', 'photo', 'company_id', 'has_ot', 'position', 'department', 'division', 'is_active')
+                ->with('company:id,name,code_prefix')
                 ->get();
 
             return response()->json([
@@ -71,7 +72,8 @@ class EmployeeAuthController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'user' => $employee->load('company', 'workShifts'),
+                    'user' => $employee->select('id', 'name', 'nickname', 'employee_code', 'photo', 'company_id', 'has_ot', 'position', 'level', 'department', 'division', 'reports_to', 'role', 'is_active')
+                        ->load('company:id,name,code_prefix', 'workShifts'),
                     'token' => $token,
                 ],
                 'message' => 'เข้าสู่ระบบสำเร็จ',
@@ -104,7 +106,8 @@ class EmployeeAuthController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $employee->load(['company', 'workShifts']),
+                'data' => $employee->select('id', 'name', 'nickname', 'employee_code', 'photo', 'company_id', 'has_ot', 'position', 'level', 'department', 'division', 'reports_to', 'role', 'is_active')
+                    ->load(['company:id,name,code_prefix', 'workShifts']),
                 'message' => 'Employee verified successfully.',
             ]);
         } catch (\Exception $e) {

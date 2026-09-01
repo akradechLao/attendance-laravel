@@ -28,7 +28,7 @@ class SupervisorController extends Controller
             return response()->json(['data' => []]);
         }
 
-        $query = LeaveRequest::with(['employee', 'leaveType'])
+        $query = LeaveRequest::with(['employee:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id', 'leaveType'])
             ->where('status', 'pending')
             ->whereIn('emp_id', $subordinateIds);
 
@@ -59,7 +59,7 @@ class SupervisorController extends Controller
             return response()->json(['data' => []]);
         }
 
-        $query = OtRequest::with('employee')
+        $query = OtRequest::with('employee:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id')
             ->where('status', 'pending')
             ->whereIn('emp_id', $subordinateIds);
 

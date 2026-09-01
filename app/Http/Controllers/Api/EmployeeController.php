@@ -13,7 +13,7 @@ class EmployeeController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            $query = Employee::with('company')
+            $query = Employee::with('company:id,name,code_prefix')
                 ->withCount('faceData');
 
             if ($request->has('search') && $request->search) {
@@ -132,7 +132,7 @@ class EmployeeController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $employee->load('company'),
+                'data' => $employee->load('company:id,name,code_prefix'),
                 'message' => 'Employee created successfully.',
             ], 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -173,7 +173,7 @@ class EmployeeController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $employee->load('company'),
+                'data' => $employee->load('company:id,name,code_prefix'),
                 'message' => 'Employee updated successfully.',
             ]);
         } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {

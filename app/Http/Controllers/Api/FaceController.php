@@ -249,7 +249,7 @@ class FaceController extends Controller
                     'remote_accuracy' => $remoteAccuracy,
                     'remote_location_name' => $remoteLocationName,
                     'is_verified' => true,
-                    'face_image' => $request->input('image'),
+                    'face_image' => hash('sha256', $request->input('image')),
                 ]);
 
                 // ─── สายเกิน 30 นาที → บังคับลากิจ 1 ชม. ───
@@ -348,7 +348,7 @@ class FaceController extends Controller
                 }
 
                 if ($request->input('image')) {
-                    $updateData['check_out_face_image'] = $request->input('image');
+                    $updateData['check_out_face_image'] = hash('sha256', $request->input('image'));
                 }
 
                 $log->update($updateData);

@@ -178,7 +178,7 @@ class DashboardController extends Controller
                              ->whereNull('check_out');
                       });
                 })
-                ->with(['employee', 'employee.company'])
+                ->with(['employee:id,id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id', 'employee.company:id,name,code_prefix'])
                 ->whereHas('employee', function ($q) use ($companyId) {
                     $q->where('is_active', true);
                     if ($companyId) {

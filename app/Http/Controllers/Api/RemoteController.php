@@ -23,7 +23,7 @@ class RemoteController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            $query = RemoteAssignment::with(['employee', 'approver']);
+            $query = RemoteAssignment::with(['employee:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id', 'approver:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id']);
 
             if ($request->has('company_id')) {
                 $query->where('company_id', $request->company_id);
@@ -67,7 +67,7 @@ class RemoteController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $assignment->load(['employee', 'approver']),
+                'data' => $assignment->load(['employee:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id', 'approver:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id']),
                 'message' => 'Remote assignment created successfully.',
             ], 201);
         } catch (\Illuminate\Validation\ValidationException $e) {
@@ -104,7 +104,7 @@ class RemoteController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $assignment->load(['employee', 'approver']),
+                'data' => $assignment->load(['employee:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id', 'approver:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id']),
                 'message' => 'Remote assignment approved.',
             ]);
         } catch (\Exception $e) {
@@ -203,7 +203,7 @@ class RemoteController extends Controller
             $activeRemotes = RemoteAssignment::where('status', 'approved')
                 ->where('start_date', '<=', $today)
                 ->where('end_date', '>=', $today)
-                ->with(['employee', 'employee.company'])
+                ->with(['employee:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id', 'employee.company:id,name,code_prefix'])
                 ->get();
 
             $locations = [];
