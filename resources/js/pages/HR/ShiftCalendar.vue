@@ -107,7 +107,7 @@
                       v-for="day in emp.days"
                       :key="day.date"
                       class="text-center px-0.5 py-0.5 cursor-pointer hover:opacity-80"
-                      :class="isWeekend(day.day_of_week) ? 'bg-gray-50' : ''"
+                      :class="day.is_holiday ? 'bg-gray-50' : ''"
                       @click="toggleDay(emp, day)"
                     >
                       <span

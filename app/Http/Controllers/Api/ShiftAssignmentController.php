@@ -265,16 +265,23 @@ class ShiftAssignmentController extends Controller
                 ], 422);
             }
 
-            DB::table('shift_schedules')->updateOrInsert(
-                ['emp_id' => $validated['emp_id'], 'work_date' => $validated['work_date']],
-                [
-                    'company_id' => $employee->company_id,
-                    'shift_code' => $validated['shift_code'] ?? 'WC0002',
-                    'day_type' => $validated['day_type'],
-                    'updated_at' => now(),
-                    'created_at' => now(),
-                ]
-            );
+            if ($validated['day_type'] === 'day_off') {
+                DB::table('shift_schedules')
+                    ->where('emp_id', $validated['emp_id'])
+                    ->where('work_date', $validated['work_date'])
+                    ->delete();
+            } else {
+                DB::table('shift_schedules')->updateOrInsert(
+                    ['emp_id' => $validated['emp_id'], 'work_date' => $validated['work_date']],
+                    [
+                        'company_id' => $employee->company_id,
+                        'shift_code' => $validated['shift_code'] ?? 'WC0002',
+                        'day_type' => $validated['day_type'],
+                        'updated_at' => now(),
+                        'created_at' => now(),
+                    ]
+                );
+            }
 
             return response()->json([
                 'success' => true,
@@ -313,16 +320,24 @@ class ShiftAssignmentController extends Controller
                 $employee = Employee::find($update['emp_id']);
                 if (!$employee) continue;
 
-                DB::table('shift_schedules')->updateOrInsert(
-                    ['emp_id' => $update['emp_id'], 'work_date' => $update['work_date']],
-                    [
-                        'company_id' => $employee->company_id,
-                        'shift_code' => $update['shift_code'] ?? 'WC0002',
-                        'day_type' => $update['day_type'],
-                        'updated_at' => now(),
-                        'created_at' => now(),
-                    ]
-                );
+                if ($update['day_type'] === 'day_off') {
+                    // Delete the record for day_off
+                    DB::table('shift_schedules')
+                        ->where('emp_id', $update['emp_id'])
+                        ->where('work_date', $update['work_date'])
+                        ->delete();
+                } else {
+                    DB::table('shift_schedules')->updateOrInsert(
+                        ['emp_id' => $update['emp_id'], 'work_date' => $update['work_date']],
+                        [
+                            'company_id' => $employee->company_id,
+                            'shift_code' => $update['shift_code'] ?? 'WC0002',
+                            'day_type' => $update['day_type'],
+                            'updated_at' => now(),
+                            'created_at' => now(),
+                        ]
+                    );
+                }
                 $count++;
             }
 
