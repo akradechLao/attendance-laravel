@@ -125,12 +125,12 @@
             <!-- Employee dropdown -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">พนักงาน *</label>
-              <div v-if="form.employee_id && selectedEmployeeName" class="flex items-center gap-2 p-2 bg-blue-50 rounded-lg">
+              <div v-if="form.emp_id && selectedEmployeeName" class="flex items-center gap-2 p-2 bg-blue-50 rounded-lg">
                 <span class="text-sm font-medium text-navy flex-1">{{ selectedEmployeeName }}</span>
                 <button type="button" @click="clearEmployee" class="text-xs text-red-500 hover:text-red-700">เปลี่ยน</button>
               </div>
               <div v-else>
-                <select v-model="form.employee_id" class="input-field" @change="onEmployeeSelect" :disabled="!form.company_id || filteredEmployees.length === 0">
+                <select v-model="form.emp_id" class="input-field" @change="onEmployeeSelect" :disabled="!form.company_id || filteredEmployees.length === 0">
                   <option value="">
                     {{ !form.company_id ? 'เลือกบริษัทก่อน' : filteredEmployees.length === 0 ? 'ไม่พบพนักงาน' : 'เลือกพนักงาน' }}
                   </option>
@@ -167,7 +167,7 @@
 
             <div class="flex justify-end gap-3 pt-4 border-t">
               <button type="button" @click="showCreateModal = false" class="btn-secondary">ยกเลิก</button>
-              <button type="submit" class="btn-primary" :disabled="submitting || !form.employee_id">
+              <button type="submit" class="btn-primary" :disabled="submitting || !form.emp_id">
                 {{ submitting ? 'กำลังบันทึก...' : 'บันทึก' }}
               </button>
             </div>
@@ -190,7 +190,7 @@ const submitting = ref(false)
 const filter = ref({ status: '', company_id: '' })
 
 const form = ref({
-  employee_id: '',
+  emp_id: '',
   company_id: '',
   division: '',
   department: '',
@@ -244,7 +244,7 @@ async function loadAssignments() {
 }
 
 function openCreateModal() {
-  form.value = { employee_id: '', company_id: '', division: '', department: '', start_date: '', end_date: '', destination: '', reason: '' }
+  form.value = { emp_id: '', company_id: '', division: '', department: '', start_date: '', end_date: '', destination: '', reason: '' }
   allCompanyEmployees.value = []
   divisions.value = []
   departments.value = []
@@ -253,7 +253,7 @@ function openCreateModal() {
 }
 
 async function onCompanyChange() {
-  form.value.employee_id = ''
+  form.value.emp_id = ''
   form.value.division = ''
   form.value.department = ''
   selectedEmployeeName.value = ''
@@ -282,7 +282,7 @@ async function onCompanyChange() {
 }
 
 function onDivisionChange() {
-  form.value.employee_id = ''
+  form.value.emp_id = ''
   form.value.department = ''
   selectedEmployeeName.value = ''
 
@@ -300,24 +300,24 @@ function onDivisionChange() {
 }
 
 function onDepartmentChange() {
-  form.value.employee_id = ''
+  form.value.emp_id = ''
   selectedEmployeeName.value = ''
 }
 
 function onEmployeeSelect() {
-  const emp = allCompanyEmployees.value.find(e => e.id === form.value.employee_id)
+  const emp = allCompanyEmployees.value.find(e => e.id === form.value.emp_id)
   if (emp) {
     selectedEmployeeName.value = `${emp.name} (${emp.employee_code})`
   }
 }
 
 function clearEmployee() {
-  form.value.employee_id = ''
+  form.value.emp_id = ''
   selectedEmployeeName.value = ''
 }
 
 async function createAssignment() {
-  if (!form.value.employee_id) return
+  if (!form.value.emp_id) return
   submitting.value = true
   try {
     await api.post('/api/remote-assignments', form.value)
