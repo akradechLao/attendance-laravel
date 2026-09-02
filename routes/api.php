@@ -193,7 +193,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/leave', [LeaveRequestController::class, 'store']);
 
         // WFH requests (self service)
-        Route::get('/wfh/available-saturdays', [WfhRequestController::class, 'availableSaturdays']);
         Route::get('/wfh/my-requests', [WfhRequestController::class, 'myRequests']);
         Route::post('/wfh', [WfhRequestController::class, 'store']);
 
@@ -203,6 +202,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::put('/employee/notifications/{id}/read', [\App\Http\Controllers\Api\EmployeeNotificationController::class, 'markAsRead']);
         Route::put('/employee/notifications/read-all', [\App\Http\Controllers\Api\EmployeeNotificationController::class, 'markAllAsRead']);
     });
+
+    // WFH available saturdays (accessible by both employees and admins)
+    Route::get('/wfh/available-saturdays', [WfhRequestController::class, 'availableSaturdays']);
 
     // Announcements (all authenticated users)
     Route::get('/announcements', [AnnouncementController::class, 'index']);
@@ -270,7 +272,7 @@ Route::middleware('auth:sanctum')->group(function () {
     });
 
     // Change password (self)
-    Route::post('/api/permissions/change-password', [PermissionController::class, 'changePassword']);
+    Route::post('/permissions/change-password', [PermissionController::class, 'changePassword']);
 });
 
 // ============================================================
@@ -434,10 +436,10 @@ Route::middleware(['auth:sanctum', 'role:super_admin'])->group(function () {
     Route::delete('/employees/face/{id}', [EmployeeController::class, 'deleteFaceData']);
 
     // Permission management
-    Route::get('/api/permissions/employees', [PermissionController::class, 'index']);
-    Route::put('/api/permissions/employees/{id}/role', [PermissionController::class, 'updateRole']);
-    Route::put('/api/permissions/employees/{id}/status', [PermissionController::class, 'updateStatus']);
-    Route::post('/api/permissions/employees/{id}/reset-password', [PermissionController::class, 'resetPassword']);
+    Route::get('/permissions/employees', [PermissionController::class, 'index']);
+    Route::put('/permissions/employees/{id}/role', [PermissionController::class, 'updateRole']);
+    Route::put('/permissions/employees/{id}/status', [PermissionController::class, 'updateStatus']);
+    Route::post('/permissions/employees/{id}/reset-password', [PermissionController::class, 'resetPassword']);
 
     // Company settings
     Route::get('/company-settings', [CompanySettingsController::class, 'index']);

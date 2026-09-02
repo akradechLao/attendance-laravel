@@ -76,15 +76,24 @@ class SupervisorController extends Controller
     {
         $date = $request->date ?? date('Y-m-d');
         $user = $request->user();
-        $employee = $request->user();
 
-        if (!$employee) {
-            return response()->json(['success' => false, 'message' => 'Employee not found'], 404);
+        if (!$user) {
+            return response()->json(['success' => false, 'message' => 'User not found'], 404);
+        }
+
+        if (method_exists($user, 'getAllSubordinateIds')) {
+            $subordinateIds = $user->getAllSubordinateIds();
+        } else {
+            $subordinateIds = Employee::where('company_id', $user->company_id)->pluck('id')->toArray();
+        }
+
+        if (empty($subordinateIds)) {
+            return response()->json(['data' => []]);
         }
 
         $teamMembers = Employee::with(['attendanceLogs' => function ($query) use ($date) {
             $query->where('date', $date);
-        }])->where('reports_to', $employee->id)->get();
+        }])->whereIn('id', $subordinateIds)->get();
 
         return response()->json(['data' => $teamMembers]);
     }

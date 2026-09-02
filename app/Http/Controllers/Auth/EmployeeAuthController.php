@@ -69,11 +69,12 @@ class EmployeeAuthController extends Controller
 
             $token = $employee->createToken('employee-token')->plainTextToken;
 
+            $employee->load('company:id,name,code_prefix', 'workShifts');
+
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'user' => $employee->select('id', 'name', 'nickname', 'employee_code', 'photo', 'company_id', 'has_ot', 'position', 'level', 'department', 'division', 'reports_to', 'role', 'is_active')
-                        ->load('company:id,name,code_prefix', 'workShifts'),
+                    'user' => $employee->only('id', 'name', 'nickname', 'employee_code', 'photo', 'company_id', 'has_ot', 'position', 'level', 'department', 'division', 'reports_to', 'role', 'is_active'),
                     'token' => $token,
                 ],
                 'message' => 'เข้าสู่ระบบสำเร็จ',
@@ -104,10 +105,11 @@ class EmployeeAuthController extends Controller
                 ], 403);
             }
 
+            $employee->load(['company:id,name,code_prefix', 'workShifts']);
+
             return response()->json([
                 'success' => true,
-                'data' => $employee->select('id', 'name', 'nickname', 'employee_code', 'photo', 'company_id', 'has_ot', 'position', 'level', 'department', 'division', 'reports_to', 'role', 'is_active')
-                    ->load(['company:id,name,code_prefix', 'workShifts']),
+                'data' => $employee->only('id', 'name', 'nickname', 'employee_code', 'photo', 'company_id', 'has_ot', 'position', 'level', 'department', 'division', 'reports_to', 'role', 'is_active'),
                 'message' => 'Employee verified successfully.',
             ]);
         } catch (\Exception $e) {

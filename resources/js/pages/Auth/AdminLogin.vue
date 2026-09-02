@@ -83,7 +83,7 @@
                 <div class="mb-4">
                   <label class="block text-sm font-medium text-gray-700 mb-2">ชื่อผู้ใช้</label>
                   <div class="relative">
-                    <input v-model="adminForm.username" type="text" class="w-full px-4 py-3 pl-12 rounded-xl border border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition-all text-gray-800 placeholder-gray-400" placeholder="กรอกชื่อผู้ใช้" required />
+                    <input v-model="adminForm.username" type="text" autocomplete="username" class="w-full px-4 py-3 pl-12 rounded-xl border border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition-all text-gray-800 placeholder-gray-400" placeholder="กรอกชื่อผู้ใช้" required />
                     <svg class="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
@@ -92,7 +92,7 @@
                 <div class="mb-6">
                   <label class="block text-sm font-medium text-gray-700 mb-2">รหัสผ่าน</label>
                   <div class="relative">
-                    <input v-model="adminForm.password" :type="showPassword ? 'text' : 'password'" class="w-full px-4 py-3 pl-12 pr-12 rounded-xl border border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition-all text-gray-800 placeholder-gray-400" placeholder="กรอกรหัสผ่าน" required />
+                    <input v-model="adminForm.password" :type="showPassword ? 'text' : 'password'" autocomplete="current-password" class="w-full px-4 py-3 pl-12 pr-12 rounded-xl border border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition-all text-gray-800 placeholder-gray-400" placeholder="กรอกรหัสผ่าน" required />
                     <svg class="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
@@ -120,7 +120,7 @@
                 <div class="mb-4">
                   <label class="block text-sm font-medium text-gray-700 mb-2">รหัสพนักงาน</label>
                   <div class="relative">
-                    <input v-model="employeeForm.employee_code" type="text" class="w-full px-4 py-3 pl-12 rounded-xl border border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition-all text-gray-800 placeholder-gray-400" placeholder="กรอกรหัสพนักงาน" required />
+                    <input v-model="employeeForm.employee_code" type="text" autocomplete="username" class="w-full px-4 py-3 pl-12 rounded-xl border border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition-all text-gray-800 placeholder-gray-400" placeholder="กรอกรหัสพนักงาน" required />
                     <svg class="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0" />
                     </svg>
@@ -129,7 +129,7 @@
                 <div class="mb-6">
                   <label class="block text-sm font-medium text-gray-700 mb-2">รหัสผ่าน</label>
                   <div class="relative">
-                    <input v-model="employeeForm.password" :type="showPassword ? 'text' : 'password'" class="w-full px-4 py-3 pl-12 rounded-xl border border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition-all text-gray-800 placeholder-gray-400" placeholder="กรอกรหัสผ่าน" required />
+                    <input v-model="employeeForm.password" :type="showPassword ? 'text' : 'password'" autocomplete="current-password" class="w-full px-4 py-3 pl-12 rounded-xl border border-gray-300 focus:border-blue-600 focus:ring-2 focus:ring-blue-100 outline-none transition-all text-gray-800 placeholder-gray-400" placeholder="กรอกรหัสผ่าน" required />
                     <svg class="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                     </svg>
