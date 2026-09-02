@@ -65,6 +65,25 @@ class RemoteController extends Controller
                 'reason' => 'nullable|string',
             ]);
 
+            $overlap = RemoteAssignment::where('emp_id', $request->emp_id)
+                ->where('status', '!=', 'rejected')
+                ->where(function ($q) use ($request) {
+                    $q->whereBetween('start_date', [$request->start_date, $request->end_date])
+                      ->orWhereBetween('end_date', [$request->start_date, $request->end_date])
+                      ->orWhere(function ($q2) use ($request) {
+                          $q2->where('start_date', '<=', $request->start_date)
+                             ->where('end_date', '>=', $request->end_date);
+                      });
+                })
+                ->first();
+
+            if ($overlap) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'พนักงานคนนี้มีการมอบหมายในช่วงวันที่นี้อยู่แล้ว (' . $overlap->start_date . ' ถึง ' . $overlap->end_date . ')',
+                ], 422);
+            }
+
             $assignment = RemoteAssignment::create($request->all());
 
             return response()->json([
