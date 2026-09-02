@@ -346,11 +346,15 @@ Route::middleware(['auth:sanctum', 'role:admin,super_admin'])->group(function ()
     Route::post('/shift-assignments/day', [ShiftAssignmentController::class, 'updateDay']);
     Route::post('/shift-assignments/bulk-day', [ShiftAssignmentController::class, 'bulkUpdateDay']);
     Route::get('/shift-assignments/summary', [ShiftAssignmentController::class, 'summary']);
+    Route::post('/shift-assignments/auto-preview', [ShiftAssignmentController::class, 'autoPreview']);
+    Route::post('/shift-assignments/auto-assign', [ShiftAssignmentController::class, 'autoAssign']);
 
     // Mandatory OT
     Route::get('/mandatory-ot', [MandatoryOtController::class, 'index']);
     Route::post('/mandatory-ot', [MandatoryOtController::class, 'store']);
     Route::post('/mandatory-ot/batch', [MandatoryOtController::class, 'storeBatch']);
+    Route::post('/mandatory-ot/auto-preview', [MandatoryOtController::class, 'autoPreview']);
+    Route::post('/mandatory-ot/auto-assign', [MandatoryOtController::class, 'autoAssign']);
     Route::delete('/mandatory-ot/{id}', [MandatoryOtController::class, 'destroy']);
 
     // Auto OT

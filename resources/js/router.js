@@ -261,6 +261,12 @@ const routes = [
     meta: { requiresAuth: true, layout: 'app', requiresRole: 'admin' }
   },
   {
+    path: '/shift-auto-assign',
+    name: 'ShiftAutoAssign',
+    component: () => import('./pages/HR/ShiftAutoAssign.vue'),
+    meta: { requiresAuth: true, layout: 'app', requiresRole: 'admin' }
+  },
+  {
     path: '/attendance-adjustment',
     name: 'AttendanceAdjustment',
     component: () => import('./pages/HR/AttendanceAdjustment.vue'),

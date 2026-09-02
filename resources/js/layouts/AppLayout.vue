@@ -163,6 +163,7 @@ const navItems = [
   { path: '/shift-assignments', label: 'มอบหมายกะรายเดือน', icon: '📅', minRole: 'admin' },
   { path: '/shift-calendar', label: 'ปฏิทินมอบหมายกะ', icon: '🗓️', minRole: 'admin' },
   { path: '/mandatory-ot', label: 'มอบหมาย OT บังคับ', icon: '⏰', minRole: 'admin' },
+  { path: '/shift-auto-assign', label: 'มอบหมายกะอัตโนมัติ', icon: '🔄', minRole: 'admin' },
   { path: '/auto-ot', label: 'คำนวณ OT อัตโนมัติ', icon: '🤖', minRole: 'admin' },
   { path: '/ot-summary', label: 'สรุป OT', icon: '📊', minRole: 'admin' },
   { section: 'อนุมัติ', minRole: 'admin' },
