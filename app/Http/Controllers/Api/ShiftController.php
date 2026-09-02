@@ -27,9 +27,9 @@ class ShiftController extends Controller
         $validated = $request->validate([
             'emp_id' => 'required|exists:employees,id',
             'work_date' => 'required|date',
-            'start_time' => 'required|string',
-            'end_time' => 'required|string',
-            'shift_code' => 'required|string',
+            'start_time' => 'nullable|string',
+            'end_time' => 'nullable|string',
+            'shift_code' => 'nullable|string',
         ]);
 
         $validated['company_id'] = $this->resolveCompanyId($request);

@@ -13,7 +13,7 @@ const selectedCompany = ref('')
 const searchQuery = ref('')
 const newShift = ref({
   emp_id: '',
-  date: '',
+  work_date: '',
   start_time: '08:00',
   end_time: '17:00',
   shift_code: 'Full Day',
@@ -67,7 +67,7 @@ function debounceLoadEmployees() {
 }
 
 const addShift = async () => {
-  if (!newShift.value.emp_id || !newShift.value.date) {
+  if (!newShift.value.emp_id || !newShift.value.work_date) {
     alert('กรุณากรอกข้อมูลให้ครบถ้วน')
     return
   }
@@ -78,7 +78,7 @@ const addShift = async () => {
     })
     alert('เพิ่มกะสำเร็จ')
     showForm.value = false
-    newShift.value = { emp_id: '', date: '', start_time: '08:00', end_time: '17:00', shift_code: 'Full Day' }
+    newShift.value = { emp_id: '', work_date: '', start_time: '08:00', end_time: '17:00', shift_code: 'Full Day' }
     selectedCompany.value = ''
     searchQuery.value = ''
     await loadShifts()
@@ -168,7 +168,7 @@ const deleteShift = async (id) => {
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700">วันที่</label>
-            <input v-model="newShift.date" type="date" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" />
+            <input v-model="newShift.work_date" type="date" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" />
           </div>
           <div class="grid grid-cols-2 gap-4">
             <div>
