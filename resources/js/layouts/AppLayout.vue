@@ -158,6 +158,7 @@ const navItems = [
   { section: 'จัดการเข้างาน', minRole: 'admin' },
   { path: '/holidays', label: 'วันหยุด', icon: '🎌', minRole: 'admin' },
   { path: '/manual-entry', label: 'บันทึกข้อมูลด้วยมือ', icon: '📝', minRole: 'admin' },
+  { path: '/attendance-verification', label: 'ตรวจสอบการเข้างาน', icon: '🔍', minRole: 'admin' },
   { section: 'จัดกะ & OT', minRole: 'admin' },
   { path: '/shifts', label: 'กะทำงาน', icon: '🔄', minRole: 'admin' },
   { path: '/shift-assignments', label: 'มอบหมายกะรายเดือน', icon: '📅', minRole: 'admin' },

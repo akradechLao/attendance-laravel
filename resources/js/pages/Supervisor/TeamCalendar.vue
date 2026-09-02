@@ -14,7 +14,7 @@ onMounted(async () => {
 const loadTeamCalendar = async () => {
   loading.value = true
   try {
-    const response = await api.get('/api/team-calendar', {
+    const response = await api.get('/api/supervisor/team-calendar', {
       params: { date: selectedDate.value }
     })
     teamMembers.value = response.data.data?.data || response.data.data || []

@@ -255,7 +255,7 @@ function formatDate(dateStr) {
 async function fetchOts() {
   loading.value = true
   try {
-    const response = await api.get('/api/ots')
+    const response = await api.get('/api/ot')
     ots.value = response.data.data?.data || response.data.data || []
   } catch (error) {
     console.error('Error fetching OTs:', error)
@@ -268,7 +268,7 @@ async function managerApprove(ot) {
   if (!confirm('ยืนยันการอนุมัติ OT?')) return
   processing.value = true
   try {
-    await api.put(`/api/ots/${ot.id}/manager-approve`)
+    await api.put(`/api/ot/${ot.id}/manager-approve`)
     fetchOts()
   } catch (error) {
     console.error('Error approving OT:', error)
@@ -282,7 +282,7 @@ async function hrApprove(ot) {
   if (!confirm('ยืนยันการอนุมัติ OT?')) return
   processing.value = true
   try {
-    await api.put(`/api/ots/${ot.id}/hr-approve`)
+    await api.put(`/api/ot/${ot.id}/final-approve`)
     fetchOts()
   } catch (error) {
     console.error('Error approving OT:', error)
@@ -296,7 +296,7 @@ async function rejectOt(ot) {
   if (!confirm('ยืนยันการปฏิเสธ OT?')) return
   processing.value = true
   try {
-    await api.put(`/api/ots/${ot.id}/reject`)
+    await api.put(`/api/ot/${ot.id}/reject`)
     fetchOts()
   } catch (error) {
     console.error('Error rejecting OT:', error)

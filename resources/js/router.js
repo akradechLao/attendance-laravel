@@ -273,6 +273,12 @@ const routes = [
     meta: { requiresAuth: true, layout: 'app', requiresRole: 'admin' }
   },
   {
+    path: '/attendance-verification',
+    name: 'AttendanceVerification',
+    component: () => import('./pages/HR/AttendanceVerification.vue'),
+    meta: { requiresAuth: true, layout: 'app', requiresRole: 'admin' }
+  },
+  {
     path: '/manual-entry',
     name: 'ManualEntry',
     component: () => import('./pages/HR/ManualEntry.vue'),

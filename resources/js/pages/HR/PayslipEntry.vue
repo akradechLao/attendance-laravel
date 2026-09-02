@@ -206,7 +206,7 @@
 
 <script setup>
 import { ref, reactive, computed, watch, onMounted } from 'vue'
-import axios from 'axios'
+import api from '../../services/api'
 import AppLayout from '@/layouts/AppLayout.vue'
 import store from '../../store'
 
@@ -285,7 +285,7 @@ function collapseAll() {
 async function loadEmployees() {
   loading.value = true
   try {
-    const res = await axios.get('/api/hr/payslips', {
+    const res = await api.get('/api/hr/payslips', {
       params: { month: selectedMonth.value, year: selectedYear.value }
     })
     if (res.data.success) {
@@ -305,7 +305,7 @@ async function loadEmployees() {
 
 async function loadFormData(empId) {
   try {
-    const res = await axios.get(`/api/hr/payslips/${empId}`, {
+    const res = await api.get(`/api/hr/payslips/${empId}`, {
       params: { month: selectedMonth.value, year: selectedYear.value }
     })
     if (res.data.success) {
@@ -353,7 +353,7 @@ async function saveOne(emp) {
   savingIds[emp.id] = true
   try {
     const f = forms[emp.id]
-    await axios.post(`/api/hr/payslips/${emp.id}`, {
+    await api.post(`/api/hr/payslips/${emp.id}`, {
       ...f,
       month: selectedMonth.value,
       year: selectedYear.value,
@@ -377,7 +377,7 @@ async function saveAll() {
   for (const empId of dirtyEmpIds) {
     try {
       const f = forms[empId]
-      await axios.post(`/api/hr/payslips/${empId}`, {
+      await api.post(`/api/hr/payslips/${empId}`, {
         ...f,
         month: selectedMonth.value,
         year: selectedYear.value,

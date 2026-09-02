@@ -13,7 +13,7 @@ onMounted(async () => {
 const loadLeaveRequests = async () => {
   loading.value = true
   try {
-    const response = await api.get('/api/leave-requests', {
+    const response = await api.get('/api/leave/team-leaves', {
       params: { status: 'pending' }
     })
     leaveRequests.value = response.data.data?.data || response.data.data || []
@@ -27,7 +27,7 @@ const loadLeaveRequests = async () => {
 const approveLeave = async (id) => {
   if (confirm('คุณต้องการอนุมัติคำขอนี้ใช่หรือไม่?')) {
     try {
-      await api.post(`/api/leave-requests/${id}/approve`)
+      await api.put(`/api/leave/${id}/approve`)
       alert('อนุมัติคำขอสำเร็จ')
       await loadLeaveRequests()
     } catch (error) {
@@ -40,7 +40,7 @@ const rejectLeave = async (id) => {
   const reason = prompt('กรุณาระบุเหตุผลในการไม่อนุมัติ:')
   if (reason) {
     try {
-      await api.post(`/api/leave-requests/${id}/reject`, { reason })
+      await api.put(`/api/leave/${id}/reject`, { reason })
       alert('ไม่อนุมัติคำขอสำเร็จ')
       await loadLeaveRequests()
     } catch (error) {

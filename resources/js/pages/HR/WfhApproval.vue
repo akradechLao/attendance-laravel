@@ -120,8 +120,8 @@ const loadData = async () => {
   loading.value = true
   try {
     const [teamRes, satRes] = await Promise.all([
-      api.get('/wfh/team-requests', { params: { supervisor_id: supervisorId.value, month: selectedMonth.value } }),
-      api.get('/wfh/available-saturdays', { params: { month: selectedMonth.value } })
+      api.get('/api/wfh/team-requests', { params: { supervisor_id: supervisorId.value, month: selectedMonth.value } }),
+      api.get('/api/wfh/available-saturdays', { params: { month: selectedMonth.value } })
     ])
     requests.value = teamRes.data.data.map(r => ({ ...r, changeDate: false, newDate: '' }))
     availableSaturdays.value = satRes.data.data
@@ -138,7 +138,7 @@ const approve = async (req) => {
     if (req.changeDate && req.newDate) {
       payload.approved_date = req.newDate
     }
-    await api.put(`/wfh/${req.id}/approve`, payload)
+    await api.put(`/api/wfh/${req.id}/approve`, payload)
     showToast('success', 'อนุมัติสำเร็จ')
     loadData()
   } catch (err) {
@@ -150,7 +150,7 @@ const approve = async (req) => {
 const reject = async (req) => {
   approving.value = true
   try {
-    await api.put(`/wfh/${req.id}/reject`, { supervisor_id: supervisorId.value })
+    await api.put(`/api/wfh/${req.id}/reject`, { supervisor_id: supervisorId.value })
     showToast('success', 'ปฏิเสธสำเร็จ')
     loadData()
   } catch (err) {
