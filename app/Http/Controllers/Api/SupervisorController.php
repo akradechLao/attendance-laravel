@@ -74,27 +74,31 @@ class SupervisorController extends Controller
 
     public function teamCalendar(Request $request)
     {
-        $date = $request->date ?? date('Y-m-d');
-        $user = $request->user();
+        try {
+            $date = $request->date ?? date('Y-m-d');
+            $user = $request->user();
 
-        if (!$user) {
-            return response()->json(['success' => false, 'message' => 'User not found'], 404);
+            if (!$user) {
+                return response()->json(['success' => false, 'message' => 'User not found'], 404);
+            }
+
+            if (method_exists($user, 'getAllSubordinateIds')) {
+                $subordinateIds = $user->getAllSubordinateIds();
+            } else {
+                $subordinateIds = Employee::where('company_id', $user->company_id)->pluck('id')->toArray();
+            }
+
+            if (empty($subordinateIds)) {
+                return response()->json(['data' => []]);
+            }
+
+            $teamMembers = Employee::with(['attendanceLogs' => function ($query) use ($date) {
+                $query->where('date', $date);
+            }])->whereIn('id', $subordinateIds)->get();
+
+            return response()->json(['data' => $teamMembers]);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Failed: ' . $e->getMessage()], 500);
         }
-
-        if (method_exists($user, 'getAllSubordinateIds')) {
-            $subordinateIds = $user->getAllSubordinateIds();
-        } else {
-            $subordinateIds = Employee::where('company_id', $user->company_id)->pluck('id')->toArray();
-        }
-
-        if (empty($subordinateIds)) {
-            return response()->json(['data' => []]);
-        }
-
-        $teamMembers = Employee::with(['attendanceLogs' => function ($query) use ($date) {
-            $query->where('date', $date);
-        }])->whereIn('id', $subordinateIds)->get();
-
-        return response()->json(['data' => $teamMembers]);
     }
 }
