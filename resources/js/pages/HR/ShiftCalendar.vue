@@ -247,7 +247,7 @@ function getDayName(d) {
 
 function getShiftColor(groupNumber) {
   const colors = {
-    1: 'bg-blue-500', 2: 'bg-green-500', 3: 'bg-purple-500', 4: 'bg-orange-500',
+    0: 'bg-gray-500', 1: 'bg-blue-500', 2: 'bg-green-500', 3: 'bg-purple-500', 4: 'bg-orange-500',
     5: 'bg-pink-500', 6: 'bg-teal-500', 7: 'bg-indigo-500', 8: 'bg-red-500',
   }
   return colors[groupNumber] || 'bg-gray-500'
@@ -261,7 +261,8 @@ function getShiftColorFromCode(code) {
 
 function getShiftNumber(code) {
   if (!code) return '?'
-  return parseInt(code.replace('WC', '')) || '?'
+  const num = parseInt(code.replace('WC', ''))
+  return isNaN(num) ? '?' : num
 }
 
 function getShiftCodeFromNumber(num) {
