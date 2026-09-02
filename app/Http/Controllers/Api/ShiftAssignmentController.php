@@ -175,7 +175,6 @@ class ShiftAssignmentController extends Controller
             $attendance = DB::table('attendance_logs')
                 ->whereBetween('date', [$startDate, $endDate])
                 ->whereIn('emp_id', $empIds)
-                ->where('status', '!=', 'holiday')
                 ->get()
                 ->groupBy('emp_id');
 
@@ -412,7 +411,6 @@ class ShiftAssignmentController extends Controller
             $attendance = DB::table('attendance_logs')
                 ->whereBetween('date', [$startDate, $endDate])
                 ->whereIn('emp_id', $empIds)
-                ->where('status', '!=', 'holiday')
                 ->get()
                 ->groupBy('emp_id');
 
