@@ -1,15 +1,15 @@
 <template>
   <AppLayout>
-    <div class="p-4 sm:p-6 space-y-6">
-    <h1 class="text-2xl font-bold text-[#0f172a]">อนุมัติสลับกะ</h1>
+    <div class="space-y-6">
+    <h1 class="text-2xl font-bold text-navy">อนุมัติสลับกะ</h1>
 
     <!-- Pending -->
-    <div class="bg-white rounded-xl shadow p-4">
-      <h2 class="font-semibold text-[#0f172a] mb-3">รอพิจารณา ({{ pending.length }})</h2>
+    <div class="card">
+      <h2 class="font-semibold text-navy mb-3">รอพิจารณา ({{ pending.length }})</h2>
       <div v-if="pending.length===0" class="text-center py-8 text-gray-500">ไม่มีคำขอรอดำเนินการ</div>
       <div v-else class="space-y-4">
         <div v-for="swap in pending" :key="swap.id" class="border rounded-xl p-4">
-          <div class="font-semibold text-[#0f172a]">{{ swap.requester?.name }} ⇄ {{ swap.target?.name }}</div>
+          <div class="font-semibold text-navy">{{ swap.requester?.name }} ⇄ {{ swap.target?.name }}</div>
           <div class="text-sm text-gray-500">วันที่: {{ formatDate(swap.swap_date) }}</div>
           <div class="text-sm text-gray-500">กะ: {{ swap.requester_shift }} → {{ swap.target_shift }}</div>
           <div v-if="swap.reason" class="text-sm text-gray-500">เหตุผล: {{ swap.reason }}</div>
@@ -22,8 +22,8 @@
     </div>
 
     <!-- Processed -->
-    <div class="bg-white rounded-xl shadow p-4">
-      <h2 class="font-semibold text-[#0f172a] mb-3">ดำเนินการแล้ว</h2>
+    <div class="card">
+      <h2 class="font-semibold text-navy mb-3">ดำเนินการแล้ว</h2>
       <div v-if="processed.length===0" class="text-center py-4 text-gray-500">ยังไม่มีรายการ</div>
       <div v-else class="space-y-3">
         <div v-for="swap in processed" :key="swap.id"

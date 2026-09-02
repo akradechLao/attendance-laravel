@@ -55,12 +55,12 @@ const rejectLeave = async (id) => {
     <div class="p-4 sm:p-6 space-y-6">
     <!-- Header -->
     <div>
-      <h1 class="text-2xl font-bold text-gray-900">Leave Approval</h1>
+      <h1 class="text-2xl font-bold text-navy">อนุมัติลา</h1>
       <p class="text-gray-500">อนุมัติคำขอลา (ผู้จัดการ)</p>
     </div>
 
     <!-- Leave Requests -->
-    <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
+    <div class="card overflow-hidden">
       <table class="min-w-full divide-y divide-gray-200">
         <thead class="bg-gray-50">
           <tr>

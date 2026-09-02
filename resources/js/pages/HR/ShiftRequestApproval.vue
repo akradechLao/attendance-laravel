@@ -1,7 +1,7 @@
 <template>
   <AppLayout>
     <div class="space-y-6">
-      <h1 class="text-2xl font-bold text-gray-800">อนุมัติร้องขอเข้ากะ</h1>
+      <h1 class="text-2xl font-bold text-navy">อนุมัติร้องขอเข้ากะ</h1>
 
       <div v-if="loading" class="text-center py-8">
         <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
@@ -10,7 +10,7 @@
       <div v-else-if="requests.length === 0" class="text-center py-12 text-gray-400">ไม่มีคำขอรออนุมัติ</div>
 
       <div v-else class="space-y-4">
-        <div v-for="r in requests" :key="r.id" class="bg-white rounded-xl p-5 border border-gray-200 shadow-sm">
+        <div v-for="r in requests" :key="r.id" class="card">
           <div class="flex justify-between items-start mb-3">
             <div>
               <div class="flex items-center gap-2 mb-1">

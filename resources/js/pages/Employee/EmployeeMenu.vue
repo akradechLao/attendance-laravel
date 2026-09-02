@@ -4,15 +4,6 @@
     <header class="bg-white border-b border-gray-200 shadow-sm">
       <div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
         <div class="flex items-center gap-3">
-          <a
-            href="/login"
-            class="px-4 py-2 rounded-xl bg-blue-500 hover:bg-blue-600 text-white text-sm font-medium transition-colors shadow-sm"
-          >
-            เข้าสู่ระบบ
-          </a>
-        </div>
-        <div class="flex items-center gap-3">
-          <!-- Notification Bell -->
           <router-link
             to="/employee/notifications"
             class="relative p-2 hover:bg-gray-100 rounded-xl transition-colors"
@@ -27,21 +18,22 @@
               {{ unreadCount > 9 ? '9+' : unreadCount }}
             </span>
           </router-link>
-
-          <div class="w-12 h-12 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-lg shadow">
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-sm shadow">
             {{ initials }}
           </div>
-          <div>
-            <p class="text-gray-800 font-semibold">{{ store.user?.name }}</p>
-            <p class="text-blue-600 text-sm">{{ store.user?.company?.name }}</p>
+          <div class="hidden sm:block">
+            <p class="text-gray-800 font-semibold text-sm">{{ store.user?.name }}</p>
+            <p class="text-blue-600 text-xs">{{ store.user?.company?.name }}</p>
           </div>
+          <button
+            @click="handleLogout"
+            class="px-3 py-2 rounded-xl bg-gray-100 hover:bg-red-50 text-gray-500 hover:text-red-500 text-sm font-medium transition-colors"
+          >
+            ออกจากระบบ
+          </button>
         </div>
-        <button
-          @click="handleLogout"
-          class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-red-50 text-gray-500 hover:text-red-500 text-sm font-medium transition-colors"
-        >
-          ออกจากระบบ
-        </button>
       </div>
     </header>
 
@@ -49,7 +41,7 @@
     <main class="max-w-4xl mx-auto px-4 py-8">
       <!-- Greeting -->
       <div class="text-center mb-8">
-        <h1 class="text-2xl sm:text-3xl font-bold text-gray-800 mb-1">
+        <h1 class="text-2xl sm:text-3xl font-bold text-navy mb-1">
           สวัสดีครับ {{ store.user?.nickname || store.user?.name }}
         </h1>
         <p class="text-gray-500">เลือกเมนูที่ต้องการ</p>

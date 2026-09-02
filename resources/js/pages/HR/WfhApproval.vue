@@ -1,18 +1,18 @@
 <template>
   <AppLayout>
-    <div class="p-4 sm:p-6 space-y-6">
-    <h1 class="text-2xl font-bold text-[#0f172a]">อนุมัติ WFH ลูกทีม</h1>
+    <div class="space-y-6">
+    <h1 class="text-2xl font-bold text-navy">อนุมัติ WFH ลูกทีม</h1>
 
     <!-- Month Selector -->
-    <div class="bg-white rounded-xl shadow p-4">
+    <div class="card">
       <label class="block text-sm font-medium text-gray-700 mb-2">เลือกเดือน</label>
       <input type="month" v-model="selectedMonth" @change="loadData" 
              class="w-full border rounded-lg p-2" />
     </div>
 
     <!-- Pending Requests -->
-    <div class="bg-white rounded-xl shadow p-4">
-      <h2 class="font-semibold text-[#0f172a] mb-3">รอพิจารณา ({{ pending.length }})</h2>
+    <div class="card">
+      <h2 class="font-semibold text-navy mb-3">รอพิจารณา ({{ pending.length }})</h2>
       <div v-if="pending.length === 0" class="text-center py-8 text-gray-500">
         ไม่มีคำขอรอดำเนินการ
       </div>
@@ -20,7 +20,7 @@
         <div v-for="req in pending" :key="req.id" class="border rounded-xl p-4">
           <div class="flex justify-between items-start">
             <div>
-              <div class="font-semibold text-[#0f172a]">{{ req.employee?.name }}</div>
+              <div class="font-semibold text-navy">{{ req.employee?.name }}</div>
               <div class="text-sm text-gray-500">วันที่: {{ formatDate(req.date) }}</div>
               <div class="text-sm text-gray-500">เหตุผล: {{ req.reason || '-' }}</div>
             </div>
@@ -59,8 +59,8 @@
     </div>
 
     <!-- Approved/Rejected This Month -->
-    <div class="bg-white rounded-xl shadow p-4">
-      <h2 class="font-semibold text-[#0f172a] mb-3">ดำเนินการแล้ว</h2>
+    <div class="card">
+      <h2 class="font-semibold text-navy mb-3">ดำเนินการแล้ว</h2>
       <div v-if="processed.length === 0" class="text-center py-4 text-gray-500">
         ยังไม่มีรายการ
       </div>
