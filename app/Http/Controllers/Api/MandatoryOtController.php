@@ -99,4 +99,68 @@ class MandatoryOtController extends Controller
             ], 500);
         }
     }
+
+    public function storeBatch(Request $request): JsonResponse
+    {
+        try {
+            $validated = $request->validate([
+                'emp_ids' => 'required|array|min:1',
+                'emp_ids.*' => 'exists:employees,id',
+                'ot_date' => 'required|date',
+                'start_time' => 'required',
+                'end_time' => 'required|after:start_time',
+                'reason' => 'nullable|string|max:500',
+            ]);
+
+            $assignedBy = $request->user()->username ?? 'Admin';
+            $created = 0;
+            $updated = 0;
+            $skipped = 0;
+
+            foreach ($validated['emp_ids'] as $empId) {
+                $employee = Employee::find($empId);
+                if (!$employee) { $skipped++; continue; }
+
+                $existing = MandatoryOtAssignment::where('emp_id', $empId)
+                    ->where('ot_date', $validated['ot_date'])
+                    ->first();
+
+                $data = [
+                    'company_id' => $employee->company_id,
+                    'emp_id' => $empId,
+                    'ot_date' => $validated['ot_date'],
+                    'start_time' => $validated['start_time'],
+                    'end_time' => $validated['end_time'],
+                    'reason' => $validated['reason'] ?? null,
+                    'assigned_by' => $assignedBy,
+                    'status' => 'assigned',
+                ];
+
+                if ($existing) {
+                    $existing->update($data);
+                    $updated++;
+                } else {
+                    MandatoryOtAssignment::create($data);
+                    $created++;
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => "มอบหมาย OT บังคับ {$created} ราย (อัพเดท {$updated} ราย, ข้าม {$skipped} ราย)",
+                'data' => compact('created', 'updated', 'skipped'),
+            ], 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Validation failed',
+                'errors' => $e->errors(),
+            ], 422);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage(),
+            ], 500);
+        }
+    }
 }

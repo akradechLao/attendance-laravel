@@ -350,6 +350,7 @@ Route::middleware(['auth:sanctum', 'role:admin,super_admin'])->group(function ()
     // Mandatory OT
     Route::get('/mandatory-ot', [MandatoryOtController::class, 'index']);
     Route::post('/mandatory-ot', [MandatoryOtController::class, 'store']);
+    Route::post('/mandatory-ot/batch', [MandatoryOtController::class, 'storeBatch']);
     Route::delete('/mandatory-ot/{id}', [MandatoryOtController::class, 'destroy']);
 
     // Auto OT
