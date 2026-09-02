@@ -4,22 +4,31 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\ShiftSchedule;
+use App\Models\WorkShift;
 use Illuminate\Http\Request;
 
 class ShiftController extends Controller
 {
     public function index(Request $request)
     {
-        $query = ShiftSchedule::with('employee');
+        $query = ShiftSchedule::with('employee:id,employee_code,name,nickname,photo,company_id,position,department,division');
 
         if ($request->month) {
             $query->whereMonth('work_date', substr($request->month, 5, 2));
             $query->whereYear('work_date', substr($request->month, 0, 4));
         }
 
+        if ($request->company_id) {
+            $query->where('company_id', $request->company_id);
+        }
+
         $shifts = $query->orderBy('work_date')->get();
 
-        return response()->json(['data' => $shifts]);
+        $workShifts = WorkShift::orderBy('group_number')->get([
+            'group_number', 'start_time', 'end_time', 'work_hours', 'is_overnight'
+        ]);
+
+        return response()->json(['data' => $shifts, 'work_shifts' => $workShifts]);
     }
 
     public function store(Request $request)
@@ -27,8 +36,6 @@ class ShiftController extends Controller
         $validated = $request->validate([
             'emp_id' => 'required|exists:employees,id',
             'work_date' => 'required|date',
-            'start_time' => 'nullable|string',
-            'end_time' => 'nullable|string',
             'shift_code' => 'nullable|string',
         ]);
 

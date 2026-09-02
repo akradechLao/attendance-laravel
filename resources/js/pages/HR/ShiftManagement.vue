@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import api from '@/services/api'
 import AppLayout from '@/layouts/AppLayout.vue'
 
@@ -7,30 +7,32 @@ const loading = ref(false)
 const shifts = ref([])
 const employees = ref([])
 const companies = ref([])
+const workShifts = ref([])
 const showForm = ref(false)
 const selectedMonth = ref(new Date().toISOString().slice(0, 7))
 const selectedCompany = ref('')
+const filterCompany = ref('')
 const searchQuery = ref('')
+
 const newShift = ref({
   emp_id: '',
   work_date: '',
-  start_time: '08:00',
-  end_time: '17:00',
-  shift_code: 'Full Day',
+  shift_code: '',
 })
 
 onMounted(async () => {
-  await loadShifts()
-  await loadEmployees()
-  await loadCompanies()
+  await Promise.all([loadShifts(), loadCompanies(), loadWorkShifts()])
 })
+
+watch(selectedMonth, () => loadShifts())
+watch(filterCompany, () => loadShifts())
 
 const loadShifts = async () => {
   loading.value = true
   try {
-    const response = await api.get('/api/shift-schedules', {
-      params: { month: selectedMonth.value }
-    })
+    const params = { month: selectedMonth.value }
+    if (filterCompany.value) params.company_id = filterCompany.value
+    const response = await api.get('/api/shift-schedules', { params })
     shifts.value = response.data.data?.data || response.data.data || []
   } catch (error) {
     console.error('Failed to load shifts:', error)
@@ -60,42 +62,120 @@ const loadCompanies = async () => {
   }
 }
 
+const loadWorkShifts = async () => {
+  try {
+    const response = await api.get('/api/shift-assignments', { params: { _work_shifts: 1 } })
+    workShifts.value = response.data.work_shifts || []
+  } catch {
+    try {
+      const response = await api.get('/api/shift-schedules')
+      workShifts.value = response.data.work_shifts || []
+    } catch {
+      workShifts.value = [
+        { group_number: 1, start_time: '08:00', end_time: '17:00', work_hours: 8 },
+        { group_number: 2, start_time: '08:30', end_time: '17:30', work_hours: 8 },
+        { group_number: 3, start_time: '07:00', end_time: '16:00', work_hours: 8 },
+        { group_number: 4, start_time: '07:30', end_time: '16:30', work_hours: 8 },
+        { group_number: 5, start_time: '09:00', end_time: '18:00', work_hours: 8 },
+        { group_number: 6, start_time: '09:30', end_time: '18:30', work_hours: 8 },
+        { group_number: 7, start_time: '10:00', end_time: '19:00', work_hours: 8 },
+        { group_number: 8, start_time: '10:30', end_time: '19:30', work_hours: 8 },
+        { group_number: 9, start_time: '11:00', end_time: '20:00', work_hours: 8 },
+        { group_number: 10, start_time: '11:30', end_time: '20:30', work_hours: 8 },
+        { group_number: 11, start_time: '12:00', end_time: '21:00', work_hours: 8 },
+        { group_number: 12, start_time: '12:30', end_time: '21:30', work_hours: 8 },
+        { group_number: 13, start_time: '13:00', end_time: '22:00', work_hours: 8 },
+        { group_number: 14, start_time: '14:00', end_time: '23:00', work_hours: 8 },
+        { group_number: 15, start_time: '15:00', end_time: '00:00', work_hours: 8 },
+        { group_number: 16, start_time: '16:00', end_time: '01:00', work_hours: 8 },
+      ]
+    }
+  }
+}
+
 let empSearchTimeout = null
 function debounceLoadEmployees() {
   clearTimeout(empSearchTimeout)
   empSearchTimeout = setTimeout(() => loadEmployees(), 300)
 }
 
-const addShift = async () => {
-  if (!newShift.value.emp_id || !newShift.value.work_date) {
+function getShiftCode(gn) {
+  return 'WC' + String(gn).padStart(4, '0')
+}
+
+function getShiftByCode(code) {
+  const gn = parseInt(code.replace('WC', ''), 10)
+  return workShifts.value.find(ws => ws.group_number === gn)
+}
+
+function getShiftTimes(code) {
+  const ws = getShiftByCode(code)
+  if (!ws) return { start: '-', end: '-' }
+  return { start: ws.start_time?.substring(0, 5), end: ws.end_time?.substring(0, 5) }
+}
+
+function onShiftCodeChange() {
+  // times are derived from shift_code, nothing else needed
+}
+
+const selectedShiftInfo = computed(() => {
+  if (!newShift.value.shift_code) return null
+  return getShiftByCode(newShift.value.shift_code)
+})
+
+const groupedShifts = computed(() => {
+  const groups = {}
+  for (const shift of shifts.value) {
+    const date = shift.work_date
+    if (!groups[date]) groups[date] = []
+    groups[date].push(shift)
+  }
+  const sorted = Object.entries(groups).sort(([a], [b]) => a.localeCompare(b))
+  return sorted
+})
+
+function formatDate(dateStr) {
+  if (!dateStr) return '-'
+  const d = new Date(dateStr + 'T00:00:00')
+  return d.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+}
+
+function addShift() {
+  if (!newShift.value.emp_id || !newShift.value.work_date || !newShift.value.shift_code) {
     alert('กรุณากรอกข้อมูลให้ครบถ้วน')
     return
   }
-
-  try {
-    await api.post('/api/shift-schedules', {
-      ...newShift.value,
-    })
+  api.post('/api/shift-schedules', {
+    emp_id: newShift.value.emp_id,
+    work_date: newShift.value.work_date,
+    shift_code: newShift.value.shift_code,
+  }).then(() => {
     alert('เพิ่มกะสำเร็จ')
     showForm.value = false
-    newShift.value = { emp_id: '', work_date: '', start_time: '08:00', end_time: '17:00', shift_code: 'Full Day' }
+    newShift.value = { emp_id: '', work_date: '', shift_code: '' }
     selectedCompany.value = ''
     searchQuery.value = ''
-    await loadShifts()
-  } catch (error) {
-    alert('เกิดข้อผิดพลาดในการเพิ่มกะ')
-  }
+    loadShifts()
+  }).catch(err => {
+    alert(err.response?.data?.message || 'เกิดข้อผิดพลาดในการเพิ่มกะ')
+  })
 }
 
-const deleteShift = async (id) => {
-  if (confirm('คุณต้องการลบนี้ใช่หรือไม่?')) {
-    try {
-      await api.delete(`/api/shift-schedules/${id}`)
-      alert('ลบกะสำเร็จ')
-      await loadShifts()
-    } catch (error) {
-      alert('เกิดข้อผิดพลาดในการลบกะ')
-    }
+function deleteShift(id) {
+  if (!confirm('ต้องการลบนี้ใช่หรือไม่?')) return
+  api.delete(`/api/shift-schedules/${id}`).then(() => {
+    alert('ลบกะสำเร็จ')
+    loadShifts()
+  }).catch(() => {
+    alert('เกิดข้อผิดพลาดในการลบ')
+  })
+}
+
+function openForm() {
+  showForm.value = true
+  if (companies.value.length === 1) {
+    selectedCompany.value = companies.value[0].id
+    loadEmployees()
   }
 }
 </script>
@@ -103,99 +183,111 @@ const deleteShift = async (id) => {
 <template>
   <AppLayout>
     <div class="p-4 sm:p-6 space-y-6">
-    <!-- Header -->
-    <div class="flex items-center justify-between">
-      <div>
-        <h1 class="text-2xl font-bold text-gray-900">Shift Management</h1>
-        <p class="text-gray-500">จัดการกะทำงาน</p>
+      <div class="flex items-center justify-between flex-wrap gap-3">
+        <div>
+          <h1 class="text-2xl font-bold text-navy">จัดการกะทำงาน</h1>
+          <p class="text-gray-500">กำหนดกะทำงานตามรหัส WC0001-WC0016</p>
+        </div>
+        <div class="flex gap-3 items-center">
+          <select v-model="filterCompany" class="px-3 py-2 border rounded-lg text-sm">
+            <option value="">ทุกบริษัท</option>
+            <option v-for="c in companies" :key="c.id" :value="c.id">{{ c.name }}</option>
+          </select>
+          <input v-model="selectedMonth" type="month" class="px-3 py-2 border rounded-lg text-sm" />
+          <button @click="openForm" class="px-4 py-2 bg-navy text-white rounded-lg hover:bg-slate-800 text-sm font-medium">
+            + เพิ่มกะ
+          </button>
+        </div>
       </div>
-      <div class="flex gap-3">
-        <input v-model="selectedMonth" type="month" @change="loadShifts" class="px-3 py-2 border rounded-lg" />
-        <button @click="showForm = true" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-          + เพิ่มกะ
-        </button>
+
+      <div v-if="loading" class="text-center py-8 text-gray-500">กำลังโหลด...</div>
+
+      <div v-else-if="groupedShifts.length === 0" class="text-center py-12 text-gray-400">
+        ไม่มีข้อมูลกะในเดือนนี้
       </div>
-    </div>
 
-    <!-- Shift List -->
-    <div class="bg-white rounded-xl shadow-sm border overflow-hidden">
-      <table class="min-w-full divide-y divide-gray-200">
-        <thead class="bg-gray-50">
-          <tr>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">พนักงาน</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">วันที่</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">เวลา</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">รหัสกะ</th>
-            <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">จัดการ</th>
-          </tr>
-        </thead>
-        <tbody class="divide-y divide-gray-200">
-          <tr v-for="shift in shifts" :key="shift.id">
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ shift.employee?.name }}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ shift.date }}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ shift.start_time }} - {{ shift.end_time }}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ shift.shift_code }}</td>
-            <td class="px-6 py-4 whitespace-nowrap">
-              <button @click="deleteShift(shift.id)" class="text-red-600 hover:text-red-800">ลบ</button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+      <div v-else class="space-y-4">
+        <div v-for="([date, dayShifts]) in groupedShifts" :key="date" class="bg-white rounded-xl shadow-sm border overflow-hidden">
+          <div class="bg-gray-50 px-4 py-2 border-b flex items-center justify-between">
+            <span class="font-semibold text-navy text-sm">{{ formatDate(date) }}</span>
+            <span class="text-xs text-gray-500">{{ dayShifts.length }} คน</span>
+          </div>
+          <table class="min-w-full divide-y divide-gray-200 text-sm">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">รหัส</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">ชื่อพนักงาน</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">รหัสกะ</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">เวลา</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-100">
+              <tr v-for="shift in dayShifts" :key="shift.id" class="hover:bg-gray-50">
+                <td class="px-4 py-2 text-gray-600">{{ shift.employee?.employee_code }}</td>
+                <td class="px-4 py-2 font-medium text-navy">{{ shift.employee?.name }}</td>
+                <td class="px-4 py-2">
+                  <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                    {{ shift.shift_code }}
+                  </span>
+                </td>
+                <td class="px-4 py-2 text-gray-600">{{ getShiftTimes(shift.shift_code).start }} - {{ getShiftTimes(shift.shift_code).end }}</td>
+                <td class="px-4 py-2">
+                  <button @click="deleteShift(shift.id)" class="text-red-500 hover:text-red-700 text-xs">ลบ</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
 
-    <!-- Add Shift Modal -->
-    <div v-if="showForm" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-        <h3 class="text-lg font-bold mb-4">เพิ่มกะ</h3>
-        <div class="space-y-4">
-          <div>
-            <label class="block text-sm font-medium text-gray-700">บริษัท</label>
-            <select v-model="selectedCompany" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" @change="loadEmployees">
-              <option value="">ทุกบริษัท</option>
-              <option v-for="c in companies" :key="c.id" :value="c.id">{{ c.name }}</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">ค้นหาพนักงาน</label>
-            <input v-model="searchQuery" type="text" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" placeholder="ชื่อหรือรหัส..." @input="debounceLoadEmployees" />
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">พนักงาน (เฉพาะเข้ากะ)</label>
-            <select v-model="newShift.emp_id" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-              <option value="">เลือกพนักงาน</option>
-              <option v-for="emp in employees" :key="emp.id" :value="emp.id">{{ emp.employee_code }} - {{ emp.name }}</option>
-            </select>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">วันที่</label>
-            <input v-model="newShift.work_date" type="date" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" />
-          </div>
-          <div class="grid grid-cols-2 gap-4">
+      <!-- Add Shift Modal -->
+      <div v-if="showForm" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
+          <h3 class="text-lg font-bold text-navy mb-4">เพิ่มกะ</h3>
+          <div class="space-y-4">
             <div>
-              <label class="block text-sm font-medium text-gray-700">เวลาเริ่ม</label>
-              <input v-model="newShift.start_time" type="time" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" />
+              <label class="block text-sm font-medium text-gray-700 mb-1">บริษัท *</label>
+              <select v-model="selectedCompany" class="w-full px-3 py-2 border rounded-lg text-sm" @change="loadEmployees" required>
+                <option value="">เลือกบริษัท</option>
+                <option v-for="c in companies" :key="c.id" :value="c.id">{{ c.name }}</option>
+              </select>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700">เวลาสิ้นสุด</label>
-              <input v-model="newShift.end_time" type="time" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" />
+              <label class="block text-sm font-medium text-gray-700 mb-1">ค้นหาพนักงาน</label>
+              <input v-model="searchQuery" type="text" class="w-full px-3 py-2 border rounded-lg text-sm" placeholder="ชื่อหรือรหัส..." @input="debounceLoadEmployees" />
             </div>
-          </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700">รหัสกะ</label>
-            <select v-model="newShift.shift_code" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-              <option value="Full Day">Full Day</option>
-              <option value="Half Day">Half Day</option>
-              <option value="Night">Night</option>
-              <option value="วันหยุด">วันหยุด</option>
-            </select>
-          </div>
-          <div class="flex gap-3 justify-end">
-            <button @click="showForm = false; selectedCompany = ''; searchQuery = ''" class="px-4 py-2 border rounded-lg hover:bg-gray-50">ยกเลิก</button>
-            <button @click="addShift" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">เพิ่ม</button>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">พนักงาน (เฉพาะเข้ากะ) *</label>
+              <select v-model="newShift.emp_id" class="w-full px-3 py-2 border rounded-lg text-sm" required>
+                <option value="">{{ !selectedCompany.value ? 'เลือกบริษัทก่อน' : 'เลือกพนักงาน' }}</option>
+                <option v-for="emp in employees" :key="emp.id" :value="emp.id">{{ emp.employee_code }} - {{ emp.name }}</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">วันที่ *</label>
+              <input v-model="newShift.work_date" type="date" class="w-full px-3 py-2 border rounded-lg text-sm" required />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">รหัสกะ *</label>
+              <select v-model="newShift.shift_code" class="w-full px-3 py-2 border rounded-lg text-sm" required @change="onShiftCodeChange">
+                <option value="">เลือกรหัสกะ</option>
+                <option v-for="ws in workShifts" :key="ws.group_number" :value="getShiftCode(ws.group_number)">
+                  {{ getShiftCode(ws.group_number) }} — {{ ws.start_time?.substring(0,5) }}-{{ ws.end_time?.substring(0,5) }} ({{ ws.work_hours }}ชม.)
+                </option>
+              </select>
+            </div>
+            <div v-if="selectedShiftInfo" class="p-3 bg-blue-50 rounded-lg text-sm text-blue-800">
+              เวลาเข้างาน: <strong>{{ selectedShiftInfo.start_time?.substring(0,5) }}</strong> —
+              เวลาออกงาน: <strong>{{ selectedShiftInfo.end_time?.substring(0,5) }}</strong> ({{ selectedShiftInfo.work_hours }} ชม.)
+            </div>
+            <div class="flex gap-3 justify-end pt-2 border-t">
+              <button @click="showForm = false; selectedCompany = ''; searchQuery = ''" class="px-4 py-2 border rounded-lg hover:bg-gray-50 text-sm">ยกเลิก</button>
+              <button @click="addShift" class="px-4 py-2 bg-navy text-white rounded-lg hover:bg-slate-800 text-sm font-medium">เพิ่ม</button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
     </div>
   </AppLayout>
 </template>
