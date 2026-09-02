@@ -299,12 +299,24 @@ function toggleAll() {
 async function loadEmployees() {
   loading.value = true
   try {
-    const params = { per_page: 9999 }
+    const params = { per_page: 9999, shift_only: true }
     if (form.companyFilter) params.company_id = form.companyFilter
-    const res = await api.get('/api/shift-assignments', { params })
-    employees.value = res.data.data?.employees || []
-    shifts.value = res.data.data?.shifts || []
-    companies.value = (await api.get('/api/companies')).data.data || []
+    const [empRes, shiftRes, compRes] = await Promise.all([
+      api.get('/api/employees', { params }),
+      api.get('/api/shift-assignments', { params: form.companyFilter ? { company_id: form.companyFilter } : {} }),
+      api.get('/api/companies'),
+    ])
+    const emps = empRes.data.data?.data || empRes.data.data || []
+    const shiftEmps = shiftRes.data.data?.employees || []
+    // Merge: use employee data + current_shift from shift-assignments
+    const shiftMap = {}
+    shiftEmps.forEach(e => { shiftMap[e.id] = e.current_shift })
+    employees.value = emps.map(e => ({
+      ...e,
+      current_shift: shiftMap[e.id] || null,
+    }))
+    shifts.value = shiftRes.data.data?.shifts || []
+    companies.value = compRes.data.data || []
   } catch (e) {
     console.error(e)
   } finally {

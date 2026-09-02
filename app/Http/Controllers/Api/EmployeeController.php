@@ -13,7 +13,7 @@ class EmployeeController extends Controller
     public function index(Request $request): JsonResponse
     {
         try {
-            $query = Employee::with('company:id,name,code_prefix')
+            $query = Employee::with(['company:id,name,code_prefix', 'workShifts', 'officeLocation'])
                 ->withCount('faceData');
 
             if ($request->has('search') && $request->search) {
@@ -40,6 +40,12 @@ class EmployeeController extends Controller
 
             if ($request->boolean('shift_only')) {
                 $query->whereIn('id', function ($q) {
+                    $q->select('employee_id')->from('employee_shifts')->groupBy('employee_id');
+                });
+            }
+
+            if ($request->boolean('day_only')) {
+                $query->whereNotIn('id', function ($q) {
                     $q->select('employee_id')->from('employee_shifts')->groupBy('employee_id');
                 });
             }

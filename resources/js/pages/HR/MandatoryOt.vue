@@ -534,16 +534,14 @@ async function loadData() {
 async function loadAutoEmployees() {
   autoLoading.value = true
   try {
-    const params = { per_page: 9999 }
+    const params = { per_page: 9999, day_only: true }
     if (autoForm.companyFilter) params.company_id = autoForm.companyFilter
     const res = await api.get('/api/employees', { params })
     const allEmps = res.data.data?.data || res.data.data || []
-    // Day employees = employees WITHOUT employee_shifts record
-    autoEmployees.value = allEmps.filter(e => !e.work_shifts || e.work_shifts.length === 0)
-      .map(e => ({
-        ...e,
-        work_hours: e.office_location?.work_start_time?.substring(0,5) + ' - ' + e.office_location?.work_end_time?.substring(0,5) || '-',
-      }))
+    autoEmployees.value = allEmps.map(e => ({
+      ...e,
+      work_hours: (e.office_location?.work_start_time?.substring(0,5) || '?') + ' - ' + (e.office_location?.work_end_time?.substring(0,5) || '?'),
+    }))
   } catch (e) {
     console.error(e)
   } finally {
