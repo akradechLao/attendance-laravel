@@ -26,7 +26,15 @@ class ShiftController extends Controller
 
         $workShifts = WorkShift::orderBy('group_number')->get([
             'group_number', 'start_time', 'end_time', 'work_hours', 'is_overnight'
-        ]);
+        ])->map(function ($ws) {
+            return [
+                'group_number' => $ws->group_number,
+                'start_time' => $ws->start_time instanceof \Carbon\Carbon ? $ws->start_time->format('H:i') : substr($ws->start_time, 0, 5),
+                'end_time' => $ws->end_time instanceof \Carbon\Carbon ? $ws->end_time->format('H:i') : substr($ws->end_time, 0, 5),
+                'work_hours' => $ws->work_hours,
+                'is_overnight' => $ws->is_overnight,
+            ];
+        });
 
         return response()->json(['data' => $shifts, 'work_shifts' => $workShifts]);
     }

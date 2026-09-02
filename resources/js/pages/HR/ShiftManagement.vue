@@ -34,6 +34,9 @@ const loadShifts = async () => {
     if (filterCompany.value) params.company_id = filterCompany.value
     const response = await api.get('/api/shift-schedules', { params })
     shifts.value = response.data.data?.data || response.data.data || []
+    if (response.data.work_shifts && response.data.work_shifts.length > 0) {
+      workShifts.value = response.data.work_shifts
+    }
   } catch (error) {
     console.error('Failed to load shifts:', error)
   } finally {
@@ -64,32 +67,27 @@ const loadCompanies = async () => {
 
 const loadWorkShifts = async () => {
   try {
-    const response = await api.get('/api/shift-assignments', { params: { _work_shifts: 1 } })
+    const response = await api.get('/api/shift-schedules', { params: { month: selectedMonth.value } })
     workShifts.value = response.data.work_shifts || []
   } catch {
-    try {
-      const response = await api.get('/api/shift-schedules')
-      workShifts.value = response.data.work_shifts || []
-    } catch {
-      workShifts.value = [
-        { group_number: 1, start_time: '08:00', end_time: '17:00', work_hours: 8 },
-        { group_number: 2, start_time: '08:30', end_time: '17:30', work_hours: 8 },
-        { group_number: 3, start_time: '07:00', end_time: '16:00', work_hours: 8 },
-        { group_number: 4, start_time: '07:30', end_time: '16:30', work_hours: 8 },
-        { group_number: 5, start_time: '09:00', end_time: '18:00', work_hours: 8 },
-        { group_number: 6, start_time: '09:30', end_time: '18:30', work_hours: 8 },
-        { group_number: 7, start_time: '10:00', end_time: '19:00', work_hours: 8 },
-        { group_number: 8, start_time: '10:30', end_time: '19:30', work_hours: 8 },
-        { group_number: 9, start_time: '11:00', end_time: '20:00', work_hours: 8 },
-        { group_number: 10, start_time: '11:30', end_time: '20:30', work_hours: 8 },
-        { group_number: 11, start_time: '12:00', end_time: '21:00', work_hours: 8 },
-        { group_number: 12, start_time: '12:30', end_time: '21:30', work_hours: 8 },
-        { group_number: 13, start_time: '13:00', end_time: '22:00', work_hours: 8 },
-        { group_number: 14, start_time: '14:00', end_time: '23:00', work_hours: 8 },
-        { group_number: 15, start_time: '15:00', end_time: '00:00', work_hours: 8 },
-        { group_number: 16, start_time: '16:00', end_time: '01:00', work_hours: 8 },
-      ]
-    }
+    workShifts.value = [
+      { group_number: 1, start_time: '08:00', end_time: '17:00', work_hours: 8 },
+      { group_number: 2, start_time: '08:30', end_time: '17:30', work_hours: 8 },
+      { group_number: 3, start_time: '07:00', end_time: '16:00', work_hours: 8 },
+      { group_number: 4, start_time: '07:30', end_time: '16:30', work_hours: 8 },
+      { group_number: 5, start_time: '09:00', end_time: '18:00', work_hours: 8 },
+      { group_number: 6, start_time: '09:30', end_time: '18:30', work_hours: 8 },
+      { group_number: 7, start_time: '10:00', end_time: '19:00', work_hours: 8 },
+      { group_number: 8, start_time: '10:30', end_time: '19:30', work_hours: 8 },
+      { group_number: 9, start_time: '11:00', end_time: '20:00', work_hours: 8 },
+      { group_number: 10, start_time: '11:30', end_time: '20:30', work_hours: 8 },
+      { group_number: 11, start_time: '12:00', end_time: '21:00', work_hours: 8 },
+      { group_number: 12, start_time: '12:30', end_time: '21:30', work_hours: 8 },
+      { group_number: 13, start_time: '13:00', end_time: '22:00', work_hours: 8 },
+      { group_number: 14, start_time: '14:00', end_time: '23:00', work_hours: 8 },
+      { group_number: 15, start_time: '15:00', end_time: '00:00', work_hours: 8 },
+      { group_number: 16, start_time: '16:00', end_time: '01:00', work_hours: 8 },
+    ]
   }
 }
 
@@ -108,10 +106,17 @@ function getShiftByCode(code) {
   return workShifts.value.find(ws => ws.group_number === gn)
 }
 
+function formatTime(t) {
+  if (!t) return '-'
+  const str = String(t)
+  const match = str.match(/(\d{1,2}):(\d{2})/)
+  return match ? `${match[1].padStart(2, '0')}:${match[2]}` : str.substring(0, 5)
+}
+
 function getShiftTimes(code) {
   const ws = getShiftByCode(code)
   if (!ws) return { start: '-', end: '-' }
-  return { start: ws.start_time?.substring(0, 5), end: ws.end_time?.substring(0, 5) }
+  return { start: formatTime(ws.start_time), end: formatTime(ws.end_time) }
 }
 
 function onShiftCodeChange() {
@@ -136,8 +141,14 @@ const groupedShifts = computed(() => {
 
 function formatDate(dateStr) {
   if (!dateStr) return '-'
-  const d = new Date(dateStr + 'T00:00:00')
-  return d.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+  const d = new Date(dateStr)
+  if (isNaN(d.getTime())) return dateStr
+  const year = d.getFullYear()
+  const month = d.getMonth()
+  const day = d.getDate()
+  const weekdays = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์']
+  const months = ['มกราคม', 'กุมภาพันธ์', 'มีนาคม', 'เมษายน', 'พฤษภาคม', 'มิถุนายน', 'กรกฎาคม', 'สิงหาคม', 'กันยายน', 'ตุลาคม', 'พฤศจิกายน', 'ธันวาคม']
+  return `วัน${weekdays[d.getDay()]}ที่ ${day} ${months[month]} ${year + 543}`
 }
 
 function addShift() {
