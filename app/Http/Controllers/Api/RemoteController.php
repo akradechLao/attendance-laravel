@@ -221,37 +221,42 @@ class RemoteController extends Controller
             $companyId = $request->get('company_id');
             $today = Carbon::today();
 
-            $activeRemotes = RemoteAssignment::where('status', 'approved')
+            $query = RemoteAssignment::where('status', 'approved')
                 ->where('start_date', '<=', $today)
                 ->where('end_date', '>=', $today)
-                ->with(['employee:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id', 'employee.company:id,name,code_prefix'])
-                ->get();
+                ->with(['employee:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id', 'employee.company:id,name,code_prefix']);
+
+            if ($companyId) {
+                $query->where('company_id', $companyId);
+            }
+
+            $activeRemotes = $query->get();
 
             $locations = [];
             foreach ($activeRemotes as $assignment) {
+                if (!$assignment->employee) continue;
+
                 $latestScan = AttendanceLog::where('emp_id', $assignment->emp_id)
                     ->whereDate('date', $today)
                     ->where('scan_type', 'remote_scan')
                     ->latest()
                     ->first();
 
-                if ($latestScan) {
-                    $locations[] = [
-                        'employee_id' => $assignment->emp_id,
-                        'employee_name' => $assignment->employee->name,
-                        'employee_code' => $assignment->employee->employee_code,
-                        'latitude' => $latestScan->remote_latitude,
-                        'longitude' => $latestScan->remote_longitude,
-                        'location_name' => $latestScan->getLocationDisplayName(),
-                        'last_scan_time' => $latestScan->created_at,
-                        'assignment' => [
-                            'id' => $assignment->id,
-                            'destination' => $assignment->destination,
+                $locations[] = [
+                    'employee_id' => $assignment->emp_id,
+                    'employee_name' => $assignment->employee->name,
+                    'employee_code' => $assignment->employee->employee_code,
+                    'latitude' => $latestScan?->remote_latitude,
+                    'longitude' => $latestScan?->remote_longitude,
+                    'location_name' => $latestScan ? $latestScan->getLocationDisplayName() : 'ยังไม่ได้สแกนวันนี้',
+                    'last_scan_time' => $latestScan?->created_at,
+                    'assignment' => [
+                        'id' => $assignment->id,
+                        'destination' => $assignment->destination,
                             'start_date' => $assignment->start_date,
                             'end_date' => $assignment->end_date,
                         ],
-                    ];
-                }
+                ];
             }
 
             return response()->json([
