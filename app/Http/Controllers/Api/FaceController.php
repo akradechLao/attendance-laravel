@@ -250,6 +250,7 @@ class FaceController extends Controller
                     'remote_location_name' => $remoteLocationName,
                     'is_verified' => true,
                     'face_image' => hash('sha256', $request->input('image')),
+                    'pdpa_consent' => $request->boolean('pdpa_consent'),
                 ]);
 
                 // ─── สายเกิน 30 นาที → บังคับลากิจ 1 ชม. ───

@@ -36,6 +36,7 @@ class AttendanceLog extends Model
         'verified_at',
         'face_image',
         'check_out_face_image',
+        'pdpa_consent',
     ];
 
     protected $hidden = [

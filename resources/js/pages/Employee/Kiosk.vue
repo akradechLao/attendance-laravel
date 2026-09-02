@@ -453,6 +453,16 @@
 
           <h2 class="text-lg sm:text-xl font-semibold text-navy mb-4 sm:mb-6 text-center">เลือกรายการ</h2>
 
+          <!-- PDPA Consent for remote scan -->
+          <div v-if="scanType === 'remote_scan'" class="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl">
+            <label class="flex items-start gap-3 cursor-pointer">
+              <input type="checkbox" v-model="pdpaConsent" class="mt-1 rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+              <span class="text-xs sm:text-sm text-gray-700 leading-relaxed">
+                ข้าพเจ้า consent ให้บริษัทบันทึกข้อมูลตำแหน่ง (GPS) ของข้าพเจ้าเฉพาะขณะปฏิบัติงานนอกสถานที่ เพื่อวัตถุประสงค์ในการยืนยันตำแหน่งปฏิบัติงานเท่านั้น โดยข้อมูลจะถูกเก็บรักษาตามนโยบาย PDPA ของบริษัท
+              </span>
+            </label>
+          </div>
+
           <!-- GPS Status for office scan -->
           <div v-if="scanType === 'office_scan' && officeLocation" class="mb-3">
             <div class="flex items-center justify-between bg-white rounded-xl p-2 shadow-sm border border-gray-100">
@@ -699,6 +709,7 @@ const verifiedEmployeeData = ref(null)
 const selectedAction = ref(null)
 const actionLoading = ref(false)
 const verificationToken = ref(null)
+const pdpaConsent = ref(false)
 
 // Admin/HR Login
 const showAdminLogin = ref(false)
@@ -1282,6 +1293,10 @@ function handleError(message) {
 
 async function handleActionSelect(type) {
   if (actionLoading.value) return
+  if (scanType.value === 'remote_scan' && !pdpaConsent.value) {
+    scanningError.value = 'กรุณายินยอมตามนโยบาย PDPA ก่อนปฏิบัติงาน'
+    return
+  }
   actionLoading.value = true
   scanningError.value = ''
   selectedAction.value = type
@@ -1298,6 +1313,7 @@ async function handleActionSelect(type) {
       latitude: currentLatitude.value,
       longitude: currentLongitude.value,
       verification_token: verificationToken.value,
+      pdpa_consent: scanType.value === 'remote_scan' ? pdpaConsent.value : true,
     })
 
     if (response.data.success) {
@@ -1351,6 +1367,7 @@ function reset() {
   selectedAction.value = null
   actionLoading.value = false
   customLocationName.value = ''
+  pdpaConsent.value = false
   faceRegPhotos.value = []
   faceRegCapturing.value = false
   faceRegResults.value = []
