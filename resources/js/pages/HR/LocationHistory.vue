@@ -23,7 +23,7 @@
         <select v-model="selectedEmployeeId" class="input-field w-64" @change="loadHistory">
           <option value="">เลือกพนักงาน</option>
           <option v-for="emp in remoteEmployees" :key="emp.employee_id" :value="emp.employee_id">
-            {{ emp.employee_name }} ({{ emp.employee_code }})
+            {{ emp.employee_code }} - {{ emp.employee_name }}{{ emp.division ? ' (' + emp.division + ')' : '' }}{{ emp.department ? ' / ' + emp.department : '' }}
           </option>
         </select>
         <input v-model="selectedDate" type="date" class="input-field" @change="loadHistory" />

@@ -246,6 +246,8 @@ class RemoteController extends Controller
                     'employee_id' => $assignment->emp_id,
                     'employee_name' => $assignment->employee->name,
                     'employee_code' => $assignment->employee->employee_code,
+                    'department' => $assignment->employee->department,
+                    'division' => $assignment->employee->division,
                     'latitude' => $latestScan?->remote_latitude,
                     'longitude' => $latestScan?->remote_longitude,
                     'location_name' => $latestScan ? $latestScan->getLocationDisplayName() : 'ยังไม่ได้สแกนวันนี้',
