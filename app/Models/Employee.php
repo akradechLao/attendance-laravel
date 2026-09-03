@@ -191,6 +191,36 @@ class Employee extends Authenticatable
     }
 
     /**
+     * Accessor: first_name derived from name column.
+     * DB has single "name" column, but code expects first_name/last_name.
+     */
+    public function getFirstNameAttribute(): ?string
+    {
+        $name = $this->attributes['name'] ?? '';
+        $parts = preg_split('/\s+/', trim($name), 3);
+        // Skip title (นาย/นาง/นางสาว/เด็กชาย/เด็กหญิง) if present
+        $titles = ['นาย', 'นาง', 'นางสาว', 'เด็กชาย', 'เด็กหญิง', 'ด.ช.', 'ด.ญ.'];
+        if (isset($parts[0]) && in_array($parts[0], $titles)) {
+            return $parts[1] ?? null;
+        }
+        return $parts[0] ?? null;
+    }
+
+    /**
+     * Accessor: last_name derived from name column.
+     */
+    public function getLastNameAttribute(): ?string
+    {
+        $name = $this->attributes['name'] ?? '';
+        $parts = preg_split('/\s+/', trim($name), 3);
+        $titles = ['นาย', 'นาง', 'นางสาว', 'เด็กชาย', 'เด็กหญิง', 'ด.ช.', 'ด.ญ.'];
+        if (isset($parts[0]) && in_array($parts[0], $titles)) {
+            return $parts[2] ?? null;
+        }
+        return $parts[1] ?? null;
+    }
+
+    /**
      * Check if $employeeId is a direct or indirect subordinate of this employee.
      * Walks up the reports_to chain from the target employee.
      */
