@@ -423,6 +423,12 @@ Route::middleware(['auth:sanctum', 'role:admin,super_admin'])->group(function ()
 
     // Employee stats
     Route::get('/employee-stats', [EmployeeStatsController::class, 'index']);
+
+    // Announcements (manage)
+    Route::get('/announcements/admin', [AnnouncementController::class, 'adminIndex']);
+    Route::post('/announcements', [AnnouncementController::class, 'store']);
+    Route::put('/announcements/{announcement}', [AnnouncementController::class, 'update']);
+    Route::delete('/announcements/{announcement}', [AnnouncementController::class, 'destroy']);
 });
 
 // ============================================================
@@ -450,10 +456,6 @@ Route::middleware(['auth:sanctum', 'role:super_admin'])->group(function () {
     // System settings
     Route::get('/system-settings', [SystemSettingsController::class, 'index']);
     Route::put('/system-settings', [SystemSettingsController::class, 'update']);
-
-    // Announcements (manage)
-    Route::post('/announcements', [AnnouncementController::class, 'store']);
-    Route::delete('/announcements/{announcement}', [AnnouncementController::class, 'destroy']);
 
     // Telegram settings
     Route::post('/telegram/test', [TelegramController::class, 'test']);

@@ -38,10 +38,32 @@ class AnnouncementController extends Controller
                 'body' => $a->body,
                 'priority' => $a->priority,
                 'is_active' => $a->is_active,
+                'company_id' => $a->company_id,
                 'published_at' => $a->published_at ? Carbon::parse($a->published_at)->setTimezone('Asia/Bangkok')->format('Y-m-d H:i') : null,
                 'expires_at' => $a->expires_at ? Carbon::parse($a->expires_at)->setTimezone('Asia/Bangkok')->format('Y-m-d H:i') : null,
                 'created_at' => $a->created_at ? Carbon::parse($a->created_at)->setTimezone('Asia/Bangkok')->format('Y-m-d H:i') : null,
             ]);
+
+        return response()->json([
+            'success' => true,
+            'data' => $announcements,
+        ]);
+    }
+
+    public function adminIndex(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        $query = Announcement::with('creator:id,username');
+
+        if ($user->role !== 'super_admin' && $user->company_id) {
+            $query->where('company_id', $user->company_id);
+        }
+
+        if ($request->company_id) {
+            $query->where('company_id', $request->company_id);
+        }
+
+        $announcements = $query->orderByDesc('created_at')->paginate(20);
 
         return response()->json([
             'success' => true,
@@ -55,20 +77,26 @@ class AnnouncementController extends Controller
             'title' => 'required|string|max:255',
             'body' => 'required|string',
             'priority' => 'in:normal,important,urgent',
+            'company_id' => 'nullable|exists:companies,id',
             'published_at' => 'nullable|date',
-            'expires_at' => 'nullable|date|after:published_at',
+            'expires_at' => 'nullable|date|after_or_equal:published_at',
         ]);
 
-        $employee = $request->user();
+        $user = $request->user();
+
+        if (!$validated['company_id'] && $user->company_id) {
+            $validated['company_id'] = $user->company_id;
+        }
 
         $announcement = Announcement::create([
-            'company_id' => $employee->company_id,
+            'company_id' => $validated['company_id'] ?? null,
             'title' => $validated['title'],
             'body' => $validated['body'],
             'priority' => $validated['priority'] ?? 'normal',
             'published_at' => $validated['published_at'] ?? now(),
             'expires_at' => $validated['expires_at'] ?? null,
-            'created_by' => $employee->id,
+            'created_by' => $user->id,
+            'is_active' => true,
         ]);
 
         return response()->json([
@@ -77,8 +105,40 @@ class AnnouncementController extends Controller
         ], 201);
     }
 
-    public function destroy(Announcement $announcement): JsonResponse
+    public function update(Request $request, Announcement $announcement): JsonResponse
     {
+        $user = $request->user();
+
+        if ($user->role !== 'super_admin' && $announcement->company_id !== $user->company_id) {
+            return response()->json(['success' => false, 'message' => 'ไม่มีสิทธิ์แก้ไขประกาศนี้'], 403);
+        }
+
+        $validated = $request->validate([
+            'title' => 'required|string|max:255',
+            'body' => 'required|string',
+            'priority' => 'in:normal,important,urgent',
+            'company_id' => 'nullable|exists:companies,id',
+            'published_at' => 'nullable|date',
+            'expires_at' => 'nullable|date|after_or_equal:published_at',
+            'is_active' => 'boolean',
+        ]);
+
+        $announcement->update($validated);
+
+        return response()->json([
+            'success' => true,
+            'data' => $announcement,
+        ]);
+    }
+
+    public function destroy(Request $request, Announcement $announcement): JsonResponse
+    {
+        $user = $request->user();
+
+        if ($user->role !== 'super_admin' && $announcement->company_id !== $user->company_id) {
+            return response()->json(['success' => false, 'message' => 'ไม่มีสิทธิ์ลบประกาศนี้'], 403);
+        }
+
         $announcement->delete();
 
         return response()->json([

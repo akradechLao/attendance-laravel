@@ -33,6 +33,6 @@ class Announcement extends Model
 
     public function creator(): BelongsTo
     {
-        return $this->belongsTo(Employee::class, 'created_by');
+        return $this->belongsTo(AdminUser::class, 'created_by');
     }
 }

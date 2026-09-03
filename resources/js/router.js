@@ -237,6 +237,12 @@ const routes = [
     meta: { requiresAuth: true, layout: 'app', requiresRole: 'admin' }
   },
   {
+    path: '/announcements-management',
+    name: 'AnnouncementManagement',
+    component: () => import('./pages/HR/AnnouncementManagement.vue'),
+    meta: { requiresAuth: true, layout: 'app', requiresRole: 'admin' }
+  },
+  {
     path: '/shifts',
     name: 'ShiftManagement',
     component: () => import('./pages/HR/ShiftManagement.vue'),
