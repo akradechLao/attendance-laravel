@@ -22,11 +22,9 @@ class SupervisorShiftController extends Controller
             return response()->json(['success' => false, 'message' => 'User not found'], 404);
         }
 
-        $subordinateIds = $user->getAllSubordinateIds();
-
-        // Admin/SuperAdmin: show all employees from their company (or all for superadmin)
         $isSuperAdmin = method_exists($user, 'role') && $user->role === 'super_admin';
         $isAdmin = method_exists($user, 'role') && in_array($user->role, ['admin', 'super_admin']);
+        $subordinateIds = !$isAdmin && method_exists($user, 'getAllSubordinateIds') ? $user->getAllSubordinateIds() : [];
 
         $now = Carbon::now('Asia/Bangkok');
         $currentCycleStart = $now->copy()->startOfMonth()->addDays(18); // 19th of current month
@@ -122,10 +120,13 @@ class SupervisorShiftController extends Controller
         $employeeId = $request->employee_id;
         $workShiftId = $request->work_shift_id;
 
-        // Verify the employee is a subordinate
-        $subordinateIds = $user->getAllSubordinateIds();
-        if (!in_array($employeeId, $subordinateIds)) {
-            return response()->json(['success' => false, 'message' => 'ไม่มีสิทธิ์assign กะให้พนักงานคนนี้'], 403);
+        // Verify the employee is a subordinate (admin/super_admin can assign anyone in their company)
+        $isAdmin = method_exists($user, 'role') && in_array($user->role, ['admin', 'super_admin']);
+        if (!$isAdmin) {
+            $subordinateIds = method_exists($user, 'getAllSubordinateIds') ? $user->getAllSubordinateIds() : [];
+            if (!in_array($employeeId, $subordinateIds)) {
+                return response()->json(['success' => false, 'message' => 'ไม่มีสิทธิ์assign กะให้พนักงานคนนี้'], 403);
+            }
         }
 
         // Verify the work_shift is in employee's available shifts
@@ -200,9 +201,12 @@ class SupervisorShiftController extends Controller
             return response()->json(['success' => false, 'message' => 'User not found'], 404);
         }
 
-        $subordinateIds = $user->getAllSubordinateIds();
-        if (!in_array($employeeId, $subordinateIds)) {
-            return response()->json(['success' => false, 'message' => 'ไม่มีสิทธิ์ลบกะของพนักงานคนนี้'], 403);
+        $isAdmin = method_exists($user, 'role') && in_array($user->role, ['admin', 'super_admin']);
+        if (!$isAdmin) {
+            $subordinateIds = method_exists($user, 'getAllSubordinateIds') ? $user->getAllSubordinateIds() : [];
+            if (!in_array($employeeId, $subordinateIds)) {
+                return response()->json(['success' => false, 'message' => 'ไม่มีสิทธิ์ลบกะของพนักงานคนนี้'], 403);
+            }
         }
 
         $now = Carbon::now('Asia/Bangkok');
@@ -236,10 +240,9 @@ class SupervisorShiftController extends Controller
             return response()->json(['success' => false, 'message' => 'User not found'], 404);
         }
 
-        $subordinateIds = $user->getAllSubordinateIds();
-        if (empty($subordinateIds)) {
-            return response()->json(['data' => []]);
-        }
+        $isSuperAdmin = method_exists($user, 'role') && $user->role === 'super_admin';
+        $isAdmin = method_exists($user, 'role') && in_array($user->role, ['admin', 'super_admin']);
+        $subordinateIds = !$isAdmin && method_exists($user, 'getAllSubordinateIds') ? $user->getAllSubordinateIds() : [];
 
         $now = Carbon::now('Asia/Bangkok');
         if ($now->day >= 19) {
@@ -250,14 +253,25 @@ class SupervisorShiftController extends Controller
             $cycleEnd = $now->copy()->startOfMonth()->addDays(17)->toDateString();
         }
 
-        // Get all team members
-        $teamMembers = Employee::whereIn('id', $subordinateIds)
-            ->where('is_active', true)
-            ->select('id', 'employee_code', 'name')
-            ->get();
+        // Get employees based on role
+        $empQuery = Employee::where('is_active', true)
+            ->select('id', 'employee_code', 'name');
+
+        if ($isSuperAdmin) {
+            // SuperAdmin: see all
+        } elseif ($isAdmin && $user->company_id) {
+            $empQuery->where('company_id', $user->company_id);
+        } elseif (!empty($subordinateIds)) {
+            $empQuery->whereIn('id', $subordinateIds);
+        } else {
+            return response()->json(['data' => ['assigned_count' => 0, 'total_count' => 0, 'summary' => []]]);
+        }
+
+        $teamMembers = $empQuery->orderBy('employee_code')->get();
+        $empIds = $teamMembers->pluck('id')->toArray();
 
         // Get assigned shifts
-        $assigned = ShiftSchedule::whereIn('emp_id', $subordinateIds)
+        $assigned = ShiftSchedule::whereIn('emp_id', $empIds)
             ->where('work_date', $cycleStart)
             ->pluck('shift_code', 'emp_id');
 

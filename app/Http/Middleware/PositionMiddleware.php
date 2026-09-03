@@ -9,7 +9,7 @@ use App\Constants\PositionConstants;
 
 class PositionMiddleware
 {
-    public function handle(Request $request, Closure $next, string ...$positions): Response
+    public function handle(Request $request, Closure $next, string ...$positions)
     {
         $user = $request->user();
 
