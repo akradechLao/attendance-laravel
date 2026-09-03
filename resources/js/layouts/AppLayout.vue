@@ -182,6 +182,7 @@ const navItems = [
   { path: '/supervisor/team-calendar', label: 'ปฏิทินทีม', icon: '📆', minRole: 'admin' },
   { path: '/manager/team-report', label: 'รายงานทีม', icon: '📊', minRole: 'admin' },
   { section: 'ตั้งค่า' },
+  { path: '/system-config', label: 'ตั้งค่านโยบายระบบ', icon: '⚙', minRole: 'admin' },
   { path: '/audit-log', label: 'ประวัติการแก้ไขข้อมูล', icon: '📜', minRole: 'admin' },
   { path: '/permission', label: 'จัดการสิทธิ์', icon: '🔑', minRole: 'super_admin' },
   { path: '/settings', label: 'ตั้งค่าพนักงาน', icon: '⚙', minRole: 'super_admin' },

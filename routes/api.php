@@ -45,6 +45,7 @@ use App\Http\Controllers\Api\MandatoryOtController;
 use App\Http\Controllers\Api\LeaveRequestController;
 use App\Http\Controllers\Api\ManualEntryController;
 use App\Http\Controllers\Api\ShiftRequestController;
+use App\Http\Controllers\Api\SystemConfigController;
 
 /*
 |--------------------------------------------------------------------------
@@ -429,6 +430,13 @@ Route::middleware(['auth:sanctum', 'role:admin,super_admin'])->group(function ()
     Route::post('/announcements', [AnnouncementController::class, 'store']);
     Route::put('/announcements/{announcement}', [AnnouncementController::class, 'update']);
     Route::delete('/announcements/{announcement}', [AnnouncementController::class, 'destroy']);
+
+    // System Config
+    Route::get('/system-config', [SystemConfigController::class, 'index']);
+    Route::get('/system-config/{category}', [SystemConfigController::class, 'category']);
+    Route::get('/system-config/key/{key}', [SystemConfigController::class, 'get']);
+    Route::put('/system-config', [SystemConfigController::class, 'update']);
+    Route::delete('/system-config/reset', [SystemConfigController::class, 'reset']);
 });
 
 // ============================================================
