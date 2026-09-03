@@ -89,7 +89,7 @@
                 class="flex-[2] py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
           <svg v-if="!submitting" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
           <div v-else class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-          {{ submitting ? 'กำลังส่ง...' : 'ยืนยันส่งคำขอ WFH' }}
+          {{ submitting ? 'กำลังส่ง...' : 'ยืนยันคำขอ' }}
         </button>
       </div>
     </div>
