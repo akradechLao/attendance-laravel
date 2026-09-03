@@ -31,8 +31,8 @@ class SupervisorShiftController extends Controller
         $nextMonth = $now->copy()->addMonth();
         $nextCycleEnd = $nextMonth->copy()->startOfMonth()->addDays(17); // 18th of next month
 
-        // If we're past the 19th, the current cycle is 19th this month - 18th next month
-        // If we're before the 19th, the current cycle is 19th last month - 18th this month
+        // Cycle: 19th this month - 18th next month
+        // Allow assignment until the 19th (inclusive) — last day before new cycle starts
         if ($now->day >= 19) {
             $cycleStart = $now->copy()->startOfMonth()->addDays(18)->toDateString();
             $cycleEnd = $nextMonth->copy()->startOfMonth()->addDays(17)->toDateString();
@@ -98,9 +98,10 @@ class SupervisorShiftController extends Controller
             'cycle' => [
                 'start' => $cycleStart,
                 'end' => $cycleEnd,
-                'can_assign' => $now->day <= 18,
-                'message' => $now->day <= 18
-                    ? 'กำหนดส่ง: ก่อนวันที่ 19'
+                'can_assign' => $now->day <= 19,
+                'message' => $now->day <= 19
+                    ? 'กำหนดส่ง: วันที่ 19'
+                    : 'เลยกำหนดแล้ว (วันที่ 20-สิ้นเดือน)',
                     : 'เลยกำหนดแล้ว (วันที่ 19-สิ้นเดือน)',
             ],
         ]);
