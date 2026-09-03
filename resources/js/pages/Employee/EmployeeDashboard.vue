@@ -250,7 +250,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import axios from 'axios'
+import api from '../../services/api'
 import state from '../../store'
 
 const thMonths = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม']
@@ -297,7 +297,7 @@ async function fetchData() {
   loading.value = true
   error.value = null
   try {
-    const res = await axios.get('/api/employee/dashboard', {
+    const res = await api.get('/api/employee/dashboard', {
       params: { month: statMonth.value, year: statYear.value }
     })
     if (res.data.success) {
