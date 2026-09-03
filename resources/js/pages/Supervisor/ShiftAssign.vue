@@ -4,8 +4,8 @@
       <!-- Header -->
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 class="text-2xl font-bold text-navy">มอบหมายกะ工作</h1>
-          <p class="text-gray-500">กำหนดกะ工作ให้ทีม (รอบ {{ cycleDisplay }})</p>
+          <h1 class="text-2xl font-bold text-navy">มอบหมายกะ</h1>
+          <p class="text-gray-500">กำหนดกะให้ทีม (รอบ {{ cycleDisplay }})</p>
         </div>
         <button @click="fetchData" class="btn-secondary flex items-center gap-2">
           <svg class="w-4 h-4" :class="loading ? 'animate-spin' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
