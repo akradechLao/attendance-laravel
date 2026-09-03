@@ -61,6 +61,11 @@ class SupervisorShiftController extends Controller
 
         $employees = $employeeQuery->orderBy('employee_code')->get();
 
+        // Filter: only employees with > 1 available shift (single-shift employees don't need assignment)
+        $employees = $employees->filter(function ($emp) {
+            return $emp->workShifts->count() > 1;
+        })->values();
+
         $employees->each(function ($emp) use ($cycleStart, $cycleEnd) {
             // Get current assignment for this cycle
             $assignment = ShiftSchedule::where('emp_id', $emp->id)
@@ -255,7 +260,8 @@ class SupervisorShiftController extends Controller
 
         // Get employees based on role
         $empQuery = Employee::where('is_active', true)
-            ->select('id', 'employee_code', 'name');
+            ->select('id', 'employee_code', 'name')
+            ->with('workShifts:id');
 
         if ($isSuperAdmin) {
             // SuperAdmin: see all
@@ -267,7 +273,9 @@ class SupervisorShiftController extends Controller
             return response()->json(['data' => ['assigned_count' => 0, 'total_count' => 0, 'summary' => []]]);
         }
 
-        $teamMembers = $empQuery->orderBy('employee_code')->get();
+        $teamMembers = $empQuery->orderBy('employee_code')->get()
+            ->filter(fn($emp) => $emp->workShifts->count() > 1)
+            ->values();
         $empIds = $teamMembers->pluck('id')->toArray();
 
         // Get assigned shifts
