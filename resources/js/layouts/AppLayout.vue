@@ -180,7 +180,7 @@ const navItems = [
   { path: '/payslip-entry', label: 'กรอกสลิปเงินเดือน', icon: '💰', minRole: 'admin' },
   { section: 'ดูแลทีม', minRole: 'admin' },
   { path: '/supervisor/team-calendar', label: 'ปฏิทินทีม', icon: '📆', minRole: 'admin' },
-  { path: '/supervisor/shift-assign', label: 'มอบหมายกะ工作', icon: '🔄', minRole: 'admin' },
+  { path: '/supervisor/shift-assign', label: 'มอบหมายกะ', icon: '🔄', minRole: 'admin' },
   { path: '/manager/team-report', label: 'รายงานทีม', icon: '📊', minRole: 'admin' },
   { section: 'ตั้งค่า' },
   { path: '/system-config', label: 'ตั้งค่านโยบายระบบ', icon: '⚙', minRole: 'admin' },

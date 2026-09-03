@@ -22,8 +22,8 @@ class SupervisorShiftController extends Controller
             return response()->json(['success' => false, 'message' => 'User not found'], 404);
         }
 
-        $isSuperAdmin = method_exists($user, 'role') && $user->role === 'super_admin';
-        $isAdmin = method_exists($user, 'role') && in_array($user->role, ['admin', 'super_admin']);
+        $isSuperAdmin = $user->role === 'super_admin';
+        $isAdmin = in_array($user->role, ['admin', 'super_admin']);
         $subordinateIds = !$isAdmin && method_exists($user, 'getAllSubordinateIds') ? $user->getAllSubordinateIds() : [];
 
         $now = Carbon::now('Asia/Bangkok');
@@ -121,7 +121,7 @@ class SupervisorShiftController extends Controller
         $workShiftId = $request->work_shift_id;
 
         // Verify the employee is a subordinate (admin/super_admin can assign anyone in their company)
-        $isAdmin = method_exists($user, 'role') && in_array($user->role, ['admin', 'super_admin']);
+        $isAdmin = in_array($user->role, ['admin', 'super_admin']);
         if (!$isAdmin) {
             $subordinateIds = method_exists($user, 'getAllSubordinateIds') ? $user->getAllSubordinateIds() : [];
             if (!in_array($employeeId, $subordinateIds)) {
@@ -201,7 +201,7 @@ class SupervisorShiftController extends Controller
             return response()->json(['success' => false, 'message' => 'User not found'], 404);
         }
 
-        $isAdmin = method_exists($user, 'role') && in_array($user->role, ['admin', 'super_admin']);
+        $isAdmin = in_array($user->role, ['admin', 'super_admin']);
         if (!$isAdmin) {
             $subordinateIds = method_exists($user, 'getAllSubordinateIds') ? $user->getAllSubordinateIds() : [];
             if (!in_array($employeeId, $subordinateIds)) {
@@ -240,8 +240,8 @@ class SupervisorShiftController extends Controller
             return response()->json(['success' => false, 'message' => 'User not found'], 404);
         }
 
-        $isSuperAdmin = method_exists($user, 'role') && $user->role === 'super_admin';
-        $isAdmin = method_exists($user, 'role') && in_array($user->role, ['admin', 'super_admin']);
+        $isSuperAdmin = $user->role === 'super_admin';
+        $isAdmin = in_array($user->role, ['admin', 'super_admin']);
         $subordinateIds = !$isAdmin && method_exists($user, 'getAllSubordinateIds') ? $user->getAllSubordinateIds() : [];
 
         $now = Carbon::now('Asia/Bangkok');
