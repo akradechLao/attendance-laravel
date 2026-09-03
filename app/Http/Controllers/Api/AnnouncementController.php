@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Announcement;
+use App\Models\AnnouncementDismissal;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -28,6 +29,13 @@ class AnnouncementController extends Controller
                 ->where(function ($q) {
                     $q->whereNull('expires_at')
                         ->orWhere('expires_at', '>', now());
+                })
+                ->where(function ($q) use ($user) {
+                    if ($user) {
+                        $q->whereDoesntHave('dismissals', function ($dq) use ($user) {
+                            $dq->where('employee_id', $user->id);
+                        });
+                    }
                 })
                 ->orderByDesc('priority')
                 ->orderByDesc('created_at');
@@ -166,5 +174,32 @@ class AnnouncementController extends Controller
             'success' => true,
             'message' => 'ลบประกาศเรียบร้อย',
         ]);
+    }
+
+    public function dismiss(Request $request, int $id): JsonResponse
+    {
+        try {
+            $user = $request->user();
+            if (!$user) {
+                return response()->json(['success' => false, 'message' => 'Unauthorized'], 401);
+            }
+
+            $announcement = Announcement::findOrFail($id);
+
+            AnnouncementDismissal::updateOrCreate([
+                'employee_id' => $user->id,
+                'announcement_id' => $id,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'ปิดประกาศแล้ว',
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 }

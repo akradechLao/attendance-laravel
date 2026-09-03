@@ -209,6 +209,7 @@ Route::middleware('auth:sanctum')->group(function () {
 
     // Announcements (all authenticated users)
     Route::get('/announcements', [AnnouncementController::class, 'index']);
+    Route::post('/announcements/{id}/dismiss', [AnnouncementController::class, 'dismiss']);
 
     // Attendance (any authenticated user can read)
     Route::get('/attendance/today', [AttendanceController::class, 'today']);

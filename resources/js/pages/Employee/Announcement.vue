@@ -35,9 +35,16 @@
               <p class="text-gray-400 text-xs">{{ formatDate(ann.created_at) }}</p>
               <p class="text-gray-500 text-xs mt-1">{{ ann.body.substring(0, 120) }}{{ ann.body.length > 120 ? '...' : '' }}</p>
             </div>
-            <svg class="w-5 h-5 text-gray-300 shrink-0 mt-1 transition-transform" :class="{ 'rotate-180': selected === ann.id }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-            </svg>
+            <div class="flex items-center gap-1 shrink-0">
+              <button @click.stop="dismiss(ann)" class="text-gray-300 hover:text-red-400 p-1" title="ปิดประกาศ">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+              <svg class="w-5 h-5 text-gray-300 transition-transform" :class="{ 'rotate-180': selected === ann.id }" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </div>
           </div>
           <div v-if="selected === ann.id" class="mt-3 pt-3 border-t border-gray-200">
             <p class="text-gray-700 text-sm whitespace-pre-line">{{ ann.body }}</p>
@@ -75,4 +82,13 @@ onMounted(async () => {
     loading.value = false
   }
 })
+
+const dismiss = async (ann) => {
+  try {
+    await axios.post(`/api/announcements/${ann.id}/dismiss`)
+    announcements.value = announcements.value.filter(a => a.id !== ann.id)
+  } catch (e) {
+    console.error(e)
+  }
+}
 </script>
