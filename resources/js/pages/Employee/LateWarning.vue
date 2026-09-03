@@ -107,7 +107,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import axios from 'axios'
+import api from '../../services/api'
 
 const thMonths = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม']
 
@@ -130,8 +130,8 @@ function formatDate(d) {
 onMounted(async () => {
   try {
     const [histRes, warnRes] = await Promise.allSettled([
-      axios.get('/api/employee/attendance/history', { params: { limit: 30 } }),
-      axios.get('/api/employee/warnings'),
+      api.get('/api/employee/attendance/history', { params: { limit: 30 } }),
+      api.get('/api/employee/warnings'),
     ])
     if (histRes.status === 'fulfilled' && histRes.value.data.success) {
       history.value = histRes.value.data.data

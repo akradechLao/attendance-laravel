@@ -93,7 +93,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
-import axios from 'axios'
+import api from '../../services/api'
 
 const thMonths = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.']
 const thMonthsFull = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม']
@@ -150,7 +150,7 @@ const holidaysByMonth = computed(() => {
 async function loadData() {
   loading.value = true
   try {
-    const res = await axios.get('/api/employee/holidays', { params: { year: year.value } })
+    const res = await api.get('/api/employee/holidays', { params: { year: year.value } })
     if (res.data.success) {
       holidays.value = res.data.data.holidays
     }

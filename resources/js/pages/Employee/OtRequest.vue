@@ -77,7 +77,7 @@
 <script setup>
 import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import axios from 'axios'
+import api from '../../services/api'
 import store from '../../store'
 
 const router = useRouter()
@@ -120,7 +120,7 @@ function statusBadge(status) {
 
 async function fetchHistory() {
   try {
-    const res = await axios.get('/api/ot')
+    const res = await api.get('/api/ot')
     otHistory.value = res.data.data?.data || res.data.data || []
   } catch (e) {
     // ignore
@@ -131,7 +131,7 @@ async function handleSubmit() {
   loading.value = true
   error.value = ''
   try {
-    const res = await axios.post('/api/employee/ot-requests', form)
+    const res = await api.post('/api/employee/ot-requests', form)
     if (res.data.success) {
       success.value = true
       await fetchHistory()

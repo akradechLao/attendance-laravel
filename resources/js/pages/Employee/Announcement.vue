@@ -57,7 +57,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
-import axios from 'axios'
+import api from '../../services/api'
 
 const loading = ref(true)
 const announcements = ref([])
@@ -72,7 +72,7 @@ function formatDate(d) {
 
 onMounted(async () => {
   try {
-    const res = await axios.get('/api/announcements')
+    const res = await api.get('/api/announcements')
     if (res.data.success) {
       announcements.value = res.data.data
     }
@@ -85,7 +85,7 @@ onMounted(async () => {
 
 const dismiss = async (ann) => {
   try {
-    await axios.post(`/api/announcements/${ann.id}/dismiss`)
+    await api.post(`/api/announcements/${ann.id}/dismiss`)
     announcements.value = announcements.value.filter(a => a.id !== ann.id)
   } catch (e) {
     console.error(e)

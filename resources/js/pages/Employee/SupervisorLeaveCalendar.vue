@@ -63,7 +63,7 @@
 
 <script setup>
 import { ref, computed, h, onMounted } from 'vue'
-import axios from 'axios'
+import api from '../../services/api'
 
 const thMonths = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.']
 
@@ -135,7 +135,7 @@ function formatDateShort(d) {
 
 onMounted(async () => {
   try {
-    const res = await axios.get('/api/supervisor/leave-calendar')
+    const res = await api.get('/api/supervisor/leave-calendar')
     if (res.data.success) {
       data.value = res.data.data
     }

@@ -55,7 +55,7 @@
 <script setup>
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
-import axios from 'axios'
+import api from '../../services/api'
 import { logout } from '../../store'
 
 const router = useRouter()
@@ -82,7 +82,7 @@ async function handleSubmit() {
   loading.value = true
   error.value = ''
   try {
-    const res = await axios.post('/api/employee/change-password', {
+    const res = await api.post('/api/employee/change-password', {
       current_password: form.current_password,
       new_password: form.new_password,
       new_password_confirmation: form.new_password_confirmation

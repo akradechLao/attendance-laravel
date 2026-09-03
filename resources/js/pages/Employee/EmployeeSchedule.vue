@@ -76,7 +76,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import axios from 'axios'
+import api from '../../services/api'
 
 const thDays = ['อาทิตย์','จันทร์','อังคาร','พุธ','พฤหัสบดี','ศุกร์','เสาร์']
 const thMonths = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม']
@@ -146,7 +146,7 @@ function goToday() {
 async function loadSchedule() {
   loading.value = true
   try {
-    const res = await axios.get('/api/employee/schedule', {
+    const res = await api.get('/api/employee/schedule', {
       params: {
         start_date: toDateStr(currentWeekStart.value),
         end_date: toDateStr(addDays(currentWeekStart.value, 6)),

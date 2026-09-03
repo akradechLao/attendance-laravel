@@ -629,7 +629,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
-import axios from 'axios'
+import api from '../../services/api'
 import { useRouter } from 'vue-router'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -719,7 +719,7 @@ const adminForm = ref({ username: '', password: '' })
 
 async function fetchServerTime() {
   try {
-    const res = await axios.get('/api/time')
+    const res = await api.get('/api/time')
     serverTimeStr.value = res.data.time
   } catch {
     serverTimeStr.value = null
@@ -799,7 +799,7 @@ onUnmounted(() => {
 
 async function fetchCompanies() {
   try {
-    const response = await axios.get('/api/companies')
+    const response = await api.get('/api/companies')
     const all = response.data.data?.data || response.data.data || []
     companies.value = companyOrder
       .map(name => all.find(c => c.code_prefix === name))
@@ -827,7 +827,7 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
 
 async function fetchOfficeLocation(employeeId) {
   try {
-    const res = await axios.get('/api/employee/' + employeeId + '/office-location')
+    const res = await api.get('/api/employee/' + employeeId + '/office-location')
     officeLocation.value = res.data.data
   } catch { officeLocation.value = null }
 }
@@ -931,7 +931,7 @@ async function handleAdminLogin() {
   adminLoading.value = true
   adminError.value = ''
   try {
-    const res = await axios.post('/api/auth/login', {
+    const res = await api.post('/api/auth/login', {
       username: adminForm.value.username,
       password: adminForm.value.password
     })
@@ -939,7 +939,6 @@ async function handleAdminLogin() {
       const { data } = res.data
       setToken(data.token)
       setCurrentUser(data.user)
-      axios.defaults.headers.common['Authorization'] = `Bearer ${data.token}`
       showAdminLogin.value = false
       const role = data.user?.role
       if (role === 'super_admin') {
@@ -961,7 +960,7 @@ async function searchEmployees() {
   if (!selectedCompany.value) return
   loading.value = true
   try {
-    const response = await axios.post('/api/employee/auth/search', {
+    const response = await api.post('/api/employee/auth/search', {
       company_id: selectedCompany.value.id,
       query: ''
     })
@@ -982,7 +981,7 @@ async function doReregister() {
   if (!reregisterEmployee.value) return
   reregisterLoading.value = true
   try {
-    await axios.delete(`/api/employees/${reregisterEmployee.value.id}/face-data`)
+    await api.delete(`/api/employees/${reregisterEmployee.value.id}/face-data`)
     showReregisterModal.value = false
     selectedEmployee.value = reregisterEmployee.value
     scanningError.value = ''
@@ -1007,7 +1006,7 @@ async function selectEmployee(employee) {
   scanningError.value = ''
 
   try {
-    const faceRes = await axios.get(`/api/employees/${employee.id}/face-data`)
+    const faceRes = await api.get(`/api/employees/${employee.id}/face-data`)
     const faceData = faceRes.data.data || []
     const faceCount = faceData.length
 
@@ -1039,7 +1038,7 @@ async function selectEmployee(employee) {
   }
 
   try {
-    const res = await axios.post('/api/remote/check-active', {
+    const res = await api.post('/api/remote/check-active', {
       employee_id: employee.id
     })
     if (res.data.data?.has_remote_assignment) {
@@ -1147,7 +1146,7 @@ async function handleFaceRegCaptured(imageData) {
   }
 
   try {
-    const res = await axios.post('/api/face/detect', { image: imageData }, { timeout: 15000 })
+    const res = await api.post('/api/face/detect', { image: imageData }, { timeout: 15000 })
     if (res.data.detected) {
       const pos = faceRegCurrentPosition.value
       faceRegPhotos.value[pos] = imageData
@@ -1198,11 +1197,11 @@ async function registerFace() {
   if (successfulEncodings.length < 5) return
   faceRegRegistering.value = true
   try {
-    await axios.post(`/api/employees/${selectedEmployee.value.id}/face`, {
+    await api.post(`/api/employees/${selectedEmployee.value.id}/face`, {
       encodings: successfulEncodings
     })
     try {
-      const res = await axios.post('/api/remote/check-active', {
+      const res = await api.post('/api/remote/check-active', {
         employee_id: selectedEmployee.value.id
       })
       if (res.data.data?.has_remote_assignment) {
@@ -1306,7 +1305,7 @@ async function handleActionSelect(type) {
       throw new Error('ไม่พบข้อมูลภาพสแกน กรุณาสแกนใหม่')
     }
 
-    const response = await axios.post('/api/face/verify', {
+    const response = await api.post('/api/face/verify', {
       employee_id: selectedEmployee.value.id,
       image: capturedImage.value,
       type: type,

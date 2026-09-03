@@ -163,7 +163,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
-import axios from 'axios'
+import api from '../../services/api'
 import store from '../../store'
 
 const today = new Date()
@@ -209,7 +209,7 @@ async function onDateChange() {
   form.value = { target_id: '', target_name: '', target_shift_code: '', target_shift_label: '', reason: '' }
   loadingEmployees.value = true
   try {
-    const res = await axios.get('/api/shift-swaps/available-employees', { params: { date: swapDate.value } })
+    const res = await api.get('/api/shift-swaps/available-employees', { params: { date: swapDate.value } })
     if (res.data.success) {
       mySchedule.value = res.data.data.my_schedule
       availableEmployees.value = res.data.data.available_employees
@@ -233,7 +233,7 @@ async function submitSwap() {
   if (!form.value.target_id || !mySchedule.value) return
   submitting.value = true
   try {
-    await axios.post('/api/shift-swaps', {
+    await api.post('/api/shift-swaps', {
       requester_id: store.user?.id,
       target_id: form.value.target_id,
       swap_date: swapDate.value,
@@ -257,7 +257,7 @@ async function submitSwap() {
 async function loadMyRequests() {
   loadingSwaps.value = true
   try {
-    const res = await axios.get('/api/shift-swaps/my-requests')
+    const res = await api.get('/api/shift-swaps/my-requests')
     if (res.data.success) {
       mySwaps.value = res.data.data
     }

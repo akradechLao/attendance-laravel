@@ -119,7 +119,7 @@
 
 <script setup>
 import { ref, h, watch, onMounted } from 'vue'
-import axios from 'axios'
+import api from '../../services/api'
 
 const thMonths = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม']
 
@@ -156,8 +156,8 @@ async function loadPayslip() {
   loading.value = true
   try {
     const [payRes, histRes] = await Promise.allSettled([
-      axios.get('/api/employee/payslip', { params: { month: month.value, year: year.value } }),
-      axios.get('/api/employee/payslip/history', { params: { year: year.value } }),
+      api.get('/api/employee/payslip', { params: { month: month.value, year: year.value } }),
+      api.get('/api/employee/payslip/history', { params: { year: year.value } }),
     ])
     if (payRes.status === 'fulfilled' && payRes.value.data.success) {
       payslip.value = payRes.value.data.data

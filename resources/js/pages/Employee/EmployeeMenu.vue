@@ -322,7 +322,6 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import store, { logout } from '../../store'
-import axios from 'axios'
 import api from '../../services/api'
 
 const router = useRouter()
@@ -348,15 +347,11 @@ function handleLogout() {
 }
 
 onMounted(async () => {
-  const token = localStorage.getItem('token')
-  if (token) {
-    axios.defaults.headers.common['Authorization'] = `Bearer ${token}`
-  }
   try {
     const [pendingRes, warnRes, annRes, notifRes] = await Promise.allSettled([
-      axios.get('/api/employee/requests/pending-count'),
-      axios.get('/api/employee/warnings'),
-      axios.get('/api/announcements'),
+      api.get('/api/employee/requests/pending-count'),
+      api.get('/api/employee/warnings'),
+      api.get('/api/announcements'),
       api.get('/employee/notifications/unread-count'),
     ])
     if (pendingRes.status === 'fulfilled' && pendingRes.value.data.success) {
