@@ -69,7 +69,7 @@ class TestShiftAssignDummy extends Command
                         'emp_id' => $empId,
                         'work_date' => $current->toDateString(),
                         'shift_code' => $shiftCode,
-                        'day_type' => 'work',
+                        'day_type' => 'working',
                         'created_at' => now(),
                         'updated_at' => now(),
                     ];

@@ -152,7 +152,7 @@ class SupervisorShiftController extends Controller
                     'emp_id' => $employeeId,
                     'work_date' => $current->toDateString(),
                     'shift_code' => $shiftCode,
-                    'day_type' => 'work',
+                    'day_type' => 'working',
                     'created_at' => now(),
                     'updated_at' => now(),
                 ];
