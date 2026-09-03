@@ -175,7 +175,7 @@
               <p class="text-2xl font-bold text-purple-600">{{ data.month.leave_days }}</p>
               <p class="text-[10px] text-purple-600 font-medium mt-0.5">วันลา</p>
             </div>
-            <div class="text-center p-3 bg-cyan-50 rounded-xl border border-cyan-200">
+            <div v-if="hasOt" class="text-center p-3 bg-cyan-50 rounded-xl border border-cyan-200">
               <p class="text-2xl font-bold text-cyan-600">{{ data.month.ot_hours }}</p>
               <p class="text-[10px] text-cyan-600 font-medium mt-0.5">ชม. OT</p>
             </div>
@@ -195,7 +195,7 @@
               <p class="text-xl font-bold text-amber-600">{{ data.pending.leave }}</p>
               <p class="text-[10px] text-amber-600 font-medium">ลางาน</p>
             </router-link>
-            <router-link v-if="data.pending.ot > 0" to="/employee/ot"
+            <router-link v-if="hasOt && data.pending.ot > 0" to="/employee/ot"
               class="flex-1 bg-amber-50 rounded-xl p-3 text-center border border-amber-200 hover:bg-amber-100 transition-colors">
               <p class="text-xl font-bold text-amber-600">{{ data.pending.ot }}</p>
               <p class="text-[10px] text-amber-600 font-medium">โอที</p>
@@ -251,11 +251,13 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
+import state from '../../store'
 
 const thMonths = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม']
 
 const loading = ref(true)
 const error = ref(null)
+const hasOt = computed(() => state.user?.has_ot === true || state.user?.has_ot === 1)
 const now = new Date()
 const statMonth = ref(now.getMonth() + 1)
 const statYear = ref(now.getFullYear())
