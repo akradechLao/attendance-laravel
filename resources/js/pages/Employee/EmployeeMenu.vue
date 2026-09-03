@@ -124,7 +124,7 @@
               </svg>
             </div>
             <h2 class="font-bold text-gray-800 text-sm sm:text-base">ขอลางาน</h2>
-            <p class="text-gray-400 text-xs mt-1">ลาพักผ่อน ลากิจ ลาป่วย</p>
+            <p class="text-gray-400 text-xs mt-1">ลาพักร้อน ลากิจ ลาป่วย</p>
             <div v-if="pendingCounts.leave > 0" class="mt-2 inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-600 rounded-full text-[10px] font-medium border border-amber-200">
               <span class="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse"></span>
               รออนุมัติ {{ pendingCounts.leave }}
