@@ -124,7 +124,7 @@
 
 <script setup>
 import { ref, onMounted, computed } from 'vue'
-import { api } from '../../services/api'
+import api from '../../services/api'
 import AppLayout from '../../layouts/AppLayout.vue'
 import LoadingSpinner from '../../components/LoadingSpinner.vue'
 
