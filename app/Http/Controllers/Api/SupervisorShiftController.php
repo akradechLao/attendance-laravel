@@ -100,7 +100,7 @@ class SupervisorShiftController extends Controller
                 'end' => $cycleEnd,
                 'can_assign' => $now->day <= 19,
                 'message' => $now->day <= 19
-                    ? 'กำหนดส่ง: วันที่ 19'
+                    ? 'กำหนดส่ง: ภายในวันที่ 19'
                     : 'เลยกำหนดแล้ว (วันที่ 20-สิ้นเดือน)',
                     : 'เลยกำหนดแล้ว (วันที่ 19-สิ้นเดือน)',
             ],
