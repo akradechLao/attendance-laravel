@@ -688,7 +688,7 @@ class FaceController extends Controller
             $dateStr = $date;
 
             $message = "⚠️ <b>แจ้งเตือนสาย</b>\n\n";
-            $message .= "👤 <b>ชื่อ:</b> {$employee->name}\n";
+            $message .= "👤 <b>ชื่อ:</b> {$employee->name} ({$employee->employee_code})\n";
             $message .= "🏢 <b>บริษัท:</b> $companyName\n";
             $message .= "📅 <b>วันที่:</b> $dateStr\n";
             $message .= "⏰ <b>สาย:</b> $lateMinutes นาที\n";
@@ -826,7 +826,7 @@ class FaceController extends Controller
             $emoji = $type === 'check_in' ? '🟢' : '🔴';
             
             $message = "$emoji <b>$statusText สำเร็จ</b>\n\n";
-            $message .= "👤 <b>ชื่อ:</b> {$employee->name}\n";
+            $message .= "👤 <b>ชื่อ:</b> {$employee->name} ({$employee->employee_code})\n";
             $message .= "🏢 <b>บริษัท:</b> $companyName\n";
             $message .= "🕐 <b>เวลา:</b> $time\n";
             if ($latLong) {
@@ -843,7 +843,7 @@ class FaceController extends Controller
 
             // Send to supervisor
             if ($employee->supervisor && $employee->supervisor->telegram_chat_id) {
-                $supMessage = "$emoji <b>$statusText - {$employee->name}</b>\n\n";
+                $supMessage = "$emoji <b>$statusText - {$employee->name} ({$employee->employee_code})</b>\n\n";
                 $supMessage .= "🏢 <b>บริษัท:</b> $companyName\n";
                 $supMessage .= "🕐 <b>เวลา:</b> $time\n";
                 if ($distanceInfo) {

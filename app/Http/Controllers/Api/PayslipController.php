@@ -273,7 +273,7 @@ class PayslipController extends Controller
                 $thMonths = ['','มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม'];
                 $monthName = $thMonths[(int)$validated['month']] ?? $validated['month'];
                 $message = "💰 <b>สลิปเงินเดือนพร้อมแล้ว</b>\n\n";
-                $message .= "👤 <b>ชื่อ:</b> {$employee->name}\n";
+                $message .= "👤 <b>ชื่อ:</b> {$employee->name} ({$employee->employee_code})\n";
                 $message .= "📅 <b>เดือน:</b> {$monthName} {$validated['year']}\n";
                 $message .= "💵 <b>เงินได้รวม:</b> " . number_format($payslip->total_income ?? 0, 2) . " บาท\n";
                 $message .= "\nเปิดดูสลิปได้ที่หน้าสลิปเงินเดือน";

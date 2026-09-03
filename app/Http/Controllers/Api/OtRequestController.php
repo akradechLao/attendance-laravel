@@ -335,7 +335,7 @@ class OtRequestController extends Controller
             $statusText = $action === 'approved' ? 'อนุมัติ' : 'ไม่อนุมัติ';
 
             $message = "{$emoji} <b>OT {$statusText}</b>\n\n";
-            $message .= "👤 <b>ชื่อ:</b> {$employee->name}\n";
+            $message .= "👤 <b>ชื่อ:</b> {$employee->name} ({$employee->employee_code})\n";
             $message .= "📅 <b>วันที่:</b> {$otRequest->date}\n";
             $message .= "🕐 <b>เวลา:</b> {$otRequest->start_time} - {$otRequest->end_time}\n";
             $message .= "⏱️ <b>จำนวน:</b> {$otRequest->total_hours} ชม.\n";

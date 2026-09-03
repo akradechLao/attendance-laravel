@@ -221,6 +221,15 @@ class Employee extends Authenticatable
     }
 
     /**
+     * Accessor: display_name returns "ชื่อ (รหัส)" format.
+     * Use this everywhere to prevent confusion when employees have the same name.
+     */
+    public function getDisplayNameAttribute(): string
+    {
+        return $this->name . ' (' . $this->employee_code . ')';
+    }
+
+    /**
      * Check if $employeeId is a direct or indirect subordinate of this employee.
      * Walks up the reports_to chain from the target employee.
      */

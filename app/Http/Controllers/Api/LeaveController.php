@@ -135,7 +135,7 @@ class LeaveController extends Controller
                 \Log::warning('Failed to deduct leave balance: ' . $e->getMessage());
             }
 
-            AuditLogService::action('approve', $leave, 'อนุมัติใบลา ' . ($leave->employee->name ?? $leave->emp_id), $request);
+            AuditLogService::action('approve', $leave, 'อนุมัติใบลา ' . ($leave->employee->name ?? $leave->emp_id) . ' (' . ($leave->employee->employee_code ?? '-') . ')', $request);
 
             // Send Telegram notification
             $this->sendLeaveNotification($leave, 'approved');
@@ -216,7 +216,7 @@ class LeaveController extends Controller
                 'rejected_at' => now(),
             ]);
 
-            AuditLogService::action('reject', $leave, 'ไม่อนุมัติใบลา ' . ($leave->employee->name ?? $leave->emp_id) . ': ' . $validated['rejection_reason'], $request);
+            AuditLogService::action('reject', $leave, 'ไม่อนุมัติใบลา ' . ($leave->employee->name ?? $leave->emp_id) . ' (' . ($leave->employee->employee_code ?? '-') . '): ' . $validated['rejection_reason'], $request);
 
             // Send Telegram notification
             $this->sendLeaveNotification($leave, 'rejected');
@@ -305,7 +305,7 @@ class LeaveController extends Controller
             $typeName = $leaveType?->name ?? '-';
 
             $message = "{$emoji} <b>ใบลา{$statusText}</b>\n\n";
-            $message .= "👤 <b>ชื่อ:</b> {$employee->name}\n";
+            $message .= "👤 <b>ชื่อ:</b> {$employee->name} ({$employee->employee_code})\n";
             $message .= "📋 <b>ประเภท:</b> {$typeName}\n";
             $message .= "📅 <b>วันที่:</b> {$leave->start_date} - {$leave->end_date}\n";
             $message .= "📝 <b>จำนวน:</b> {$leave->total_days} วัน\n";
