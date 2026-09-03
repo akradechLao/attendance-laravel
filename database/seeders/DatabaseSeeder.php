@@ -12,6 +12,9 @@ class DatabaseSeeder extends Seeder
             CompanySeeder::class,
             AdminUserSeeder::class,
             WorkShiftSeeder::class,
+            LeaveTypeSeeder::class,
+            OfficeLocationSeeder::class,
+            CompanyHolidaySeeder::class,
         ]);
     }
 }

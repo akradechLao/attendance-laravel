@@ -230,7 +230,7 @@ class LeaveController extends Controller
                 $leave->emp_id,
                 'leave_rejected',
                 '❌ ไม่อนุมัติลางาน',
-                "คำขอลาของคุณ (" . ($leaveType->name ?? '-') . " {$leave->start_date} ถึง {$leave->end_date}) ไม่ได้รับการอนุมัติโดย {$approverText}" . ($leave->rejection_reason ? " เหตุผล: {$leave->rejection_reason}" : ''),
+                "คำขอลาของคุณ (" . ($leaveType->name ?? '-') . " {$leave->start_date} ถึง {$leave->end_date}) ไม่ได้รับการอนุมัติโดย {$approverPosition}" . ($leave->rejection_reason ? " เหตุผล: {$leave->rejection_reason}" : ''),
                 $leave->id,
                 'LeaveRequest'
             );
