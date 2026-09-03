@@ -12,63 +12,84 @@ class AnnouncementController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $user = $request->user();
+        try {
+            $user = $request->user();
 
-        $query = Announcement::where('is_active', true)
-            ->where(function ($q) use ($user) {
-                if ($user && property_exists($user, 'company_id') && $user->company_id) {
-                    $q->where('company_id', $user->company_id);
-                }
-            })
-            ->where(function ($q) {
-                $q->whereNull('published_at')
-                    ->orWhere('published_at', '<=', now());
-            })
-            ->where(function ($q) {
-                $q->whereNull('expires_at')
-                    ->orWhere('expires_at', '>', now());
-            })
-            ->orderByDesc('priority')
-            ->orderByDesc('created_at');
+            $query = Announcement::where('is_active', true)
+                ->where(function ($q) use ($user) {
+                    if ($user && property_exists($user, 'company_id') && $user->company_id) {
+                        $q->where('company_id', $user->company_id);
+                    }
+                })
+                ->where(function ($q) {
+                    $q->whereNull('published_at')
+                        ->orWhere('published_at', '<=', now());
+                })
+                ->where(function ($q) {
+                    $q->whereNull('expires_at')
+                        ->orWhere('expires_at', '>', now());
+                })
+                ->orderByDesc('priority')
+                ->orderByDesc('created_at');
 
-        $announcements = $query->limit(20)->get()
-            ->map(fn($a) => [
-                'id' => $a->id,
-                'title' => $a->title,
-                'body' => $a->body,
-                'priority' => $a->priority,
-                'is_active' => $a->is_active,
-                'company_id' => $a->company_id,
-                'published_at' => $a->published_at ? Carbon::parse($a->published_at)->setTimezone('Asia/Bangkok')->format('Y-m-d H:i') : null,
-                'expires_at' => $a->expires_at ? Carbon::parse($a->expires_at)->setTimezone('Asia/Bangkok')->format('Y-m-d H:i') : null,
-                'created_at' => $a->created_at ? Carbon::parse($a->created_at)->setTimezone('Asia/Bangkok')->format('Y-m-d H:i') : null,
+            $announcements = $query->limit(20)->get()
+                ->map(fn($a) => [
+                    'id' => $a->id,
+                    'title' => $a->title,
+                    'body' => $a->body,
+                    'priority' => $a->priority,
+                    'is_active' => $a->is_active,
+                    'company_id' => $a->company_id,
+                    'published_at' => $a->published_at ? Carbon::parse($a->published_at)->setTimezone('Asia/Bangkok')->format('Y-m-d H:i') : null,
+                    'expires_at' => $a->expires_at ? Carbon::parse($a->expires_at)->setTimezone('Asia/Bangkok')->format('Y-m-d H:i') : null,
+                    'created_at' => $a->created_at ? Carbon::parse($a->created_at)->setTimezone('Asia/Bangkok')->format('Y-m-d H:i') : null,
+                ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => $announcements,
             ]);
-
-        return response()->json([
-            'success' => true,
-            'data' => $announcements,
-        ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage(),
+            ], 500);
+        }
     }
 
     public function adminIndex(Request $request): JsonResponse
     {
-        $user = $request->user();
-        $query = Announcement::with('creator:id,username');
+        try {
+            $user = $request->user();
+            $query = Announcement::query();
 
-        if ($user->role !== 'super_admin' && $user->company_id) {
-            $query->where('company_id', $user->company_id);
+            // Try loading creator relation, skip if table issue
+            try {
+                $query->with('creator:id,username');
+            } catch (\Exception $e) {
+                // creator relation may fail if admin_users table has issues
+            }
+
+            if ($user->role !== 'super_admin' && $user->company_id) {
+                $query->where('company_id', $user->company_id);
+            }
+
+            if ($request->company_id) {
+                $query->where('company_id', $request->company_id);
+            }
+
+            $announcements = $query->orderByDesc('created_at')->paginate(20);
+
+            return response()->json([
+                'success' => true,
+                'data' => $announcements,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage(),
+            ], 500);
         }
-
-        if ($request->company_id) {
-            $query->where('company_id', $request->company_id);
-        }
-
-        $announcements = $query->orderByDesc('created_at')->paginate(20);
-
-        return response()->json([
-            'success' => true,
-            'data' => $announcements,
-        ]);
     }
 
     public function store(Request $request): JsonResponse
