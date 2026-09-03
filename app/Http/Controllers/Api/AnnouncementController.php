@@ -105,7 +105,7 @@ class AnnouncementController extends Controller
 
         $user = $request->user();
 
-        if (!$validated['company_id'] && $user->company_id) {
+        if (empty($validated['company_id']) && $user->company_id) {
             $validated['company_id'] = $user->company_id;
         }
 
