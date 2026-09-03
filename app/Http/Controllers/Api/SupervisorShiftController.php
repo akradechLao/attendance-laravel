@@ -23,9 +23,10 @@ class SupervisorShiftController extends Controller
         }
 
         $subordinateIds = $user->getAllSubordinateIds();
-        if (empty($subordinateIds)) {
-            return response()->json(['data' => []]);
-        }
+
+        // Admin/SuperAdmin: show all employees from their company (or all for superadmin)
+        $isSuperAdmin = method_exists($user, 'role') && $user->role === 'super_admin';
+        $isAdmin = method_exists($user, 'role') && in_array($user->role, ['admin', 'super_admin']);
 
         $now = Carbon::now('Asia/Bangkok');
         $currentCycleStart = $now->copy()->startOfMonth()->addDays(18); // 19th of current month
@@ -42,14 +43,25 @@ class SupervisorShiftController extends Controller
             $cycleEnd = $now->copy()->startOfMonth()->addDays(17)->toDateString();
         }
 
-        $employees = Employee::whereIn('id', $subordinateIds)
-            ->where('is_active', true)
+        $employeeQuery = Employee::where('is_active', true)
             ->select('id', 'employee_code', 'name', 'department', 'division', 'company_id')
             ->with(['workShifts' => function ($q) {
                 $q->select('work_shifts.id', 'work_shifts.group_number', 'work_shifts.start_time', 'work_shifts.end_time', 'work_shifts.work_hours');
-            }])
-            ->orderBy('employee_code')
-            ->get();
+            }]);
+
+        if ($isSuperAdmin) {
+            // SuperAdmin: see all employees
+        } elseif ($isAdmin && $user->company_id) {
+            // Admin: see employees from same company
+            $employeeQuery->where('company_id', $user->company_id);
+        } elseif (!empty($subordinateIds)) {
+            // Supervisor: see subordinates only
+            $employeeQuery->whereIn('id', $subordinateIds);
+        } else {
+            return response()->json(['data' => []]);
+        }
+
+        $employees = $employeeQuery->orderBy('employee_code')->get();
 
         $employees->each(function ($emp) use ($cycleStart, $cycleEnd) {
             // Get current assignment for this cycle
