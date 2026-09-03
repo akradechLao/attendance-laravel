@@ -220,6 +220,10 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/supervisor/ot-approval', [SupervisorController::class, 'otApproval']);
         Route::get('/supervisor/team-calendar', [SupervisorController::class, 'teamCalendar']);
         Route::get('/supervisor/leave-calendar', [SupervisorLeaveCalendarController::class, 'index']);
+        Route::get('/supervisor/shift-assign/team', [\App\Http\Controllers\Api\SupervisorShiftController::class, 'team']);
+        Route::get('/supervisor/shift-assign/summary', [\App\Http\Controllers\Api\SupervisorShiftController::class, 'summary']);
+        Route::post('/supervisor/shift-assign', [\App\Http\Controllers\Api\SupervisorShiftController::class, 'assign']);
+        Route::delete('/supervisor/shift-assign/{employeeId}', [\App\Http\Controllers\Api\SupervisorShiftController::class, 'remove']);
         Route::get('/manager/leave-approval', [ManagerController::class, 'leaveApproval']);
         Route::get('/manager/ot-approval', [ManagerController::class, 'otApproval']);
         Route::get('/manager/team-report', [ManagerController::class, 'teamReport']);

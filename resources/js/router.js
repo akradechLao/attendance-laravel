@@ -340,6 +340,12 @@ const routes = [
     meta: { requiresAuth: true, layout: 'app' }
   },
   {
+    path: '/supervisor/shift-assign',
+    name: 'SupervisorShiftAssign',
+    component: () => import('./pages/Supervisor/ShiftAssign.vue'),
+    meta: { requiresAuth: true, layout: 'app' }
+  },
+  {
     path: '/manager/leave-approval',
     name: 'ManagerLeaveApproval',
     component: () => import('./pages/Manager/LeaveApproval.vue'),
