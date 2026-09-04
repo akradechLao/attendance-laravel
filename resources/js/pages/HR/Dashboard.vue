@@ -142,7 +142,11 @@
                     <div v-if="record.date" class="text-[10px] text-gray-400">{{ formatDateThai(record.date) }}</div>
                   </td>
                   <td class="px-4 py-3 text-sm text-gray-600">
-                    <div>{{ record.check_out || '-' }}</div>
+                    <div class="flex items-center gap-1">
+                      <span>{{ record.check_out || '-' }}</span>
+                      <span v-if="record.is_estimated && !record.estimated_approved_by" class="text-orange-500 text-xs" title="Checkout โดยระบบ — รออนุมัติ">⚠️</span>
+                      <span v-else-if="record.is_estimated && record.estimated_approved_by" class="text-green-500 text-xs" title="อนุมัติแล้ว">✅</span>
+                    </div>
                     <div v-if="record.check_out && record.date" class="text-[10px] text-gray-400">{{ formatDateThai(record.date) }}</div>
                   </td>
                   <td class="px-4 py-3 text-sm font-medium" :class="record.work_minutes > 0 ? 'text-blue-600' : 'text-gray-400'">{{ record.work_hours_display }}</td>

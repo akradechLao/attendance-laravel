@@ -16,6 +16,11 @@ class Kernel extends ConsoleKernel
         $schedule->command('attendance:archive', ['--years' => 2])
             ->monthlyOn(1, '02:00')
             ->withoutOverlapping();
+
+        $schedule->command('attendance:auto-checkout')
+            ->dailyAt('17:30')
+            ->timezone('Asia/Bangkok')
+            ->withoutOverlapping();
     }
 
     protected function commands(): void

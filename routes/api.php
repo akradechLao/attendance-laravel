@@ -334,6 +334,11 @@ Route::middleware(['auth:sanctum', 'role:admin,super_admin'])->group(function ()
     Route::put('/attendance-verification/{id}/unverify', [AttendanceVerificationController::class, 'unverify']);
     Route::post('/attendance-verification/verify-all', [AttendanceVerificationController::class, 'verifyAll']);
 
+    // Estimated Checkouts (auto-checkout pending approval)
+    Route::get('/attendance/estimated-checkouts', [AttendanceController::class, 'estimatedCheckouts']);
+    Route::put('/attendance/estimated-checkouts/{id}/approve', [AttendanceController::class, 'approveEstimatedCheckout']);
+    Route::put('/attendance/estimated-checkouts/{id}/edit', [AttendanceController::class, 'editEstimatedCheckout']);
+
     // Holiday Management
     Route::get('/holidays', [HolidayController::class, 'index']);
     Route::post('/holidays', [HolidayController::class, 'store']);

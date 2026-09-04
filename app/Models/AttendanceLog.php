@@ -37,6 +37,9 @@ class AttendanceLog extends Model
         'face_image',
         'check_out_face_image',
         'pdpa_consent',
+        'is_estimated',
+        'estimated_approved_by',
+        'estimated_approved_at',
     ];
 
     protected $hidden = [
@@ -53,6 +56,8 @@ class AttendanceLog extends Model
         'adjusted_at' => 'datetime',
         'verified_at' => 'datetime',
         'is_verified' => 'boolean',
+        'is_estimated' => 'boolean',
+        'estimated_approved_at' => 'datetime',
     ];
 
     public function employee(): BelongsTo

@@ -147,6 +147,12 @@ const routes = [
     meta: { requiresAuth: true, layout: 'app', requiresRole: 'admin' }
   },
   {
+    path: '/estimated-checkouts',
+    name: 'EstimatedCheckouts',
+    component: () => import('./pages/HR/EstimatedCheckout.vue'),
+    meta: { requiresAuth: true, layout: 'app', requiresRole: 'admin' }
+  },
+  {
     path: '/employees',
     name: 'EmployeeList',
     component: () => import('./pages/HR/EmployeeList.vue'),

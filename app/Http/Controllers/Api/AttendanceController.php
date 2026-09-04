@@ -378,4 +378,167 @@ class AttendanceController extends Controller
             ], 500);
         }
     }
+
+    public function estimatedCheckouts(Request $request): JsonResponse
+    {
+        try {
+            $query = AttendanceLog::where('is_estimated', true)
+                ->whereNull('estimated_approved_by')
+                ->with(['employee' => function ($q) {
+                    $q->select('id', 'employee_code', 'name', 'company_id', 'division', 'department');
+                }]);
+
+            if ($request->company_id) {
+                $query->whereHas('employee', function ($q) use ($request) {
+                    $q->where('company_id', $request->company_id);
+                });
+            }
+
+            if ($request->date) {
+                $query->where('date', $request->date);
+            } else {
+                $query->where('date', Carbon::now('Asia/Bangkok')->format('Y-m-d'));
+            }
+
+            $logs = $query->orderBy('date', 'desc')
+                ->orderBy('emp_id')
+                ->get()
+                ->map(function ($log) {
+                    $employee = $log->employee;
+                    $shiftInfo = $employee ? \App\Services\ShiftResolver::resolve($employee, $log->date) : null;
+
+                    return [
+                        'id' => $log->id,
+                        'emp_id' => $log->emp_id,
+                        'employee_code' => $employee->employee_code ?? '-',
+                        'employee_name' => $employee->name ?? '-',
+                        'company_id' => $employee->company_id,
+                        'division' => $employee->division ?? '-',
+                        'department' => $employee->department ?? '-',
+                        'date' => $log->date,
+                        'check_in' => $log->check_in instanceof Carbon ? $log->check_in->format('H:i') : substr($log->check_in, 0, 5),
+                        'check_out' => $log->check_out instanceof Carbon ? $log->check_out->format('H:i') : substr($log->check_out, 0, 5),
+                        'late_minutes' => $log->late_minutes,
+                        'shift_code' => $shiftInfo['shift_code'] ?? null,
+                        'shift_start' => $shiftInfo['start_time'] ?? null,
+                        'shift_end' => $shiftInfo['end_time'] ?? null,
+                        'shift_source' => $shiftInfo['source'] ?? null,
+                    ];
+                });
+
+            return response()->json([
+                'success' => true,
+                'data' => $logs,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve estimated checkouts: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function approveEstimatedCheckout(Request $request, int $id): JsonResponse
+    {
+        try {
+            $log = AttendanceLog::findOrFail($id);
+
+            if (!$log->is_estimated) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Record is not an estimated checkout',
+                ], 422);
+            }
+
+            if ($log->estimated_approved_by) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Already approved',
+                ], 422);
+            }
+
+            $log->update([
+                'estimated_approved_by' => $request->user()->id,
+                'estimated_approved_at' => Carbon::now('Asia/Bangkok'),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Approved estimated checkout for ' . $log->employee->employee_code,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to approve: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function editEstimatedCheckout(Request $request, int $id): JsonResponse
+    {
+        try {
+            $request->validate([
+                'check_out' => 'required|string',
+            ]);
+
+            $log = AttendanceLog::findOrFail($id);
+
+            if (!$log->is_estimated) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Record is not an estimated checkout',
+                ], 422);
+            }
+
+            $employee = Employee::find($log->emp_id);
+            $date = $log->date;
+            $checkIn = $log->check_in instanceof Carbon
+                ? $log->check_in
+                : Carbon::parse($date . ' ' . $log->check_in);
+            $checkOut = Carbon::parse($date . ' ' . $request->check_out);
+
+            if ($checkOut->lt($checkIn)) {
+                $checkOut->addDay();
+            }
+
+            $workedMinutes = $checkIn->diffInMinutes($checkOut);
+
+            $breakMinutes = 0;
+            $breakStart = Carbon::parse($date . ' 11:45');
+            $breakEnd = Carbon::parse($date . ' 12:45');
+            if ($checkIn->lt($breakEnd) && $checkOut->gt($breakStart)) {
+                $effectiveStart = max($checkIn, $breakStart);
+                $effectiveEnd = min($checkOut, $breakEnd);
+                $breakMinutes = $effectiveStart->diffInMinutes($effectiveEnd);
+                $breakMinutes = min($breakMinutes, 60);
+            }
+            $workedMinutes -= $breakMinutes;
+
+            $shiftInfo = $employee ? \App\Services\ShiftResolver::resolve($employee, $date) : null;
+            $lateMinutes = 0;
+            if ($shiftInfo && $shiftInfo['start_time']) {
+                $workStart = Carbon::parse($date . ' ' . $shiftInfo['start_time']);
+                if ($checkIn->gt($workStart)) {
+                    $lateMinutes = (int) $workStart->diffInMinutes($checkIn);
+                }
+            }
+
+            $log->update([
+                'check_out' => $request->check_out,
+                'late_minutes' => $lateMinutes,
+                'estimated_approved_by' => $request->user()->id,
+                'estimated_approved_at' => Carbon::now('Asia/Bangkok'),
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Updated checkout for ' . $employee->employee_code . ' to ' . $request->check_out,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to update: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
 }

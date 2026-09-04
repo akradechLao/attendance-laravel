@@ -244,6 +244,8 @@ class DashboardController extends Controller
                     'shift_time' => ($resolved['start_time'] && $resolved['end_time'])
                         ? $resolved['start_time'] . '-' . $resolved['end_time']
                         : '-',
+                    'is_estimated' => $empLogs->first()->is_estimated ?? false,
+                    'estimated_approved_by' => $empLogs->first()->estimated_approved_by ?? null,
                 ];
             })->filter()->values();
 

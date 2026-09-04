@@ -153,6 +153,7 @@ const roleLabel = computed(() => roleLabels[userRole.value] || userRole.value)
 const navItems = [
   { section: 'ภาพรวม' },
   { path: '/dashboard', label: 'แดชบอร์ด', icon: '📊', minRole: 'admin' },
+  { path: '/estimated-checkouts', label: 'Checkout รออนุมัติ', icon: '⚠️', minRole: 'admin' },
   { path: '/employees', label: 'พนักงาน', icon: '👥', minRole: 'admin' },
   { path: '/reports', label: 'รายงาน', icon: '📋', minRole: 'admin' },
   { section: 'จัดการเข้างาน', minRole: 'admin' },
