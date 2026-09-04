@@ -192,8 +192,24 @@ class FaceController extends Controller
                 $lateMinutes = 0;
                 $originalStatus = 'on_time';
 
+                // ─── คำนวณสายจาก check_in ครั้งแรกของวัน (ไม่ใช่ครั้งล่าสุด) ───
+                $firstCheckIn = AttendanceLog::where('emp_id', $employee->id)
+                    ->whereDate('date', $shiftStartDate)
+                    ->orderBy('round_no', 'asc')
+                    ->value('check_in');
+
+                $calcTime = $now;
+                if ($firstCheckIn) {
+                    $firstCheckInTime = $firstCheckIn instanceof Carbon
+                        ? $firstCheckIn
+                        : Carbon::parse($shiftStartDate . ' ' . $firstCheckIn);
+                    if ($firstCheckInTime->lt($now)) {
+                        $calcTime = $firstCheckInTime;
+                    }
+                }
+
                 if ($workStartTime) {
-                    $lateMinutes = AttendanceCalculator::calculateLateMinutes($workStartTime, $now);
+                    $lateMinutes = AttendanceCalculator::calculateLateMinutes($workStartTime, $calcTime);
                     if ($lateMinutes > 0) {
                         $originalStatus = 'late';
                     }
