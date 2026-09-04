@@ -45,6 +45,14 @@ class AutoCheckout extends Command
             }
 
             $shiftInfo = ShiftResolver::resolve($employee, $date);
+
+            // ─── Overnight shift: ข้าม — ยังไม่ควรเติม checkout ───
+            if ($shiftInfo['is_overnight'] ?? false) {
+                $this->warn("  Skip #{$log->id} ({$employee->employee_code}): overnight shift ({$shiftInfo['start_time']}-{$shiftInfo['end_time']}), still working");
+                $skipped++;
+                continue;
+            }
+
             $endTime = $shiftInfo['end_time'];
 
             if (!$endTime) {
@@ -53,9 +61,20 @@ class AutoCheckout extends Command
                 continue;
             }
 
+            // ─── ตรวจสอบว่า check_in + work_hours ยังไม่สิ้นสุด ───
             $checkInTime = $log->check_in instanceof Carbon
                 ? $log->check_in->format('H:i:s')
                 : substr($log->check_in, 0, 8);
+
+            $now = Carbon::now('Asia/Bangkok');
+            $shiftEnd = Carbon::parse($date . ' ' . $endTime);
+
+            // ถ้ายังไม่ถึงเวลาสิ้นสุดกะ (เกิน 30 นาทีหลัง end_time) → ยังไม่เติม
+            if ($now->lt($shiftEnd->copy()->addMinutes(30))) {
+                $this->warn("  Skip #{$log->id} ({$employee->employee_code}): shift not ended yet (ends {$endTime})");
+                $skipped++;
+                continue;
+            }
 
             $log->update([
                 'check_out' => $endTime,
