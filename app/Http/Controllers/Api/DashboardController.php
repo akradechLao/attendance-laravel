@@ -45,7 +45,7 @@ class DashboardController extends Controller
             $lateToday = (clone $todayQuery)->where('check_in_status', 'late')->pluck('emp_id')->unique()->count();
             $onTimeToday = $presentToday - $lateToday;
             $checkedOut = (clone $todayQuery)->whereNotNull('check_out')->pluck('emp_id')->unique()->count();
-            // Overnight workers: have yesterday's unchecked-out record but no today record
+            // Overnight workers: have yesterday's unchecked-out record + overnight shift + no today record
             $overnightOnly = AttendanceLog::where('date', $yesterday)
                 ->whereNull('check_out')
                 ->whereHas('employee', function ($q) use ($companyId) {
@@ -54,8 +54,15 @@ class DashboardController extends Controller
                         $q->where('company_id', $companyId);
                     }
                 })
-                ->pluck('emp_id')->unique()
-                ->filter(fn($empId) => !AttendanceLog::where('emp_id', $empId)->where('date', $today)->exists());
+                ->get()
+                ->filter(function ($log) use ($today) {
+                    $employee = $log->employee;
+                    if (!$employee) return false;
+                    $shiftInfo = \App\Services\ShiftResolver::resolve($employee, $log->date instanceof Carbon ? $log->date->toDateString() : $log->date);
+                    if (!($shiftInfo['is_overnight'] ?? false)) return false;
+                    return !AttendanceLog::where('emp_id', $employee->id)->where('date', $today)->exists();
+                })
+                ->pluck('emp_id')->unique();
             $presentToday += $overnightOnly->count();
             $absentToday = max(0, $totalEmployees - $presentToday);
 
@@ -109,14 +116,21 @@ class DashboardController extends Controller
                 $present = (clone $todayPresentQ)->pluck('emp_id')->unique()->count();
                 $late = (clone $todayPresentQ)->where('check_in_status', 'late')->pluck('emp_id')->unique()->count();
 
-                // Overnight-only: yesterday unchecked, no today record
+                // Overnight-only: yesterday unchecked + overnight shift + no today record
                 $overnightOnly = AttendanceLog::where('date', $yesterday)
                     ->whereNull('check_out')
                     ->whereHas('employee', function ($q) use ($company) {
                         $q->where('company_id', $company->id)->where('is_active', true);
                     })
-                    ->pluck('emp_id')->unique()
-                    ->filter(fn($empId) => !AttendanceLog::where('emp_id', $empId)->where('date', $today)->exists());
+                    ->get()
+                    ->filter(function ($log) use ($today) {
+                        $employee = $log->employee;
+                        if (!$employee) return false;
+                        $shiftInfo = \App\Services\ShiftResolver::resolve($employee, $log->date instanceof Carbon ? $log->date->toDateString() : $log->date);
+                        if (!($shiftInfo['is_overnight'] ?? false)) return false;
+                        return !AttendanceLog::where('emp_id', $employee->id)->where('date', $today)->exists();
+                    })
+                    ->pluck('emp_id')->unique();
                 $present += $overnightOnly->count();
 
                 $companyStats[] = [
@@ -170,14 +184,8 @@ class DashboardController extends Controller
             $yesterday = Carbon::yesterday()->toDateString();
             $companyId = $request->get('company_id');
 
-            // ดึงข้อมูลวันนี้ + กะข้ามคืนจากเมื่อวาน (ที่ยังไม่ได้เช็คเอาท์)
-            $query = AttendanceLog::where(function ($q) use ($today, $yesterday) {
-                    $q->where('date', $today)
-                      ->orWhere(function ($q2) use ($yesterday) {
-                          $q2->where('date', $yesterday)
-                             ->whereNull('check_out');
-                      });
-                })
+            // ดึงข้อมูลวันนี้
+            $query = AttendanceLog::where('date', $today)
                 ->with(['employee:id,id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id', 'employee.company:id,name,code_prefix'])
                 ->whereHas('employee', function ($q) use ($companyId) {
                     $q->where('is_active', true);
@@ -189,6 +197,29 @@ class DashboardController extends Controller
                 ->orderBy('check_in', 'desc');
 
             $logs = $query->get();
+
+            // ─── Overnight workers: เมื่อวาน check_out=NULL + shift เป็น overnight ───
+            $yesterdayUnchecked = AttendanceLog::where('date', $yesterday)
+                ->whereNull('check_out')
+                ->with(['employee:id,id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id', 'employee.company:id,name,code_prefix'])
+                ->whereHas('employee', function ($q) use ($companyId) {
+                    $q->where('is_active', true);
+                    if ($companyId) {
+                        $q->where('company_id', $companyId);
+                    }
+                })
+                ->get()
+                ->filter(function ($log) use ($today) {
+                    // เฉพาะ overnight shift เท่านั้น (ข้ามคืน = shift end time < shift start time)
+                    $employee = $log->employee;
+                    if (!$employee) return false;
+                    $shiftInfo = \App\Services\ShiftResolver::resolve($employee, $log->date instanceof Carbon ? $log->date->toDateString() : $log->date);
+                    if (!($shiftInfo['is_overnight'] ?? false)) return false;
+                    // ต้องไม่มี record วันนี้อยู่แล้ว
+                    return !AttendanceLog::where('emp_id', $employee->id)->where('date', $today)->exists();
+                });
+
+            $logs = $logs->concat($yesterdayUnchecked);
 
             // Group by employee, combine rounds
             $grouped = $logs->groupBy('emp_id');
