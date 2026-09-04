@@ -453,6 +453,23 @@
 
           <h2 class="text-lg sm:text-xl font-semibold text-navy mb-4 sm:mb-6 text-center">เลือกรายการ</h2>
 
+          <!-- Device login info -->
+          <div v-if="deviceLoginActive" class="mb-3 p-3 bg-blue-50 border border-blue-200 rounded-xl flex items-center justify-between">
+            <div class="flex items-center gap-2">
+              <span class="text-blue-500">📱</span>
+              <span class="text-xs sm:text-sm text-blue-700">เข้าระบบด้วย Face ID</span>
+            </div>
+            <button @click="clearDeviceToken(); step = 1; selectedEmployee = null" class="text-xs text-red-500 hover:text-red-700">ออกจากระบบ</button>
+          </div>
+
+          <!-- Remember device checkbox -->
+          <div v-if="!deviceLoginActive && !deviceToken" class="mb-3">
+            <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-gray-50">
+              <input type="checkbox" v-model="rememberDevice" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+              <span class="text-xs sm:text-sm text-gray-600">จดจำอุปกรณ์นี้ (ไม่ต้องใส่พาสเวิร์ดครั้งถัดไป)</span>
+            </label>
+          </div>
+
           <!-- PDPA Consent for remote scan -->
           <div v-if="scanType === 'remote_scan'" class="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-xl">
             <label class="flex items-start gap-3 cursor-pointer">
@@ -711,6 +728,11 @@ const actionLoading = ref(false)
 const verificationToken = ref(null)
 const pdpaConsent = ref(false)
 
+// Device token (Remember Me)
+const rememberDevice = ref(false)
+const deviceToken = ref(localStorage.getItem('employee_device_token') || null)
+const deviceLoginActive = ref(false)
+
 // Admin/HR Login
 const showAdminLogin = ref(false)
 const adminLoading = ref(false)
@@ -768,6 +790,31 @@ onMounted(async () => {
     fetchTimeLocal.value = Date.now()
     await fetchServerTime()
   }, 300000)
+
+  // ─── Device token check: ถ้ามี token บันทึกไว้ ลอง login อัตโนมัติ ───
+  if (deviceToken.value) {
+    try {
+      const res = await api.post('/api/employee/auth/device-login', {
+        token: deviceToken.value
+      })
+      if (res.data.success) {
+        const data = res.data.data
+        setToken(data.token)
+        setCurrentUser(data.employee)
+        selectedEmployee.value = data.employee
+        deviceLoginActive.value = true
+        // Go directly to action menu (skip company/employee selection)
+        scanType.value = 'office_scan'
+        step.value = 3.5
+        return
+      }
+    } catch {
+      // Token invalid/expired — clear and proceed to normal login
+      localStorage.removeItem('employee_device_token')
+      deviceToken.value = null
+    }
+  }
+
   await fetchCompanies()
 
   // Offline queue: auto-sync + status listener
@@ -970,6 +1017,46 @@ async function searchEmployees() {
   } finally {
     loading.value = false
   }
+}
+
+async function registerDeviceToken(employee) {
+  if (!rememberDevice.value) return
+  try {
+    const deviceName = navigator.userAgent.substring(0, 100)
+    const fingerprint = await generateDeviceFingerprint()
+    const res = await api.post('/api/employee/auth/register-device', {
+      employee_id: employee.id,
+      device_name: deviceName,
+      device_fingerprint: fingerprint
+    })
+    if (res.data.success) {
+      localStorage.setItem('employee_device_token', res.data.data.token)
+      deviceToken.value = res.data.data.token
+    }
+  } catch (e) {
+    console.error('Device registration failed:', e)
+  }
+}
+
+async function generateDeviceFingerprint() {
+  const components = [
+    navigator.userAgent,
+    navigator.language,
+    screen.width + 'x' + screen.height,
+    screen.colorDepth,
+    new Date().getTimezoneOffset(),
+  ]
+  const str = components.join('|')
+  const encoder = new TextEncoder()
+  const data = encoder.encode(str)
+  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
+  return Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('')
+}
+
+function clearDeviceToken() {
+  localStorage.removeItem('employee_device_token')
+  deviceToken.value = null
+  deviceLoginActive.value = false
 }
 
 function confirmReregister(employee) {
@@ -1332,6 +1419,11 @@ async function handleActionSelect(type) {
         location: scanType.value === 'remote_scan' ? customLocationName.value : null,
       }
       step.value = 4
+
+      // ─── Device token: บันทึกอุปกรณ์ถ้าเลือก "จดจำ" ───
+      if (rememberDevice.value && !deviceToken.value) {
+        await registerDeviceToken(selectedEmployee.value)
+      }
     } else {
       scanningError.value = response.data.message || 'ไม่สามารถดำเนินการได้ กรุณาลองใหม่'
     }

@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\EmployeeAuthController;
+use App\Http\Controllers\Auth\DeviceAuthController;
 use App\Http\Controllers\Api\EmployeeController;
 use App\Http\Controllers\Api\AttendanceController;
 use App\Http\Controllers\Api\LeaveController;
@@ -74,6 +75,10 @@ Route::get('/time', function () {
 
 Route::post('/employee/auth/search', [EmployeeAuthController::class, 'search'])->middleware('throttle:30,1');
 Route::post('/employee/auth/verify', [EmployeeAuthController::class, 'verify'])->middleware('throttle:60,1');
+Route::post('/employee/auth/device-login', [DeviceAuthController::class, 'deviceLogin'])->middleware('throttle:30,1');
+Route::post('/employee/auth/register-device', [DeviceAuthController::class, 'registerDevice']);
+Route::get('/employee/auth/devices', [DeviceAuthController::class, 'listDevices']);
+Route::delete('/employee/auth/device/{id}', [DeviceAuthController::class, 'removeDevice']);
 Route::post('/face/verify', [FaceController::class, 'verify'])->middleware('throttle:30,1');
 
 Route::post('/face/detect', function () {
