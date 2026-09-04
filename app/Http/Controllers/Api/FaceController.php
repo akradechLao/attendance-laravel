@@ -308,11 +308,21 @@ class FaceController extends Controller
 
                 Log::info("Face check-out for employee {$employee->id}, shift_start_date={$shiftStartDate}");
 
+                // 1) หา record ที่ check_out IS NULL ก่อน (ปกติ)
                 $log = AttendanceLog::where('emp_id', $employee->id)
                     ->whereDate('date', $shiftStartDate)
                     ->whereNull('check_out')
                     ->orderBy('round_no', 'desc')
                     ->first();
+
+                // 2) ถ้าไม่มี record ว่าง ให้หา record ล่าสุดที่ is_estimated = true (auto-checkout)
+                if (!$log) {
+                    $log = AttendanceLog::where('emp_id', $employee->id)
+                        ->whereDate('date', $shiftStartDate)
+                        ->where('is_estimated', true)
+                        ->orderBy('round_no', 'desc')
+                        ->first();
+                }
 
                 if (!$log) {
                     Log::warning("No open attendance log for employee {$employee->id} on {$shiftStartDate}");
@@ -345,6 +355,12 @@ class FaceController extends Controller
 
                 $updateData = ['check_out' => $now];
 
+                // ─── ถ้าเป็น estimated record ให้แก้เป็นเวลาจริง ───
+                if ($log->is_estimated) {
+                    $updateData['is_estimated'] = false;
+                    Log::info("Replacing estimated checkout for employee {$employee->id}, log #{$log->id}: {$log->check_out} → {$now}");
+                }
+
                 if ($request->latitude && $request->longitude) {
                     $updateData['remote_latitude'] = $request->latitude;
                     $updateData['remote_longitude'] = $request->longitude;
@@ -355,6 +371,7 @@ class FaceController extends Controller
                     $updateData['check_out_face_image'] = hash('sha256', $request->input('image'));
                 }
 
+                $wasEstimated = $log->is_estimated; // ก่อน update
                 $log->update($updateData);
 
                 // ─── ตรวจจับ OT หลังเวลา (กลับช้า ≥ 1 ชม.) ───
@@ -372,7 +389,7 @@ class FaceController extends Controller
                         'attendance_log' => $log->fresh(),
                         'face_match' => $result,
                     ],
-                    'message' => 'เช็คเอาท์สำเร็จ' . $roundLabel,
+                    'message' => 'เช็คเอาท์สำเร็จ' . $roundLabel . ($wasEstimated ? ' (แก้ไขจากระบบ auto-checkout)' : ''),
                 ]);
             }
 
