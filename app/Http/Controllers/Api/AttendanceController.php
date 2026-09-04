@@ -9,6 +9,7 @@ use App\Models\OfficeLocation;
 use App\Models\RemoteAssignment;
 use App\Services\AttendanceService;
 use App\Services\LocationService;
+use App\Services\ShiftResolver;
 use App\Constants\RoleConstants;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -110,7 +111,10 @@ class AttendanceController extends Controller
             }
 
             // Calculate late/on_time
-            $officeStartTime = Carbon::now('Asia/Bangkok')->today()->setTime(8, 30, 0);
+            $today = Carbon::now('Asia/Bangkok')->today()->toDateString();
+            $shiftInfo = ShiftResolver::resolve($employee, $today);
+            $startParts = explode(':', $shiftInfo['start_time'] ?? '08:00');
+            $officeStartTime = Carbon::now('Asia/Bangkok')->today()->setTime((int)$startParts[0], (int)($startParts[1] ?? 0), 0);
             $checkInTime = Carbon::now('Asia/Bangkok');
             $isLate = $checkInTime->gt($officeStartTime);
             $status = $isLate ? 'late' : 'on_time';

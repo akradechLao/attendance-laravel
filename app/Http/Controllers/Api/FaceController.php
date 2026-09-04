@@ -13,6 +13,7 @@ use App\Models\LateForcedLeave;
 use App\Models\AutoOtRecord;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
+use App\Services\SystemConfigService;
 use App\Helpers\AttendanceCalculator;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -253,8 +254,9 @@ class FaceController extends Controller
                     'pdpa_consent' => $request->boolean('pdpa_consent'),
                 ]);
 
-                // ─── สายเกิน 30 นาที → บังคับลากิจ 1 ชม. ───
-                if ($lateMinutes > 30) {
+                // ─── สายเกิน threshold → บังคับลากิจ ───
+                $lateThreshold = SystemConfigService::get('late_threshold_minutes', 30);
+                if ($lateMinutes > $lateThreshold) {
                     $this->createForcedLeaveIfApplicable($employee, $log, $shiftStartDate, $lateMinutes);
                 }
 
@@ -274,7 +276,8 @@ class FaceController extends Controller
                     : 'สถานะ: ปกติ';
 
                 $lateForceMsg = '';
-                if ($lateMinutes > 30) {
+                $lateThreshold = SystemConfigService::get('late_threshold_minutes', 30);
+                if ($lateMinutes > $lateThreshold) {
                     $existingLeave = $this->checkExistingLeave($employee, $shiftStartDate);
                     if ($existingLeave) {
                         $leaveTypeLabel = $existingLeave->leaveType->name ?? $existingLeave->leave_type;
@@ -632,7 +635,7 @@ class FaceController extends Controller
     }
 
     /**
-     * สร้างบันทึกลาบังคับ (ลากิจ 1 ชม.) ถ้าสายเกิน 30 นาที
+     * สร้างบันทึกลาบังคับ ถ้าสายเกิน threshold
      */
     private function createForcedLeaveIfApplicable(
         Employee $employee,
@@ -648,6 +651,9 @@ class FaceController extends Controller
             return;
         }
 
+        $forcedLeaveMinutes = SystemConfigService::get('forced_leave_minutes', 60);
+        $lateThreshold = SystemConfigService::get('late_threshold_minutes', 30);
+
         // ตรวจสอบลามาแล้ว
         $existingLeave = $this->checkExistingLeave($employee, $shiftStartDate);
         if ($existingLeave) {
@@ -657,11 +663,11 @@ class FaceController extends Controller
                 'attendance_log_id' => $log->id,
                 'date' => $shiftStartDate,
                 'late_minutes' => $lateMinutes,
-                'leave_minutes' => 60,
+                'leave_minutes' => $forcedLeaveMinutes,
                 'leave_type' => $leaveType->name ?? 'personal',
                 'leave_request_id' => $existingLeave->id,
                 'status' => 'approved',
-                'reason' => 'สายเกิน 30 นาที (มีลามาแล้ว: ' . ($leaveType->name ?? 'ลากิจ') . ')',
+                'reason' => "สายเกิน {$lateThreshold} นาที (มีลามาแล้ว: " . ($leaveType->name ?? 'ลากิจ') . ")",
             ]);
         } else {
             LateForcedLeave::create([
@@ -669,10 +675,10 @@ class FaceController extends Controller
                 'attendance_log_id' => $log->id,
                 'date' => $shiftStartDate,
                 'late_minutes' => $lateMinutes,
-                'leave_minutes' => 60,
+                'leave_minutes' => $forcedLeaveMinutes,
                 'leave_type' => 'personal',
                 'status' => 'pending',
-                'reason' => 'สายเกิน 30 นาที (' . $lateMinutes . ' นาที) → บังคับลากิจ 1 ชม.',
+                'reason' => "สายเกิน {$lateThreshold} นาที ({$lateMinutes} นาที) → บังคับลากิจ {$forcedLeaveMinutes} นาที",
             ]);
         }
 
@@ -692,7 +698,8 @@ class FaceController extends Controller
             $message .= "🏢 <b>บริษัท:</b> $companyName\n";
             $message .= "📅 <b>วันที่:</b> $dateStr\n";
             $message .= "⏰ <b>สาย:</b> $lateMinutes นาที\n";
-            if ($lateMinutes > 30) {
+            $lateThreshold = SystemConfigService::get('late_threshold_minutes', 30);
+            if ($lateMinutes > $lateThreshold) {
                 $message .= "📝 <b>สถานะ:</b> บังคับลากิจ 1 ชม.\n";
             }
 

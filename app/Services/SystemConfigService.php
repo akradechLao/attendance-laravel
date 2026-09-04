@@ -20,6 +20,7 @@ class SystemConfigService
         'forced_leave_minutes' => ['value' => '60', 'type' => 'integer', 'category' => 'attendance', 'description' => 'จำนวนนาทีของลาบังคับเมื่อสายเกิน threshold'],
         'max_check_in_rounds' => ['value' => '4', 'type' => 'integer', 'category' => 'attendance', 'description' => 'จำนวนรอบสูงสุดที่เช็คอิน/เช็คเอาท์ได้ต่อวัน'],
         'auto_checkout_time' => ['value' => '', 'type' => 'string', 'category' => 'attendance', 'description' => 'เวลาที่ระบบจะ auto-checkout ถ้าพนักงานไม่เช็คเอาท์ (เช่น 18:00). ว่าง = ไม่ auto'],
+        'auto_checkout_buffer_minutes' => ['value' => '30', 'type' => 'integer', 'category' => 'attendance', 'description' => 'จำนวนนาทีหลังเวลาเลิกงานที่ระบบจะรอ ก่อนเติม auto-checkout (เช่น 30 = รอ 30 นาทีหลัง end_time)'],
 
         // ─── OT Policy ───
         'max_ot_hours_per_day' => ['value' => '4', 'type' => 'integer', 'category' => 'ot', 'description' => 'ชั่วโมง OT สูงสุดต่อวัน'],

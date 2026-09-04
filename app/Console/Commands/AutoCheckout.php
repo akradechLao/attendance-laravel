@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use App\Models\AttendanceLog;
 use App\Models\Employee;
 use App\Services\ShiftResolver;
+use App\Services\SystemConfigService;
 use Carbon\Carbon;
 use Illuminate\Console\Command;
 
@@ -68,9 +69,10 @@ class AutoCheckout extends Command
 
             $now = Carbon::now('Asia/Bangkok');
             $shiftEnd = Carbon::parse($date . ' ' . $endTime);
+            $autoCheckoutBuffer = SystemConfigService::get('auto_checkout_buffer_minutes', 30);
 
-            // ถ้ายังไม่ถึงเวลาสิ้นสุดกะ (เกิน 30 นาทีหลัง end_time) → ยังไม่เติม
-            if ($now->lt($shiftEnd->copy()->addMinutes(30))) {
+            // ถ้ายังไม่ถึงเวลาสิ้นสุดกะ (เกิน buffer นาทีหลัง end_time) → ยังไม่เติม
+            if ($now->lt($shiftEnd->copy()->addMinutes($autoCheckoutBuffer))) {
                 $this->warn("  Skip #{$log->id} ({$employee->employee_code}): shift not ended yet (ends {$endTime})");
                 $skipped++;
                 continue;
