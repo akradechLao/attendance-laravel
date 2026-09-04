@@ -9,13 +9,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('attendance_logs', function (Blueprint $table) {
-            if (!$table->hasColumn('is_estimated')) {
+            if (!Schema::hasColumn('attendance_logs', 'is_estimated')) {
                 $table->boolean('is_estimated')->default(false)->after('pdpa_consent');
             }
-            if (!$table->hasColumn('estimated_approved_by')) {
+            if (!Schema::hasColumn('attendance_logs', 'estimated_approved_by')) {
                 $table->unsignedBigInteger('estimated_approved_by')->nullable()->after('is_estimated');
             }
-            if (!$table->hasColumn('estimated_approved_at')) {
+            if (!Schema::hasColumn('attendance_logs', 'estimated_approved_at')) {
                 $table->timestamp('estimated_approved_at')->nullable()->after('estimated_approved_by');
             }
         });
