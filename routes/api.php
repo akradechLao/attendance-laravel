@@ -472,6 +472,7 @@ Route::middleware(['auth:sanctum', 'role:super_admin'])->group(function () {
 
     // Company settings
     Route::get('/company-settings', [CompanySettingsController::class, 'index']);
+    Route::get('/company-settings/all', [CompanySettingsController::class, 'indexAll']);
     Route::put('/company-settings', [CompanySettingsController::class, 'update']);
     Route::post('/company-settings/logo', [CompanySettingsController::class, 'updateLogo']);
     Route::delete('/company-settings/logo', [CompanySettingsController::class, 'destroyLogo']);

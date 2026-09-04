@@ -26,22 +26,43 @@ class CompanySettingsController extends Controller
         ]);
     }
 
+    public function indexAll(Request $request): JsonResponse
+    {
+        $companies = Company::with('settings')->get();
+
+        return response()->json([
+            'data' => $companies,
+        ]);
+    }
+
     public function update(Request $request): JsonResponse
     {
         $companyId = $this->resolveCompanyId($request);
         $company = Company::findOrFail($companyId);
 
-        $companyFields = ['name', 'phone', 'email', 'address', 'website'];
-        $companyData = $request->only($companyFields);
-        if (!empty($companyData)) {
-            $company->update($companyData);
-        }
+        $validated = $request->validate([
+            'name' => 'sometimes|string',
+            'phone' => 'nullable|string',
+            'email' => 'nullable|email',
+            'address' => 'nullable|string',
+            'website' => 'nullable|string',
+        ]);
 
-        foreach ($request->except(array_merge($companyFields, ['logo'])) as $key => $value) {
+        $company->update($validated);
+
+        $settingFields = $request->only([
+            'work_start_time', 'work_end_time', 'late_threshold',
+            'location_radius', 'enable_face_recognition', 'enable_remote_scan',
+        ]);
+
+        foreach ($settingFields as $key => $value) {
             CompanySetting::setValue($companyId, $key, $value);
         }
 
-        return response()->json(['message' => 'บันทึกสำเร็จ', 'company' => $company]);
+        return response()->json([
+            'message' => 'บันทึกสำเร็จ',
+            'company' => $company,
+        ]);
     }
 
     public function updateLogo(Request $request): JsonResponse
@@ -80,5 +101,17 @@ class CompanySettingsController extends Controller
         }
 
         return response()->json(['message' => 'ลบโลโก้สำเร็จ']);
+    }
+
+    protected function resolveCompanyId(Request $request): int
+    {
+        $user = $request->user();
+
+        // Super admin can manage any company
+        if ($user && $user->role === 'super_admin' && $request->input('company_id')) {
+            return (int) $request->input('company_id');
+        }
+
+        return parent::resolveCompanyId($request);
     }
 }
