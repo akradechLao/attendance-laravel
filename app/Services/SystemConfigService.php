@@ -29,7 +29,7 @@ class SystemConfigService
         'ot_requires_approval' => ['value' => 'true', 'type' => 'boolean', 'category' => 'ot', 'description' => 'OT ต้องได้รับอนุมัติก่อนหรือไม่'],
 
         // ─── WFH Policy ───
-        'wfh_max_days_per_month' => ['value' => '4', 'type' => 'integer', 'category' => 'wfh', 'description' => 'จำนวนวัน WFH สูงสุดต่อเดือน'],
+        'wfh_max_days_per_month' => ['value' => '1', 'type' => 'integer', 'category' => 'wfh', 'description' => 'จำนวนวัน WFH สูงสุดต่อเดือน'],
         'wfh_allowed_days' => ['value' => 'sat', 'type' => 'string', 'category' => 'wfh', 'description' => 'วันที่ WFH ได้ (sat=เสาร์, weekday=จ-ศ, all=ทุกวัน)'],
         'wfh_advance_days' => ['value' => '1', 'type' => 'integer', 'category' => 'wfh', 'description' => 'ต้องแจ้งล่วงหน้ากี่วัน'],
 

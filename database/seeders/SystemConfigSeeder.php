@@ -27,7 +27,7 @@ class SystemConfigSeeder extends Seeder
             ['key' => 'ot_requires_approval', 'value' => 'true', 'value_type' => 'boolean', 'category' => 'ot', 'description' => 'OT ต้องได้รับอนุมัติก่อนหรือไม่'],
 
             // WFH
-            ['key' => 'wfh_max_days_per_month', 'value' => '4', 'value_type' => 'integer', 'category' => 'wfh', 'description' => 'จำนวนวัน WFH สูงสุดต่อเดือน'],
+            ['key' => 'wfh_max_days_per_month', 'value' => '1', 'value_type' => 'integer', 'category' => 'wfh', 'description' => 'จำนวนวัน WFH สูงสุดต่อเดือน'],
             ['key' => 'wfh_allowed_days', 'value' => 'sat', 'value_type' => 'string', 'category' => 'wfh', 'description' => 'วันที่ WFH ได้ (sat=เสาร์, weekday=จ-ศ, all=ทุกวัน)'],
             ['key' => 'wfh_advance_days', 'value' => '1', 'value_type' => 'integer', 'category' => 'wfh', 'description' => 'ต้องแจ้งล่วงหน้ากี่วัน'],
 

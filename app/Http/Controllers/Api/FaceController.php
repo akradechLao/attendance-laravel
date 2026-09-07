@@ -487,15 +487,17 @@ class FaceController extends Controller
                 EmployeeFaceData::where('employee_id', $employee->id)->delete();
 
                 $savedFaceData = [];
-                foreach ($encodings as $i => $encoding) {
-                    $angle = $angles[$i] ?? "angle_{$i}";
-                    $faceData = EmployeeFaceData::create([
-                        'employee_id' => $employee->id,
-                        'angle' => $angle,
-                        'face_encoding' => is_string($encoding) ? $encoding : json_encode($encoding),
-                    ]);
-                    $savedFaceData[] = $faceData;
-                }
+                \DB::transaction(function () use ($employee, $encodings, $angles, &$savedFaceData) {
+                    foreach ($encodings as $i => $encoding) {
+                        $angle = $angles[$i] ?? "angle_{$i}";
+                        $faceData = EmployeeFaceData::create([
+                            'employee_id' => $employee->id,
+                            'angle' => $angle,
+                            'face_encoding' => is_string($encoding) ? $encoding : json_encode($encoding),
+                        ]);
+                        $savedFaceData[] = $faceData;
+                    }
+                });
 
                 return response()->json([
                     'success' => true,

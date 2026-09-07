@@ -138,8 +138,8 @@ class ReportController extends Controller
             }
 
             $employeesWithAttendance = $attendance->pluck('employee_id')->unique()->count();
-            $lateCount = $attendance->where('status', 'late')->count();
-            $onTimeCount = $attendance->where('status', 'on_time')->count();
+            $lateCount = $attendance->where('check_in_status', 'late')->count();
+            $onTimeCount = $attendance->where('check_in_status', 'on_time')->count();
             $absentCount = ($totalEmployees * $workingDays) - $attendance->count();
 
             return response()->json([
@@ -191,8 +191,8 @@ class ReportController extends Controller
                 ->get();
 
             $totalDays = $logs->count();
-            $lateCount = $logs->where('status', 'late')->count();
-            $onTimeCount = $logs->where('status', 'on_time')->count();
+            $lateCount = $logs->where('check_in_status', 'late')->count();
+            $onTimeCount = $logs->where('check_in_status', 'on_time')->count();
 
             $startDate = Carbon::parse($request->start_date);
             $endDate = Carbon::parse($request->end_date);

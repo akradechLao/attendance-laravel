@@ -194,7 +194,7 @@ class WfhRequestController extends Controller
             $record->update([
                 'date' => $approvedDate,
                 'approved_date' => $approvedDate,
-                'supervisor_id' => $request->get('supervisor_id'),
+                'supervisor_id' => $request->user()->id,
                 'supervisor_note' => $request->get('supervisor_note'),
                 'status' => 'approved',
             ]);
@@ -275,7 +275,7 @@ class WfhRequestController extends Controller
         }
 
         $record->update([
-            'supervisor_id' => $request->get('supervisor_id'),
+            'supervisor_id' => $request->user()->id,
             'supervisor_note' => $request->get('supervisor_note', ''),
             'status' => 'rejected',
         ]);
@@ -289,7 +289,7 @@ class WfhRequestController extends Controller
             ->delete();
 
         // Send in-app notification to employee with approver's name & position
-        $approverId = $request->get('supervisor_id');
+        $approverId = $request->user()->id;
         $approver = $approverId ? Employee::find($approverId) : null;
         $approverText = $approver ? "คุณ {$approver->name} ({$approver->getPositionName()})" : 'ผู้อนุมัติ';
         EmployeeNotification::notify(
