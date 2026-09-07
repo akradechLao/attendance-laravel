@@ -348,7 +348,7 @@ class EmployeeController extends Controller
             $employee = Employee::findOrFail($id);
 
             $request->validate([
-                'password' => 'required|string|min:1',
+                'password' => 'required|string|min:4',
             ]);
 
             $employee->password = $request->password;

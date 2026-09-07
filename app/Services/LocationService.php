@@ -35,7 +35,7 @@ class LocationService
         }
     }
 
-    public function calculateDistance(float $lat1, float $lon1, float $lat2, float $lon2): float
+    public static function calculateDistance(float $lat1, float $lon1, float $lat2, float $lon2): float
     {
         $earthRadius = 6371000; // meters
 

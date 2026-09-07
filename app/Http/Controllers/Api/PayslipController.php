@@ -280,7 +280,7 @@ class PayslipController extends Controller
                 $telegram->sendToChat($employee->telegram_chat_id, $message);
             }
         } catch (\Exception $e) {
-            // Silent fail
+            \Log::warning('Telegram notification failed (Payslip): ' . $e->getMessage());
         }
 
         return response()->json([

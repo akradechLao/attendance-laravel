@@ -43,7 +43,8 @@ class OtRequest extends Model
             if (!$ot->total_hours && $ot->start_time && $ot->end_time) {
                 $start = Carbon::parse($ot->start_time);
                 $end = Carbon::parse($ot->end_time);
-                $ot->total_hours = round($start->diffInMinutes($end) / 60, 2);
+                $minutes = $start->diffInMinutes($end);
+                $ot->total_hours = $minutes > 0 ? round($minutes / 60, 2) : 0;
             }
         });
 
@@ -51,7 +52,8 @@ class OtRequest extends Model
             if ($ot->isDirty(['start_time', 'end_time']) && $ot->start_time && $ot->end_time) {
                 $start = Carbon::parse($ot->start_time);
                 $end = Carbon::parse($ot->end_time);
-                $ot->total_hours = round($start->diffInMinutes($end) / 60, 2);
+                $minutes = $start->diffInMinutes($end);
+                $ot->total_hours = $minutes > 0 ? round($minutes / 60, 2) : 0;
             }
         });
     }

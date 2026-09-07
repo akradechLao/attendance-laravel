@@ -49,9 +49,9 @@ class PermissionController extends Controller
     public function resetPassword(Request $request, $id)
     {
         $employee = Employee::findOrFail($id);
-        $employee->update(['password' => Hash::make('password')]);
+        $employee->update(['password' => Hash::make('1234')]);
 
-        return response()->json(['message' => 'รีเซ็ตรหัสผ่านสำเร็จ (รหัสผ่านใหม่: password)']);
+        return response()->json(['message' => 'รีเซ็ตรหัสผ่านสำเร็จ']);
     }
 
     public function changePassword(Request $request)

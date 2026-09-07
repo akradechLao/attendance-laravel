@@ -780,7 +780,7 @@ class FaceController extends Controller
                 $telegram->sendToCompanyGroups($employee->company_id, $message, 'attendance');
             }
         } catch (\Exception $e) {
-            // Silent fail
+            Log::warning('Telegram notification failed (attendance): ' . $e->getMessage());
         }
     }
 
@@ -859,18 +859,7 @@ class FaceController extends Controller
 
     private function calculateDistance($lat1, $lon1, $lat2, $lon2): float
     {
-        $earthRadius = 6371000;
-
-        $dLat = deg2rad($lat2 - $lat1);
-        $dLon = deg2rad($lon2 - $lon1);
-
-        $a = sin($dLat / 2) * sin($dLat / 2) +
-             cos(deg2rad($lat1)) * cos(deg2rad($lat2)) *
-             sin($dLon / 2) * sin($dLon / 2);
-
-        $c = 2 * atan2(sqrt($a), sqrt(1 - $a));
-
-        return $earthRadius * $c;
+        return \App\Services\LocationService::calculateDistance($lat1, $lon1, $lat2, $lon2);
     }
 
     private function reverseGeocode(float $lat, float $lon): ?string
@@ -927,7 +916,7 @@ class FaceController extends Controller
                 $telegram->sendToChat($employee->supervisor->telegram_chat_id, $supMessage);
             }
         } catch (\Exception $e) {
-            // Silent fail
+            Log::warning('Telegram notification failed (supervisor): ' . $e->getMessage());
         }
     }
 
