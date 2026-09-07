@@ -33,9 +33,10 @@ class DeviceToken extends Model
         return $this->belongsTo(Employee::class);
     }
 
-    public static function generateToken(?string $deviceName = null, ?string $fingerprint = null): self
+    public static function generateToken(int $employeeId, ?string $deviceName = null, ?string $fingerprint = null): self
     {
         return static::create([
+            'employee_id' => $employeeId,
             'token' => hash('sha256', Str::random(64) . microtime(true)),
             'device_name' => $deviceName,
             'device_fingerprint' => $fingerprint,

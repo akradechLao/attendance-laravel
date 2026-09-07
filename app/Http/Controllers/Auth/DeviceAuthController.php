@@ -27,11 +27,10 @@ class DeviceAuthController extends Controller
 
         // Create device token
         $deviceToken = DeviceToken::generateToken(
+            $employee->id,
             $request->device_name,
             $request->device_fingerprint
         );
-        $deviceToken->employee()->associate($employee);
-        $deviceToken->save();
 
         return response()->json([
             'success' => true,
