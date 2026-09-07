@@ -33,7 +33,7 @@ class EmployeeScheduleController extends Controller
             $schedules->push([
                 'date' => $date,
                 'shift_code' => $resolved['shift_code'],
-                'day_type' => $resolved['day_type'],
+                'day_type' => $resolved['day_type'] ?? 'working',
                 'start_time' => $resolved['start_time'],
                 'end_time' => $resolved['end_time'],
             ]);
