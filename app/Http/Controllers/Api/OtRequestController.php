@@ -172,6 +172,16 @@ class OtRequestController extends Controller
     public function finalApprove(Request $request, $id): JsonResponse
     {
         try {
+            $user = $request->user();
+            $userRole = $user->role ?? 'employee';
+            if (!in_array($userRole, ['admin', 'super_admin'])) {
+                return response()->json([
+                    'success' => false,
+                    'data' => null,
+                    'message' => 'ไม่มีสิทธิ์อนุมัติ OT ขั้นสุดท้าย',
+                ], 403);
+            }
+
             $otRequest = OtRequest::findOrFail($id);
 
             if ($otRequest->status !== 'pending_hr') {

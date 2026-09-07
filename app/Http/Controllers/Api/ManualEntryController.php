@@ -18,6 +18,18 @@ use Illuminate\Http\Request;
 
 class ManualEntryController extends Controller
 {
+    private function canModifyEmployee(Request $request, int $employeeId): bool
+    {
+        $user = $request->user();
+        $userRole = $user->role ?? 'employee';
+        if (in_array($userRole, ['admin', 'super_admin'])) {
+            if ($userRole === 'super_admin') return true;
+            $employee = Employee::find($employeeId);
+            return $employee && $employee->company_id === $user->company_id;
+        }
+        return false;
+    }
+
     // ============================================================
     // ATTENDANCE
     // ============================================================
@@ -61,6 +73,10 @@ class ManualEntryController extends Controller
             'check_in_status' => 'nullable|in:on_time,late,early',
             'note' => 'nullable|string|max:500',
         ]);
+
+        if (!$this->canModifyEmployee($request, $validated['emp_id'])) {
+            return response()->json(['success' => false, 'message' => 'ไม่มีสิทธิ์แก้ไขข้อมูลพนักงานนี้'], 403);
+        }
 
         $employee = Employee::find($validated['emp_id']);
         $existing = AttendanceLog::where('emp_id', $validated['emp_id'])
@@ -180,6 +196,10 @@ class ManualEntryController extends Controller
             'status' => 'nullable|in:pending,approved',
         ]);
 
+        if (!$this->canModifyEmployee($request, $validated['emp_id'])) {
+            return response()->json(['success' => false, 'message' => 'ไม่มีสิทธิ์แก้ไขข้อมูลพนักงานนี้'], 403);
+        }
+
         $employee = Employee::find($validated['emp_id']);
 
         $ot = OtRequest::create([
@@ -273,6 +293,10 @@ class ManualEntryController extends Controller
             'shift_code' => 'required|string',
             'day_type' => 'nullable|in:working,holiday,day_off',
         ]);
+
+        if (!$this->canModifyEmployee($request, $validated['emp_id'])) {
+            return response()->json(['success' => false, 'message' => 'ไม่มีสิทธิ์แก้ไขข้อมูลพนักงานนี้'], 403);
+        }
 
         $employee = Employee::find($validated['emp_id']);
         $existing = ShiftSchedule::where('emp_id', $validated['emp_id'])
@@ -376,6 +400,10 @@ class ManualEntryController extends Controller
             'reason' => 'nullable|string|max:500',
             'status' => 'nullable|in:pending,approved',
         ]);
+
+        if (!$this->canModifyEmployee($request, $validated['emp_id'])) {
+            return response()->json(['success' => false, 'message' => 'ไม่มีสิทธิ์แก้ไขข้อมูลพนักงานนี้'], 403);
+        }
 
         $employee = Employee::find($validated['emp_id']);
         $start = Carbon::parse($validated['start_date']);
@@ -495,6 +523,10 @@ class ManualEntryController extends Controller
             'reason' => 'nullable|string|max:500',
             'status' => 'nullable|in:pending,approved',
         ]);
+
+        if (!$this->canModifyEmployee($request, $validated['emp_id'])) {
+            return response()->json(['success' => false, 'message' => 'ไม่มีสิทธิ์แก้ไขข้อมูลพนักงานนี้'], 403);
+        }
 
         $employee = Employee::find($validated['emp_id']);
         $status = $validated['status'] ?? 'approved';

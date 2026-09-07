@@ -41,7 +41,7 @@ class EmployeeAuthController extends Controller
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'Search failed: ' . $e->getMessage(),
+                'message' => 'ค้นหาพนักงานล้มเหลว กรุณาลองใหม่อีกครั้ง',
             ], 500);
         }
     }
@@ -83,7 +83,7 @@ class EmployeeAuthController extends Controller
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'เข้าสู่ระบบล้มเหลว: ' . $e->getMessage(),
+                'message' => 'เข้าสู่ระบบล้มเหลว กรุณาลองใหม่อีกครั้ง',
             ], 500);
         }
     }
@@ -116,7 +116,7 @@ class EmployeeAuthController extends Controller
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'Verification failed: ' . $e->getMessage(),
+                'message' => 'การยืนยันตัวตนล้มเหลว กรุณาลองใหม่อีกครั้ง',
             ], 500);
         }
     }

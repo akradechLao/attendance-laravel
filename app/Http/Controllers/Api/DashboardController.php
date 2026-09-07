@@ -172,7 +172,7 @@ class DashboardController extends Controller
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'Failed to retrieve stats: ' . $e->getMessage(),
+                'message' => 'ไม่สามารถดึงข้อมูลได้ กรุณาลองใหม่อีกครั้ง',
             ], 500);
         }
     }
@@ -302,7 +302,7 @@ class DashboardController extends Controller
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'Failed to retrieve today\'s summary: ' . $e->getMessage(),
+                'message' => 'ไม่สามารถดึงข้อมูลได้ กรุณาลองใหม่อีกครั้ง',
             ], 500);
         }
     }

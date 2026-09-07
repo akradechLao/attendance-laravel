@@ -148,7 +148,7 @@ class AttendanceController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Check-in failed: ' . $e->getMessage(),
+                'message' => 'บันทึกเวลาเข้างานล้มเหลว กรุณาลองใหม่อีกครั้ง',
             ], 500);
         }
     }
@@ -245,7 +245,7 @@ class AttendanceController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Check-out failed: ' . $e->getMessage(),
+                'message' => 'บันทึกเวลาออกงานล้มเหลว กรุณาลองใหม่อีกครั้ง',
             ], 500);
         }
     }

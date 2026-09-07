@@ -200,7 +200,7 @@ class EmployeeDashboardController extends Controller
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,
-                'message' => 'Dashboard error: ' . $e->getMessage(),
+                'message' => 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง',
             ], 500);
         }
     }

@@ -432,7 +432,7 @@ class FaceController extends Controller
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'Face verification failed: ' . $e->getMessage(),
+                'message' => 'ระบบ Face Recognition ขัดข้อง กรุณาลองใหม่อีกครั้ง',
             ], 500);
         }
     }

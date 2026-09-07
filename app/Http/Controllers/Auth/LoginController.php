@@ -49,7 +49,7 @@ class LoginController extends Controller
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'Login failed: ' . $e->getMessage(),
+                'message' => 'เข้าสู่ระบบล้มเหลว กรุณาลองใหม่อีกครั้ง',
             ], 500);
         }
     }
