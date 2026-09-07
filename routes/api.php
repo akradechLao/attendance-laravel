@@ -76,9 +76,9 @@ Route::get('/time', function () {
 Route::post('/employee/auth/search', [EmployeeAuthController::class, 'search'])->middleware('throttle:30,1');
 Route::post('/employee/auth/verify', [EmployeeAuthController::class, 'verify'])->middleware('throttle:60,1');
 Route::post('/employee/auth/device-login', [DeviceAuthController::class, 'deviceLogin'])->middleware('throttle:30,1');
-Route::post('/employee/auth/register-device', [DeviceAuthController::class, 'registerDevice']);
-Route::get('/employee/auth/devices', [DeviceAuthController::class, 'listDevices']);
-Route::delete('/employee/auth/device/{id}', [DeviceAuthController::class, 'removeDevice']);
+Route::post('/employee/auth/register-device', [DeviceAuthController::class, 'registerDevice'])->middleware('throttle:10,1');
+Route::get('/employee/auth/devices', [DeviceAuthController::class, 'listDevices'])->middleware('throttle:30,1');
+Route::delete('/employee/auth/device/{id}', [DeviceAuthController::class, 'removeDevice'])->middleware('throttle:10,1');
 Route::post('/face/verify', [FaceController::class, 'verify'])->middleware('throttle:30,1');
 
 Route::post('/face/detect', function () {
@@ -95,13 +95,23 @@ Route::post('/face/detect', function () {
     }
 });
 
-Route::get('/employees/{id}/face-data', [EmployeeController::class, 'faceData'])->middleware('throttle:60,1');
-Route::delete('/employees/{id}/face-data', [EmployeeController::class, 'deleteFaceData'])->middleware('throttle:10,1');
+Route::get('/employees/{id}/face-data', [EmployeeController::class, 'faceData'])->middleware('auth:sanctum', 'throttle:60,1');
+Route::delete('/employees/{id}/face-data', [EmployeeController::class, 'deleteFaceData'])->middleware('auth:sanctum', 'throttle:10,1');
 
 Route::post('/employees/{id}/face', function ($id) {
     $employee = \App\Models\Employee::find($id);
     if (!$employee) {
         return response()->json(['success' => false, 'message' => 'Employee not found.'], 404);
+    }
+
+    // ─── ต้องมี verification_token ───
+    $token = request()->input('verification_token');
+    if (!$token) {
+        return response()->json(['success' => false, 'message' => 'กรุณายืนยันตัวตนด้วยการสแกนใบหน้าก่อน'], 400);
+    }
+    $tokenData = \Illuminate\Support\Facades\Cache::get("face_verify:{$token}");
+    if (!$tokenData || $tokenData['employee_id'] != $id) {
+        return response()->json(['success' => false, 'message' => 'การยืนยันตัวตนไม่ถูกต้องหรือหมดเวลา'], 403);
     }
 
     $todayCount = \App\Models\EmployeeFaceData::where('employee_id', $id)

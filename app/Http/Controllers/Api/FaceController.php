@@ -154,25 +154,6 @@ class FaceController extends Controller
                 $isOvernight = $shiftInfo['is_overnight'];
                 $resolvedShift = $shiftInfo['resolved'];
 
-                // ตรวจสอบรอบที่ยังไม่ได้เช็คเอาท์
-                $activeRound = AttendanceLog::where('emp_id', $employee->id)
-                    ->whereDate('date', $shiftStartDate)
-                    ->whereNull('check_out')
-                    ->first();
-
-                if ($activeRound) {
-                    return response()->json([
-                        'success' => false,
-                        'data' => null,
-                        'message' => 'กรุณาเช็คเอาท์รอบที่ ' . $activeRound->round_no . ' ก่อนเช็คอินรอบใหม่',
-                    ], 400);
-                }
-
-                $maxRound = AttendanceLog::where('emp_id', $employee->id)
-                    ->whereDate('date', $shiftStartDate)
-                    ->max('round_no') ?? 0;
-                $nextRound = $maxRound + 1;
-
                 $isRemote = $employee->hasActiveRemoteAssignment();
                 $officeLocation = $employee->getAssignedOfficeLocation();
 
@@ -189,86 +170,124 @@ class FaceController extends Controller
                     $workStartTime = Carbon::parse($shiftStartDate . ' ' . $time);
                 }
 
-                $lateMinutes = 0;
-                $originalStatus = 'on_time';
+                // ─── DB Transaction ป้องกัน race condition ───
+                $log = \DB::transaction(function () use ($employee, $shiftStartDate, $now, $workStartTime, $officeLocation, $isRemote, $request) {
+                    // ตรวจสอบรอบที่ยังไม่ได้เช็คเอาท์
+                    $activeRound = AttendanceLog::where('emp_id', $employee->id)
+                        ->whereDate('date', $shiftStartDate)
+                        ->whereNull('check_out')
+                        ->first();
 
-                // ─── คำนวณสายจาก check_in ครั้งแรกของวัน (ไม่ใช่ครั้งล่าสุด) ───
-                $firstCheckIn = AttendanceLog::where('emp_id', $employee->id)
-                    ->whereDate('date', $shiftStartDate)
-                    ->orderBy('round_no', 'asc')
-                    ->value('check_in');
-
-                $calcTime = $now;
-                if ($firstCheckIn) {
-                    $firstCheckInTime = $firstCheckIn instanceof Carbon
-                        ? $firstCheckIn
-                        : Carbon::parse($shiftStartDate . ' ' . $firstCheckIn);
-                    if ($firstCheckInTime->lt($now)) {
-                        $calcTime = $firstCheckInTime;
+                    if ($activeRound) {
+                        return ['error' => true, 'round' => $activeRound->round_no];
                     }
+
+                    $maxRound = AttendanceLog::where('emp_id', $employee->id)
+                        ->whereDate('date', $shiftStartDate)
+                        ->max('round_no') ?? 0;
+                    $nextRound = $maxRound + 1;
+
+                    $lateMinutes = 0;
+                    $originalStatus = 'on_time';
+
+                    // ─── คำนวณสายจาก check_in ครั้งแรกของวัน ───
+                    $firstCheckIn = AttendanceLog::where('emp_id', $employee->id)
+                        ->whereDate('date', $shiftStartDate)
+                        ->orderBy('round_no', 'asc')
+                        ->value('check_in');
+
+                    $calcTime = $now;
+                    if ($firstCheckIn) {
+                        $firstCheckInTime = $firstCheckIn instanceof Carbon
+                            ? $firstCheckIn
+                            : Carbon::parse($shiftStartDate . ' ' . $firstCheckIn);
+                        if ($firstCheckInTime->lt($now)) {
+                            $calcTime = $firstCheckInTime;
+                        }
+                    }
+
+                    if ($workStartTime) {
+                        $lateMinutes = AttendanceCalculator::calculateLateMinutes($workStartTime, $calcTime);
+                        if ($lateMinutes > 0) {
+                            $originalStatus = 'late';
+                        }
+                    }
+
+                    $scanType = $isRemote ? 'remote_scan' : 'office_scan';
+                    $remoteLatitude = null;
+                    $remoteLongitude = null;
+                    $remoteAccuracy = null;
+                    $remoteLocationName = null;
+
+                    if ($isRemote && $request->latitude && $request->longitude) {
+                        $remoteLatitude = $request->latitude;
+                        $remoteLongitude = $request->longitude;
+                        $remoteAccuracy = $request->accuracy ?? null;
+                        $remoteLocationName = $request->custom_location_name ?: $this->reverseGeocode($request->latitude, $request->longitude);
+                    } elseif (!$isRemote && $officeLocation && $request->latitude && $request->longitude) {
+                        $remoteLatitude = $request->latitude;
+                        $remoteLongitude = $request->longitude;
+
+                        $distance = $this->calculateDistance(
+                            $request->latitude,
+                            $request->longitude,
+                            $officeLocation->latitude,
+                            $officeLocation->longitude
+                        );
+
+                        if ($distance > $officeLocation->radius_meters) {
+                            return ['gps_error' => true, 'distance' => $distance, 'radius' => $officeLocation->radius_meters];
+                        }
+                    }
+
+                    $latLong = $request->latitude && $request->longitude
+                        ? $request->latitude . ',' . $request->longitude
+                        : null;
+
+                    $log = AttendanceLog::create([
+                        'emp_id' => $employee->id,
+                        'company_id' => $employee->company_id,
+                        'date' => $shiftStartDate,
+                        'round_no' => $nextRound,
+                        'check_in' => $now->format('H:i:s'),
+                        'check_in_status' => $originalStatus,
+                        'original_status' => $originalStatus,
+                        'final_status' => $originalStatus,
+                        'late_minutes' => $lateMinutes > 0 ? $lateMinutes : null,
+                        'lat_long' => $latLong,
+                        'scan_type' => $scanType,
+                        'remote_latitude' => $remoteLatitude,
+                        'remote_longitude' => $remoteLongitude,
+                        'remote_accuracy' => $remoteAccuracy,
+                        'remote_location_name' => $remoteLocationName,
+                        'is_verified' => true,
+                        'face_image' => hash('sha256', $request->input('image')),
+                        'pdpa_consent' => $request->boolean('pdpa_consent'),
+                    ]);
+
+                    return ['log' => $log, 'late_minutes' => $lateMinutes, 'original_status' => $originalStatus, 'next_round' => $nextRound];
+                });
+
+                // ─── จัดการผลลัพธ์จาก transaction ───
+                if (isset($log['error'])) {
+                    return response()->json([
+                        'success' => false,
+                        'data' => null,
+                        'message' => 'กรุณาเช็คเอาท์รอบที่ ' . $log['round'] . ' ก่อนเช็คอินรอบใหม่',
+                    ], 400);
                 }
 
-                if ($workStartTime) {
-                    $lateMinutes = AttendanceCalculator::calculateLateMinutes($workStartTime, $calcTime);
-                    if ($lateMinutes > 0) {
-                        $originalStatus = 'late';
-                    }
+                if (isset($log['gps_error'])) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'คุณอยู่นอกพื้นที่เช็คอิน (ห่าง ' . round($log['distance']) . ' เมตร กรุณาเข้าใกล้สถานที่เช็คอินให้อยู่ในรัศมี ' . $log['radius'] . ' เมตร)',
+                    ], 400);
                 }
 
-                $scanType = $isRemote ? 'remote_scan' : 'office_scan';
-                $remoteLatitude = null;
-                $remoteLongitude = null;
-                $remoteAccuracy = null;
-                $remoteLocationName = null;
-
-                if ($isRemote && $request->latitude && $request->longitude) {
-                    $remoteLatitude = $request->latitude;
-                    $remoteLongitude = $request->longitude;
-                    $remoteAccuracy = $request->accuracy ?? null;
-                    $remoteLocationName = $request->custom_location_name ?: $this->reverseGeocode($request->latitude, $request->longitude);
-                } elseif (!$isRemote && $officeLocation && $request->latitude && $request->longitude) {
-                    $remoteLatitude = $request->latitude;
-                    $remoteLongitude = $request->longitude;
-
-                    $distance = $this->calculateDistance(
-                        $request->latitude,
-                        $request->longitude,
-                        $officeLocation->latitude,
-                        $officeLocation->longitude
-                    );
-
-                    if ($distance > $officeLocation->radius_meters) {
-                        return response()->json([
-                            'success' => false,
-                            'message' => 'คุณอยู่นอกพื้นที่เช็คอิน (ห่าง ' . round($distance) . ' เมตร กรุณาเข้าใกล้สถานที่เช็คอินให้อยู่ในรัศมี ' . $officeLocation->radius_meters . ' เมตร)',
-                        ], 400);
-                    }
-                }
-
-                $latLong = $request->latitude && $request->longitude
-                    ? $request->latitude . ',' . $request->longitude
-                    : null;
-
-                $log = AttendanceLog::create([
-                    'emp_id' => $employee->id,
-                    'company_id' => $employee->company_id,
-                    'date' => $shiftStartDate,
-                    'round_no' => $nextRound,
-                    'check_in' => $now->format('H:i:s'),
-                    'check_in_status' => $originalStatus,
-                    'original_status' => $originalStatus,
-                    'final_status' => $originalStatus,
-                    'late_minutes' => $lateMinutes > 0 ? $lateMinutes : null,
-                    'lat_long' => $latLong,
-                    'scan_type' => $scanType,
-                    'remote_latitude' => $remoteLatitude,
-                    'remote_longitude' => $remoteLongitude,
-                    'remote_accuracy' => $remoteAccuracy,
-                    'remote_location_name' => $remoteLocationName,
-                    'is_verified' => true,
-                    'face_image' => hash('sha256', $request->input('image')),
-                    'pdpa_consent' => $request->boolean('pdpa_consent'),
-                ]);
+                $lateMinutes = $log['late_minutes'];
+                $originalStatus = $log['original_status'];
+                $nextRound = $log['next_round'];
+                $log = $log['log'];
 
                 // ─── สายเกิน threshold → บังคับลากิจ ───
                 $lateThreshold = SystemConfigService::get('late_threshold_minutes', 30);
@@ -324,31 +343,6 @@ class FaceController extends Controller
 
                 Log::info("Face check-out for employee {$employee->id}, shift_start_date={$shiftStartDate}");
 
-                // 1) หา record ที่ check_out IS NULL ก่อน (ปกติ)
-                $log = AttendanceLog::where('emp_id', $employee->id)
-                    ->whereDate('date', $shiftStartDate)
-                    ->whereNull('check_out')
-                    ->orderBy('round_no', 'desc')
-                    ->first();
-
-                // 2) ถ้าไม่มี record ว่าง ให้หา record ล่าสุดที่ is_estimated = true (auto-checkout)
-                if (!$log) {
-                    $log = AttendanceLog::where('emp_id', $employee->id)
-                        ->whereDate('date', $shiftStartDate)
-                        ->where('is_estimated', true)
-                        ->orderBy('round_no', 'desc')
-                        ->first();
-                }
-
-                if (!$log) {
-                    Log::warning("No open attendance log for employee {$employee->id} on {$shiftStartDate}");
-                    return response()->json([
-                        'success' => false,
-                        'data' => null,
-                        'message' => 'ไม่พบรายการเช็คอินที่ยังไม่ได้เช็คเอาท์',
-                    ], 400);
-                }
-
                 // ─── GPS check-out enforcement ───
                 $isRemote = $employee->hasActiveRemoteAssignment();
                 $officeLocation = $employee->getAssignedOfficeLocation();
@@ -369,26 +363,65 @@ class FaceController extends Controller
                     }
                 }
 
-                $updateData = ['check_out' => $now];
+                // ─── DB Transaction ป้องกัน race condition ───
+                $result = \DB::transaction(function () use ($employee, $shiftStartDate, $now, $request) {
+                    // 1) หา record ที่ check_out IS NULL ก่อน (ปกติ)
+                    $log = AttendanceLog::where('emp_id', $employee->id)
+                        ->whereDate('date', $shiftStartDate)
+                        ->whereNull('check_out')
+                        ->orderBy('round_no', 'desc')
+                        ->lockForUpdate()
+                        ->first();
 
-                // ─── ถ้าเป็น estimated record ให้แก้เป็นเวลาจริง ───
-                if ($log->is_estimated) {
-                    $updateData['is_estimated'] = false;
-                    Log::info("Replacing estimated checkout for employee {$employee->id}, log #{$log->id}: {$log->check_out} → {$now}");
+                    // 2) ถ้าไม่มี record ว่าง ให้หา record ล่าสุดที่ is_estimated = true (auto-checkout)
+                    if (!$log) {
+                        $log = AttendanceLog::where('emp_id', $employee->id)
+                            ->whereDate('date', $shiftStartDate)
+                            ->where('is_estimated', true)
+                            ->orderBy('round_no', 'desc')
+                            ->lockForUpdate()
+                            ->first();
+                    }
+
+                    if (!$log) {
+                        return ['error' => true];
+                    }
+
+                    $updateData = ['check_out' => $now];
+
+                    // ─── ถ้าเป็น estimated record ให้แก้เป็นเวลาจริง ───
+                    if ($log->is_estimated) {
+                        $updateData['is_estimated'] = false;
+                        Log::info("Replacing estimated checkout for employee {$employee->id}, log #{$log->id}: {$log->check_out} → {$now}");
+                    }
+
+                    if ($request->latitude && $request->longitude) {
+                        $updateData['remote_latitude'] = $request->latitude;
+                        $updateData['remote_longitude'] = $request->longitude;
+                        $updateData['remote_accuracy'] = $request->accuracy ?? null;
+                    }
+
+                    if ($request->input('image')) {
+                        $updateData['check_out_face_image'] = hash('sha256', $request->input('image'));
+                    }
+
+                    $wasEstimated = $log->is_estimated;
+                    $log->update($updateData);
+
+                    return ['log' => $log, 'was_estimated' => $wasEstimated];
+                });
+
+                if (isset($result['error'])) {
+                    Log::warning("No open attendance log for employee {$employee->id} on {$shiftStartDate}");
+                    return response()->json([
+                        'success' => false,
+                        'data' => null,
+                        'message' => 'ไม่พบรายการเช็คอินที่ยังไม่ได้เช็คเอาท์',
+                    ], 400);
                 }
 
-                if ($request->latitude && $request->longitude) {
-                    $updateData['remote_latitude'] = $request->latitude;
-                    $updateData['remote_longitude'] = $request->longitude;
-                    $updateData['remote_accuracy'] = $request->accuracy ?? null;
-                }
-
-                if ($request->input('image')) {
-                    $updateData['check_out_face_image'] = hash('sha256', $request->input('image'));
-                }
-
-                $wasEstimated = $log->is_estimated; // ก่อน update
-                $log->update($updateData);
+                $log = $result['log'];
+                $wasEstimated = $result['was_estimated'];
 
                 // ─── ตรวจจับ OT หลังเวลา (กลับช้า ≥ 1 ชม.) ───
                 $shiftInfo = $this->getEmployeeShiftInfo($employee, $now);
