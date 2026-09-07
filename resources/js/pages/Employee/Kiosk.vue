@@ -1093,17 +1093,11 @@ async function selectEmployee(employee) {
   scanningError.value = ''
 
   try {
-    const faceRes = await api.get(`/api/employees/${employee.id}/face-data`)
-    const faceData = faceRes.data.data || []
-    const faceCount = faceData.length
+    const faceRes = await api.get(`/api/employees/${employee.id}/face-count`)
+    const faceCount = faceRes.data.data?.count || 0
+    const registeredToday = faceRes.data.data?.registered_today || false
 
     if (faceCount < 5) {
-      const registeredToday = faceData.some(f => {
-        const created = new Date(f.created_at)
-        const today = new Date()
-        return created.toDateString() === today.toDateString()
-      })
-
       if (registeredToday) {
         scanningError.value = 'ลงทะเบียนใบหน้าวันนี้แล้ว กรุณากลับมาลงทะเบียนใหม่วันถัดไป'
         step.value = 2

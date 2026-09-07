@@ -97,6 +97,13 @@ Route::post('/face/detect', function () {
 
 Route::get('/employees/{id}/face-data', [EmployeeController::class, 'faceData'])->middleware('auth:sanctum', 'throttle:60,1');
 Route::delete('/employees/{id}/face-data', [EmployeeController::class, 'deleteFaceData'])->middleware('auth:sanctum', 'throttle:10,1');
+Route::get('/employees/{id}/face-count', function ($id) {
+    $count = \App\Models\EmployeeFaceData::where('employee_id', $id)->count();
+    $registeredToday = \App\Models\EmployeeFaceData::where('employee_id', $id)
+        ->whereDate('created_at', now()->toDateString())
+        ->exists();
+    return response()->json(['success' => true, 'data' => ['count' => $count, 'registered_today' => $registeredToday]]);
+})->middleware('throttle:30,1');
 
 Route::post('/employees/{id}/face', function ($id) {
     $employee = \App\Models\Employee::find($id);
