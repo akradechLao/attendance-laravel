@@ -21,6 +21,7 @@
     <div class="bg-white rounded-xl shadow p-4">
       <label class="block text-sm font-medium text-gray-700 mb-2">เลือกเดือน</label>
       <input type="month" v-model="selectedMonth" @change="loadData" 
+             :min="minMonth"
              class="w-full border rounded-lg p-2" />
     </div>
 
@@ -152,6 +153,11 @@ const occupiedMap = ref({})
 
 const user = computed(() => state.user)
 const employeeId = computed(() => user.value?.id)
+const minMonth = computed(() => {
+  const d = new Date()
+  d.setDate(d.getDate() - 30)
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0')
+})
 
 const daysInMonth = computed(() => {
   const [year, month] = selectedMonth.value.split('-').map(Number)

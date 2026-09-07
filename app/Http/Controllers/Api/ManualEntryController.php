@@ -55,7 +55,7 @@ class ManualEntryController extends Controller
     {
         $validated = $request->validate([
             'emp_id' => 'required|exists:employees,id',
-            'date' => 'required|date',
+            'date' => 'required|date|after_or_equal:-30 days',
             'check_in' => 'required|date_format:H:i',
             'check_out' => 'nullable|date_format:H:i|after:check_in',
             'check_in_status' => 'nullable|in:on_time,late,early',
@@ -173,7 +173,7 @@ class ManualEntryController extends Controller
     {
         $validated = $request->validate([
             'emp_id' => 'required|exists:employees,id',
-            'date' => 'required|date',
+            'date' => 'required|date|after_or_equal:-30 days',
             'start_time' => 'required|date_format:H:i',
             'end_time' => 'required|date_format:H:i|after:start_time',
             'reason' => 'nullable|string|max:500',
@@ -269,7 +269,7 @@ class ManualEntryController extends Controller
     {
         $validated = $request->validate([
             'emp_id' => 'required|exists:employees,id',
-            'work_date' => 'required|date',
+            'work_date' => 'required|date|after_or_equal:-30 days',
             'shift_code' => 'required|string',
             'day_type' => 'nullable|in:working,holiday,day_off',
         ]);
@@ -371,7 +371,7 @@ class ManualEntryController extends Controller
         $validated = $request->validate([
             'emp_id' => 'required|exists:employees,id',
             'leave_type_id' => 'required|exists:leave_types,id',
-            'start_date' => 'required|date',
+            'start_date' => 'required|date|after_or_equal:-30 days',
             'end_date' => 'required|date|after_or_equal:start_date',
             'reason' => 'nullable|string|max:500',
             'status' => 'nullable|in:pending,approved',
@@ -491,7 +491,7 @@ class ManualEntryController extends Controller
     {
         $validated = $request->validate([
             'emp_id' => 'required|exists:employees,id',
-            'date' => 'required|date',
+            'date' => 'required|date|after_or_equal:-30 days',
             'reason' => 'nullable|string|max:500',
             'status' => 'nullable|in:pending,approved',
         ]);
