@@ -334,6 +334,7 @@ Route::middleware(['auth:sanctum', 'role:admin,super_admin'])->group(function ()
     Route::get('/reports/export-leave-pdf', [ReportController::class, 'exportLeavePdf']);
     Route::get('/reports/ot', [ReportController::class, 'ot']);
     Route::get('/reports/export-ot-pdf', [ReportController::class, 'exportOtPdf']);
+    Route::get('/reports/export-xls', [ReportController::class, 'exportAttendanceXls']);
 
     // Audit Logs
     Route::get('/audit-logs', [AuditLogController::class, 'index']);

@@ -17,6 +17,16 @@
           {{ exporting ? 'กำลังส่งออก...' : 'ส่งออก CSV' }}
         </button>
         <button
+          @click="exportExcel"
+          :disabled="records.length === 0 || exporting"
+          class="btn-success flex items-center gap-2"
+        >
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+          {{ exporting ? 'กำลังส่งออก...' : 'ส่งออก Excel' }}
+        </button>
+        <button
           @click="exportPDF"
           :disabled="records.length === 0 || exporting"
           class="btn-primary flex items-center gap-2"
@@ -573,6 +583,30 @@ function exportCSV() {
   URL.revokeObjectURL(link.href)
 
   setTimeout(() => { exporting.value = false }, 500)
+}
+
+async function exportExcel() {
+  if (records.value.length === 0) return
+  exporting.value = true
+  try {
+    const params = {
+      start_date: filters.startDate,
+      end_date: filters.endDate,
+      type: activeTab.value,
+    }
+    if (filters.companyId) params.company_id = filters.companyId
+    const response = await api.get('/api/reports/export-xls', { params, responseType: 'blob' })
+    const blob = new Blob([response.data], { type: 'application/vnd.ms-excel' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = activeTab.value + '-report-' + filters.startDate + '_' + filters.endDate + '.xls'
+    link.click()
+    URL.revokeObjectURL(link.href)
+  } catch (error) {
+    console.error('Excel export error:', error)
+  } finally {
+    exporting.value = false
+  }
 }
 
 async function exportPDF() {
