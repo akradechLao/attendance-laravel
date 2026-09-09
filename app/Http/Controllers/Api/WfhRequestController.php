@@ -63,21 +63,30 @@ class WfhRequestController extends Controller
         $start = Carbon::parse($month)->setTimezone('Asia/Bangkok')->startOfMonth();
         $end = $start->copy()->endOfMonth();
 
+        // Employees do not block each other: each may book one Saturday per month.
+        // The only date marked unavailable is the caller's own booking for the month.
+        // (The remaining monthly quota is reported by my-requests.)
+        $employee = $request->user();
+        $ownDates = WfhRecord::where('emp_id', $employee->id)
+            ->whereBetween('date', [$start->format('Y-m-d'), $end->format('Y-m-d')])
+            ->whereIn('status', ['pending', 'approved'])
+            ->pluck('date')
+            ->map(fn($d) => Carbon::parse($d)->format('Y-m-d'))
+            ->all();
+
         $availableDays = [];
         $current = $start->copy();
 
         while ($current <= $end) {
             // Only Saturdays
             if ($current->dayOfWeek === Carbon::SATURDAY) {
-                $occupied = WfhRecord::where('date', $current->format('Y-m-d'))
-                    ->whereIn('status', ['pending', 'approved'])
-                    ->count();
-
+                $dateStr = $current->format('Y-m-d');
                 $availableDays[] = [
-                    'date' => $current->format('Y-m-d'),
+                    'date' => $dateStr,
                     'day' => $current->format('d'),
                     'day_name' => $current->locale('th')->isoFormat('ddd'),
-                    'occupied' => $occupied > 0,
+                    'occupied' => in_array($dateStr, $ownDates, true),
+                    'is_mine' => in_array($dateStr, $ownDates, true),
                 ];
             }
             $current->addDay();
@@ -107,7 +116,6 @@ class WfhRequestController extends Controller
             ], 400);
         }
 
-        $month = $date->format('Y-m');
         $existing = WfhRecord::where('emp_id', $employee->id)
             ->whereYear('date', $date->year)
             ->whereMonth('date', $date->month)
@@ -118,18 +126,6 @@ class WfhRequestController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'คุณมีรายการ WFH ประจำเดือนนี้แล้ว',
-            ], 400);
-        }
-
-        $occupied = WfhRecord::where('date', $date->format('Y-m-d'))
-            ->whereIn('status', ['pending', 'approved'])
-            ->where('emp_id', '!=', $employee->id)
-            ->count();
-
-        if ($occupied > 0) {
-            return response()->json([
-                'success' => false,
-                'message' => 'วันนี้มีพนักงานอื่นใช้แล้ว กรุณาเลือกวันอื่น',
             ], 400);
         }
 

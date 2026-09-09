@@ -253,18 +253,6 @@ class EmployeeRequestController extends Controller
                 ], 400);
             }
 
-            $occupied = WfhRecord::where('date', $date->format('Y-m-d'))
-                ->whereIn('status', ['pending', 'approved'])
-                ->where('emp_id', '!=', $employee->id)
-                ->count();
-
-            if ($occupied > 0) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'วันนี้มีพนักงานอื่นใช้แล้ว กรุณาเลือกวันอื่น',
-                ], 400);
-            }
-
             $empLevel = PositionConstants::getLevel($employee->position);
             $isAutoApprove = $empLevel <= PositionConstants::HIERARCHY['md'];
 

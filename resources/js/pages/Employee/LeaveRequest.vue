@@ -148,7 +148,11 @@ const loadData = async () => {
 const submitLeave = async () => {
   submitting.value = true
   try {
-    await api.post('/api/leave', { ...form.value, emp_id: employeeId.value })
+    // POST /api/leave resolves to LeaveController@store, which requires an
+    // `employee_id` this page never sends (422) and skips the quota check,
+    // auto-approval and balance deduction. The employee endpoint takes the
+    // employee from the token instead of the request body.
+    await api.post('/api/employee/leave-requests', form.value)
     showToast('success', 'ส่งคำขอลาสำเร็จ')
     form.value = { leave_type_id: '', start_date: '', end_date: '', reason: '' }
     loadData()
