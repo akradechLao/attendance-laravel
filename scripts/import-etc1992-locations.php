@@ -4,7 +4,7 @@
  * 
  * Run on server:
  *   cd /www/wwwroot/attendance.northernthai.co.th
- *   php scripts/import-etcl992-locations.php
+ *   php scripts/import-etc1992-locations.php
  * 
  * This script:
  * 1. Creates 30 office_locations for ETC1992
@@ -16,7 +16,7 @@ $db_host = '127.0.0.1';
 $db_name = 'sql_attendance_northernthai_co_th';
 $db_user = 'sql_attendance_northernthai_co_th';
 // รหัสผ่านต้องไม่อยู่ในไฟล์นี้ - ไฟล์นี้ถูก commit ขึ้น git
-// ใช้:  DB_PASS='xxx' php scripts/import-etcl992-locations.php
+// ใช้:  DB_PASS='xxx' php scripts/import-etc1992-locations.php
 $db_pass = getenv('DB_PASS') ?: '';
 if ($db_pass === '') {
     fwrite(STDERR, "[ERROR] DB_PASS environment variable is required
