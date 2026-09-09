@@ -80,7 +80,12 @@ echo ""
 # ============================================
 log_info "Step 2: Installing Composer dependencies..."
 
-$PHP_BIN $COMPOSER_BIN install --optimize-autoloader --no-dev
+# aaPanel PHP 8.4 build เองไม่มี ext-fileinfo ที่ใช้งานได้จริง (ลองแล้ว: .so จาก
+# apt ตัว API ตรง (20240924) แต่ undefined symbol pcre2_match_8 - compile คนละ
+# toolchain กัน โหลดไม่ขึ้น) แอปนี้ไม่มีจุดไหนเรียก mime-type detection จริง เลย
+# ข้าม platform check เฉพาะตัวนี้ไปแทนที่จะไป build extension เอง
+PHP_ARGS=(--optimize-autoloader --no-dev --ignore-platform-req=ext-fileinfo)
+COMPOSER_ALLOW_SUPERUSER=1 $PHP_BIN $COMPOSER_BIN install "${PHP_ARGS[@]}"
 
 log_success "Composer dependencies installed"
 
