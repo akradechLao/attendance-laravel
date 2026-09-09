@@ -28,9 +28,18 @@ echo ""
 # ============================================
 # Configuration - แก้ไขตรงนี้
 # ============================================
+# ต้องรันด้วยสิทธิ์ root (sudo bash deploy-aapanel.sh)
 APP_DIR="/www/wwwroot/attendance.northernthai.co.th"
 REPO_URL="https://github.com/akradechLao/attendance-laravel.git"
 DOMAIN="attendance.northernthai.co.th"
+
+# เว็บนี้รันด้วย user "www" ผ่าน aaPanel + OpenLiteSpeed - ไม่ใช่ "www-data"
+APP_USER="www"
+
+# PHP 8.4 ตัวจริงของ aaPanel (เช็ค path ให้ตรงเวอร์ชันที่ตั้งค่าไว้ในพาแนล เช่น
+# /www/server/php/84/ สำหรับ PHP 8.4) - ไม่ใช่ /usr/bin/php ของระบบปฏิบัติการ
+PHP_BIN="/www/server/php/84/bin/php"
+COMPOSER_BIN="/usr/local/bin/composer"
 
 # Database (แก้ไขให้ตรงกับที่ตั้งค่าใน aaPanel)
 DB_NAME="sql_attendance_northernthai_co_th"
@@ -71,7 +80,7 @@ echo ""
 # ============================================
 log_info "Step 2: Installing Composer dependencies..."
 
-composer install --optimize-autoloader --no-dev
+$PHP_BIN $COMPOSER_BIN install --optimize-autoloader --no-dev
 
 log_success "Composer dependencies installed"
 
@@ -83,7 +92,7 @@ echo ""
 log_info "Step 3: Setting up environment..."
 
 cp .env.example .env
-php artisan key:generate
+$PHP_BIN artisan key:generate
 
 # แก้ไข .env
 sed -i 's/APP_NAME=.*/APP_NAME="Attendance ETC1992"/' .env
@@ -113,7 +122,7 @@ echo ""
 # ============================================
 log_info "Step 4: Running database migration..."
 
-php artisan migrate --force
+$PHP_BIN artisan migrate --force
 
 log_success "Database migrated"
 
@@ -136,9 +145,11 @@ echo ""
 # ============================================
 log_info "Step 6: Setting permissions..."
 
-chown -R www-data:www-data $APP_DIR
-chmod -R 755 $APP_DIR/storage
-chmod -R 755 $APP_DIR/bootstrap/cache
+chown -R $APP_USER:$APP_USER $APP_DIR
+find $APP_DIR/storage -type d -exec chmod 775 {} \;
+find $APP_DIR/storage -type f -exec chmod 664 {} \;
+find $APP_DIR/bootstrap/cache -type d -exec chmod 775 {} \;
+find $APP_DIR/bootstrap/cache -type f -exec chmod 664 {} \;
 
 log_success "Permissions set"
 
@@ -149,9 +160,9 @@ echo ""
 # ============================================
 log_info "Step 7: Optimizing Laravel..."
 
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
+$PHP_BIN artisan config:cache
+$PHP_BIN artisan route:cache
+$PHP_BIN artisan view:cache
 
 log_success "Laravel optimized"
 

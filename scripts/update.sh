@@ -27,7 +27,26 @@ echo ""
 # ============================================
 # Configuration
 # ============================================
+# ต้องรันด้วยสิทธิ์ root (sudo bash update.sh) - Step 2/4/5 เขียนไฟล์ในโปรเจกต์
+# แล้ว Step 6 จะ chown กลับให้ APP_USER ตอนท้าย
 APP_DIR="/www/wwwroot/attendance.northernthai.co.th"
+
+# เว็บนี้รันด้วย user "www" ผ่าน aaPanel + OpenLiteSpeed - ไม่ใช่ "www-data"
+# (นั่นคือ php8.4-fpm ของระบบปฏิบัติการที่ติดตั้งไว้เฉยๆ ไม่ได้ให้บริการเว็บนี้จริง)
+APP_USER="www"
+
+# PHP 8.4 ตัวจริงที่ php-fpm ของเว็บนี้ใช้ - ไม่ใช่ /usr/bin/php (นั่นคือ PHP 8.3 ของระบบ)
+PHP_BIN="/www/server/php/84/bin/php"
+COMPOSER_BIN="/usr/local/bin/composer"
+
+if [ "$(id -u)" -ne 0 ]; then
+    log_error "ต้องรันด้วย sudo หรือ root: sudo bash $0"
+    exit 1
+fi
+if [ ! -x "$PHP_BIN" ]; then
+    log_error "ไม่พบ PHP ที่ $PHP_BIN - เช็ค path ของ aaPanel PHP 8.4 อีกครั้ง (ls /www/server/php/)"
+    exit 1
+fi
 
 # ============================================
 # Step 1: Pull โค้ดล่าสุด
@@ -50,7 +69,7 @@ echo ""
 # ============================================
 log_info "Step 2: Installing Composer dependencies..."
 
-composer install --optimize-autoloader --no-dev
+$PHP_BIN $COMPOSER_BIN install --optimize-autoloader --no-dev
 
 log_success "Composer dependencies installed"
 
@@ -61,7 +80,7 @@ echo ""
 # ============================================
 log_info "Step 3: Running database migration..."
 
-php artisan migrate --force 2>/dev/null || true
+$PHP_BIN artisan migrate --force 2>/dev/null || true
 
 log_success "Database migrated"
 
@@ -84,9 +103,9 @@ echo ""
 # ============================================
 log_info "Step 5: Optimizing Laravel..."
 
-php artisan config:cache
-php artisan route:cache
-php artisan view:cache
+$PHP_BIN artisan config:cache
+$PHP_BIN artisan route:cache
+$PHP_BIN artisan view:cache
 
 log_success "Laravel optimized"
 
@@ -97,9 +116,11 @@ echo ""
 # ============================================
 log_info "Step 6: Setting permissions..."
 
-chown -R www-data:www-data $APP_DIR
-chmod -R 755 $APP_DIR/storage
-chmod -R 755 $APP_DIR/bootstrap/cache
+chown -R $APP_USER:$APP_USER $APP_DIR
+find $APP_DIR/storage -type d -exec chmod 775 {} \;
+find $APP_DIR/storage -type f -exec chmod 664 {} \;
+find $APP_DIR/bootstrap/cache -type d -exec chmod 775 {} \;
+find $APP_DIR/bootstrap/cache -type f -exec chmod 664 {} \;
 
 log_success "Permissions set"
 
@@ -110,8 +131,9 @@ echo ""
 # ============================================
 log_info "Step 7: Restarting services..."
 
-# Restart PHP-FPM
-systemctl restart php8.4-fpm 2>/dev/null || true
+# Restart PHP-FPM (aaPanel เก็บ php-fpm แยกตามเวอร์ชันไว้ที่ /etc/init.d/php-fpm-84
+# ไม่ใช่ systemd service ชื่อ php8.4-fpm - อันนั้นเป็นของระบบปฏิบัติการที่ไม่ได้ใช้)
+/etc/init.d/php-fpm-84 restart 2>/dev/null || systemctl restart php-fpm-84 2>/dev/null || true
 
 # Restart Face API (ถ้า running)
 systemctl restart face-api 2>/dev/null || true
