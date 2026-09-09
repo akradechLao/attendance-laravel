@@ -229,6 +229,9 @@ Route::middleware('auth:sanctum')->group(function () {
     // WFH available saturdays (accessible by both employees and admins)
     Route::get('/wfh/available-saturdays', [WfhRequestController::class, 'availableSaturdays']);
 
+    // Pending approvals (any authenticated user with subordinate or admin role)
+    Route::get('/pending-approvals', [\App\Http\Controllers\Api\PendingApprovalsController::class, 'index']);
+
     // Announcements (all authenticated users)
     Route::get('/announcements', [AnnouncementController::class, 'index']);
     Route::post('/announcements/{id}/dismiss', [AnnouncementController::class, 'dismiss']);

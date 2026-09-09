@@ -195,6 +195,12 @@ const routes = [
     meta: { requiresAuth: true, layout: 'app', requiresRole: 'admin' }
   },
   {
+    path: '/pending-approvals',
+    name: 'PendingApprovals',
+    component: () => import('./pages/HR/PendingApprovals.vue'),
+    meta: { requiresAuth: true, layout: 'app', requiresRole: 'employee' }
+  },
+  {
     path: '/leave-approval',
     name: 'HrLeaveApproval',
     component: () => import('./pages/HR/LeaveApproval.vue'),

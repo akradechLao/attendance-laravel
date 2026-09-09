@@ -43,6 +43,10 @@
             >
               <span class="text-lg">{{ item.icon }}</span>
               <span>{{ item.label }}</span>
+              <span v-if="item.badge && item.badge() > 0"
+                    class="ml-auto bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full min-w-[18px] text-center">
+                {{ item.badge() > 99 ? '99+' : item.badge() }}
+              </span>
             </router-link>
           </template>
         </nav>
@@ -105,6 +109,17 @@
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
             </button>
             <button
+              @click="$router.push('/pending-approvals')"
+              class="relative p-2 rounded-lg hover:bg-amber-50 text-gray-500 hover:text-amber-500 transition-colors"
+              title="รายการรออนุมัติ"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+              <span v-if="pendingCount > 0"
+                    class="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full">
+                {{ pendingCount > 99 ? '99+' : pendingCount }}
+              </span>
+            </button>
+            <button
               @click="handleLogout"
               class="p-2 rounded-lg hover:bg-red-50 text-gray-500 hover:text-red-500 transition-colors"
               title="ออกจากระบบ"
@@ -126,13 +141,25 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import store, { logout } from '../store'
+import api from '../services/api'
 
 const route = useRoute()
 const router = useRouter()
 const sidebarOpen = ref(false)
+const pendingCount = ref(0)
+
+const fetchPendingCount = async () => {
+  try {
+    // counts_only skips loading rows - the badge only needs the totals
+    const res = await api.get('/api/pending-approvals', { params: { counts_only: 1 } })
+    pendingCount.value = res.data.data.counts?.total || 0
+  } catch (e) { /* silent */ }
+}
+
+onMounted(() => { fetchPendingCount() })
 
 const userRole = computed(() => store.user?.role || 'employee')
 const isAdmin = computed(() => ['admin', 'super_admin'].includes(userRole.value))
@@ -152,6 +179,7 @@ const roleLabel = computed(() => roleLabels[userRole.value] || userRole.value)
 
 const navItems = [
   { section: 'ภาพรวม' },
+  { path: '/pending-approvals', label: 'รายการรออนุมัติ', icon: '🔔', minRole: 'employee', badge: () => pendingCount.value },
   { path: '/dashboard', label: 'แดชบอร์ด', icon: '📊', minRole: 'admin' },
   { path: '/estimated-checkouts', label: 'Checkout รออนุมัติ', icon: '⚠️', minRole: 'admin' },
   { path: '/employees', label: 'พนักงาน', icon: '👥', minRole: 'admin' },
@@ -169,7 +197,10 @@ const navItems = [
   { path: '/shift-auto-assign', label: 'มอบหมายกะอัตโนมัติ', icon: '🔄', minRole: 'admin' },
   { path: '/auto-ot', label: 'คำนวณ OT อัตโนมัติ', icon: '🤖', minRole: 'admin' },
   { path: '/ot-summary', label: 'สรุป OT', icon: '📊', minRole: 'admin' },
-  { section: 'อนุมัติ', minRole: 'admin' },
+  { section: 'อนุมัติ (หัวหน้างาน)', minRole: 'employee' },
+  { path: '/supervisor/leave-approval', label: 'อนุมัติลางาน', icon: '✅', minRole: 'employee' },
+  { path: '/supervisor/ot-approval', label: 'อนุมัติ OT', icon: '✅', minRole: 'employee' },
+  { section: 'อนุมัติ (HR/Admin)', minRole: 'admin' },
   { path: '/leave-approval', label: 'อนุมัติลางาน', icon: '✅', minRole: 'admin' },
   { path: '/wfh-approval', label: 'อนุมัติ WFH', icon: '✅', minRole: 'admin' },
   { path: '/shift-swap-approval', label: 'อนุมัติสลับเวร', icon: '✅', minRole: 'admin' },
