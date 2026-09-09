@@ -265,7 +265,7 @@ class FaceController extends Controller
                         'pdpa_consent' => $request->boolean('pdpa_consent'),
                     ]);
 
-                    return ['log' => $log, 'late_minutes' => $lateMinutes, 'original_status' => $originalStatus, 'next_round' => $nextRound];
+                    return ['log' => $log, 'late_minutes' => $lateMinutes, 'original_status' => $originalStatus, 'next_round' => $nextRound, 'remote_location_name' => $remoteLocationName];
                 });
 
                 // ─── จัดการผลลัพธ์จาก transaction ───
@@ -301,7 +301,7 @@ class FaceController extends Controller
                 }
 
                 $locationLabel = $isRemote
-                    ? ($remoteLocationName ?: 'ตำแหน่งปัจจุบัน')
+                    ? ($log['remote_location_name'] ?: 'ตำแหน่งปัจจุบัน')
                     : ($officeLocation->name ?? 'ออฟฟิศ');
 
                 $roundLabel = $nextRound > 1 ? ' (รอบที่ ' . $nextRound . ')' : '';
