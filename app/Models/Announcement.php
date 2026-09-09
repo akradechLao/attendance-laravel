@@ -41,4 +41,9 @@ class Announcement extends Model
     {
         return $this->hasMany(AnnouncementDismissal::class);
     }
+
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(AnnouncementAttachment::class);
+    }
 }

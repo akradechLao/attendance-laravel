@@ -10,6 +10,7 @@ const showForm = ref(false)
 const editingId = ref(null)
 const currentPage = ref(1)
 const lastPage = ref(1)
+const saving = ref(false)
 
 const form = ref({
   title: '',
@@ -20,6 +21,16 @@ const form = ref({
   expires_at: '',
   is_active: true,
 })
+
+// Files picked in this session, not uploaded yet
+const pendingFiles = ref([])
+// Attachments already saved on the server (only relevant when editing)
+const existingAttachments = ref([])
+const fileInput = ref(null)
+
+const MAX_ATTACHMENTS = 5
+const MAX_ATTACHMENT_MB = 5
+const ACCEPTED_TYPES = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png']
 
 const priorities = [
   { value: 'normal', label: 'ปกติ', color: 'bg-blue-100 text-blue-800' },
@@ -33,6 +44,13 @@ function formatDate(d) {
   if (!d) return '-'
   const dt = new Date(d)
   return `${dt.getDate()} ${thMonths[dt.getMonth()]} ${dt.getFullYear() + 543} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`
+}
+
+function formatFileSize(bytes) {
+  if (!bytes) return ''
+  const mb = bytes / (1024 * 1024)
+  if (mb >= 1) return mb.toFixed(1) + ' MB'
+  return Math.max(1, Math.round(bytes / 1024)) + ' KB'
 }
 
 onMounted(async () => {
@@ -63,8 +81,12 @@ async function loadCompanies() {
 }
 
 function openForm(ann = null) {
+  pendingFiles.value = []
+  if (fileInput.value) fileInput.value.value = ''
+
   if (ann) {
     editingId.value = ann.id
+    existingAttachments.value = ann.attachments || []
     form.value = {
       title: ann.title,
       body: ann.body,
@@ -76,35 +98,85 @@ function openForm(ann = null) {
     }
   } else {
     editingId.value = null
+    existingAttachments.value = []
     form.value = { title: '', body: '', priority: 'normal', company_id: '', published_at: '', expires_at: '', is_active: true }
   }
   showForm.value = true
 }
 
-function saveAnnouncement() {
+const totalAttachmentCount = computed(() => existingAttachments.value.length + pendingFiles.value.length)
+
+function onFilesSelected(e) {
+  const files = Array.from(e.target.files || [])
+  e.target.value = '' // allow re-picking the same file name later
+
+  for (const file of files) {
+    if (totalAttachmentCount.value + pendingFiles.value.length >= MAX_ATTACHMENTS) {
+      alert(`แนบไฟล์ได้สูงสุด ${MAX_ATTACHMENTS} ไฟล์ต่อประกาศ`)
+      break
+    }
+    if (!ACCEPTED_TYPES.includes(file.type)) {
+      alert(`"${file.name}" ไม่ใช่ไฟล์ PDF หรือรูปภาพ (jpg/png) ที่รองรับ`)
+      continue
+    }
+    if (file.size > MAX_ATTACHMENT_MB * 1024 * 1024) {
+      alert(`"${file.name}" มีขนาดเกิน ${MAX_ATTACHMENT_MB} MB`)
+      continue
+    }
+    pendingFiles.value.push(file)
+  }
+}
+
+function removePendingFile(index) {
+  pendingFiles.value.splice(index, 1)
+}
+
+async function removeExistingAttachment(att) {
+  if (!confirm(`ต้องการลบไฟล์แนบ "${att.file_name}" ใช่หรือไม่?`)) return
+  try {
+    await api.delete(`/api/announcements/${editingId.value}/attachments/${att.id}`)
+    existingAttachments.value = existingAttachments.value.filter(a => a.id !== att.id)
+  } catch (err) {
+    alert(err.response?.data?.message || 'ลบไฟล์แนบไม่สำเร็จ')
+  }
+}
+
+async function saveAnnouncement() {
   if (!form.value.title || !form.value.body) {
     alert('กรุณากรอกชื่อและเนื้อหาประกาศ')
     return
   }
 
-  const payload = { ...form.value }
-  if (payload.published_at) payload.published_at = payload.published_at.replace('T', ' ') + ':00'
-  if (payload.expires_at) payload.expires_at = payload.expires_at.replace('T', ' ') + ':00'
-  if (!payload.company_id) delete payload.company_id
-  if (!payload.published_at) delete payload.published_at
-  if (!payload.expires_at) delete payload.expires_at
+  const fd = new FormData()
+  fd.append('title', form.value.title)
+  fd.append('body', form.value.body)
+  fd.append('priority', form.value.priority)
+  if (form.value.company_id) fd.append('company_id', form.value.company_id)
+  if (form.value.published_at) fd.append('published_at', form.value.published_at.replace('T', ' ') + ':00')
+  if (form.value.expires_at) fd.append('expires_at', form.value.expires_at.replace('T', ' ') + ':00')
+  fd.append('is_active', form.value.is_active ? '1' : '0')
+  for (const file of pendingFiles.value) {
+    fd.append('attachments[]', file)
+  }
 
-  const request = editingId.value
-    ? api.put(`/api/announcements/${editingId.value}`, payload)
-    : api.post('/api/announcements', payload)
-
-  request.then(() => {
-    alert(editingId.value ? 'แก้ไขประกาศสำเร็จ' : 'สร้างประกาศสำเร็จ')
+  saving.value = true
+  try {
+    if (editingId.value) {
+      // PHP does not parse multipart bodies on PUT - spoof the method over POST instead.
+      fd.append('_method', 'PUT')
+      await api.post(`/api/announcements/${editingId.value}`, fd)
+      alert('แก้ไขประกาศสำเร็จ')
+    } else {
+      await api.post('/api/announcements', fd)
+      alert('สร้างประกาศสำเร็จ')
+    }
     showForm.value = false
     loadAnnouncements(currentPage.value)
-  }).catch(err => {
+  } catch (err) {
     alert(err.response?.data?.message || 'เกิดข้อผิดพลาด')
-  })
+  } finally {
+    saving.value = false
+  }
 }
 
 function deleteAnnouncement(ann) {
@@ -118,13 +190,23 @@ function deleteAnnouncement(ann) {
 }
 
 function toggleActive(ann) {
-  api.put(`/api/announcements/${ann.id}`, { is_active: !ann.is_active }).then(() => {
+  const fd = new FormData()
+  fd.append('title', ann.title)
+  fd.append('body', ann.body)
+  fd.append('priority', ann.priority)
+  fd.append('is_active', ann.is_active ? '0' : '1')
+  fd.append('_method', 'PUT')
+  api.post(`/api/announcements/${ann.id}`, fd).then(() => {
     loadAnnouncements(currentPage.value)
   })
 }
 
 function getPriorityInfo(p) {
   return priorities.find(pr => pr.value === p) || priorities[0]
+}
+
+function attachmentIcon(kind) {
+  return kind === 'pdf' ? '📄' : '🖼️'
 }
 </script>
 
@@ -166,6 +248,13 @@ function getPriorityInfo(p) {
                   <span v-if="ann.published_at">เริ่ม: {{ formatDate(ann.published_at) }}</span>
                   <span v-if="ann.expires_at">สิ้นสุด: {{ formatDate(ann.expires_at) }}</span>
                   <span v-if="ann.creator">โดย: {{ ann.creator.username }}</span>
+                </div>
+                <div v-if="ann.attachments?.length" class="flex flex-wrap gap-2 mt-2">
+                  <a v-for="att in ann.attachments" :key="att.id" :href="att.url" target="_blank" rel="noopener"
+                     class="inline-flex items-center gap-1 text-[11px] bg-gray-50 border border-gray-200 rounded-lg px-2 py-1 text-gray-600 hover:bg-gray-100">
+                    <span>{{ attachmentIcon(att.kind) }}</span>
+                    <span class="max-w-[140px] truncate">{{ att.file_name }}</span>
+                  </a>
                 </div>
               </div>
               <div class="flex items-center gap-1 shrink-0">
@@ -225,14 +314,51 @@ function getPriorityInfo(p) {
                 <input v-model="form.expires_at" type="datetime-local" class="w-full px-3 py-2 border rounded-lg text-sm" />
               </div>
             </div>
+
+            <!-- Attachments -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                ไฟล์แนบ (PDF, JPG, PNG - สูงสุด {{ MAX_ATTACHMENTS }} ไฟล์, ไฟล์ละไม่เกิน {{ MAX_ATTACHMENT_MB }} MB)
+              </label>
+
+              <div v-if="existingAttachments.length" class="space-y-1 mb-2">
+                <div v-for="att in existingAttachments" :key="att.id"
+                     class="flex items-center justify-between gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs">
+                  <a :href="att.url" target="_blank" rel="noopener" class="flex items-center gap-1.5 text-gray-700 hover:underline truncate">
+                    <span>{{ attachmentIcon(att.kind) }}</span>
+                    <span class="truncate">{{ att.file_name }}</span>
+                    <span class="text-gray-400 shrink-0">({{ formatFileSize(att.file_size) }})</span>
+                  </a>
+                  <button @click="removeExistingAttachment(att)" class="text-red-400 hover:text-red-600 shrink-0" title="ลบไฟล์แนบ">✕</button>
+                </div>
+              </div>
+
+              <div v-if="pendingFiles.length" class="space-y-1 mb-2">
+                <div v-for="(file, idx) in pendingFiles" :key="idx"
+                     class="flex items-center justify-between gap-2 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-xs">
+                  <span class="flex items-center gap-1.5 text-blue-700 truncate">
+                    <span>{{ file.type === 'application/pdf' ? '📄' : '🖼️' }}</span>
+                    <span class="truncate">{{ file.name }}</span>
+                    <span class="text-blue-400 shrink-0">({{ formatFileSize(file.size) }})</span>
+                  </span>
+                  <button @click="removePendingFile(idx)" class="text-red-400 hover:text-red-600 shrink-0" title="เอาออก">✕</button>
+                </div>
+              </div>
+
+              <input ref="fileInput" type="file" multiple accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                     @change="onFilesSelected" :disabled="totalAttachmentCount >= MAX_ATTACHMENTS"
+                     class="w-full text-xs text-gray-600 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-navy file:text-white file:text-xs file:font-medium hover:file:bg-slate-800 file:cursor-pointer" />
+              <p v-if="totalAttachmentCount >= MAX_ATTACHMENTS" class="text-[11px] text-amber-600 mt-1">ครบจำนวนไฟล์แนบสูงสุดแล้ว</p>
+            </div>
+
             <div class="flex items-center gap-2">
               <input v-model="form.is_active" type="checkbox" id="is_active" class="rounded" />
               <label for="is_active" class="text-sm text-gray-700">เปิดใช้งานประกาศ</label>
             </div>
             <div class="flex gap-3 justify-end pt-2 border-t">
               <button @click="showForm = false" class="px-4 py-2 border rounded-lg hover:bg-gray-50 text-sm">ยกเลิก</button>
-              <button @click="saveAnnouncement" class="px-4 py-2 bg-navy text-white rounded-lg hover:bg-slate-800 text-sm font-medium">
-                {{ editingId ? 'บันทึก' : 'สร้างประกาศ' }}
+              <button @click="saveAnnouncement" :disabled="saving" class="px-4 py-2 bg-navy text-white rounded-lg hover:bg-slate-800 text-sm font-medium disabled:opacity-50">
+                {{ saving ? 'กำลังบันทึก...' : (editingId ? 'บันทึก' : 'สร้างประกาศ') }}
               </button>
             </div>
           </div>

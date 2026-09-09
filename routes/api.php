@@ -466,6 +466,7 @@ Route::middleware(['auth:sanctum', 'role:admin,super_admin'])->group(function ()
     Route::post('/announcements', [AnnouncementController::class, 'store']);
     Route::put('/announcements/{announcement}', [AnnouncementController::class, 'update']);
     Route::delete('/announcements/{announcement}', [AnnouncementController::class, 'destroy']);
+    Route::delete('/announcements/{announcement}/attachments/{attachment}', [AnnouncementController::class, 'deleteAttachment']);
 
     // System Config
     Route::get('/system-config', [SystemConfigController::class, 'index']);

@@ -48,6 +48,21 @@
           </div>
           <div v-if="selected === ann.id" class="mt-3 pt-3 border-t border-gray-200">
             <p class="text-gray-700 text-sm whitespace-pre-line">{{ ann.body }}</p>
+
+            <div v-if="ann.attachments?.length" class="mt-3 space-y-2" @click.stop>
+              <div v-if="imageAttachments(ann).length" class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <a v-for="att in imageAttachments(ann)" :key="att.id" :href="att.url" target="_blank" rel="noopener"
+                   class="block rounded-lg overflow-hidden border border-gray-200 aspect-square bg-gray-50">
+                  <img :src="att.url" :alt="att.file_name" class="w-full h-full object-cover" loading="lazy" />
+                </a>
+              </div>
+              <a v-for="att in pdfAttachments(ann)" :key="att.id" :href="att.url" target="_blank" rel="noopener"
+                 class="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2 text-xs text-gray-600 hover:bg-gray-100">
+                <span>📄</span>
+                <span class="truncate">{{ att.file_name }}</span>
+                <span class="text-gray-400 ml-auto shrink-0">เปิดไฟล์ →</span>
+              </a>
+            </div>
           </div>
         </div>
       </div>
@@ -68,6 +83,13 @@ const thMonths = ['มกราคม','กุมภาพันธ์','มี�
 function formatDate(d) {
   const dt = new Date(d)
   return `${dt.getDate()} ${thMonths[dt.getMonth()]} ${dt.getFullYear() + 543} ${String(dt.getHours()).padStart(2,'0')}:${String(dt.getMinutes()).padStart(2,'0')}`
+}
+
+function imageAttachments(ann) {
+  return (ann.attachments || []).filter(a => a.kind !== 'pdf')
+}
+function pdfAttachments(ann) {
+  return (ann.attachments || []).filter(a => a.kind === 'pdf')
 }
 
 onMounted(async () => {
