@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\WorkShift;
 use App\Models\CompanyHoliday;
+use App\Constants\PositionConstants;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -21,7 +22,10 @@ class ShiftAssignmentController extends Controller
             $startDate = $month . '-01';
             $endDate = date('Y-m-t', strtotime($startDate));
 
+            // Assistant MD-and-above don't work fixed shifts - don't offer them
+            // as assignable in this picker at all.
             $query = Employee::where('is_active', true)
+                ->whereNotIn('position', PositionConstants::EXCLUDED_POSITIONS)
                 ->with(['workShifts' => function ($q) use ($startDate, $endDate) {
                     $q->where(function ($q2) use ($startDate, $endDate) {
                         $q2->whereNull('start_date')
@@ -85,6 +89,16 @@ class ShiftAssignmentController extends Controller
                 'start_date' => 'required|date',
                 'end_date' => 'nullable|date|after_or_equal:start_date',
             ]);
+
+            $blocked = Employee::whereIn('id', $validated['employee_ids'])
+                ->whereIn('position', PositionConstants::EXCLUDED_POSITIONS)
+                ->pluck('name');
+            if ($blocked->isNotEmpty()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ตำแหน่งนี้ไม่มีสิทธิ์รับมอบหมายกะ: ' . $blocked->implode(', '),
+                ], 422);
+            }
 
             foreach ($validated['employee_ids'] as $empId) {
                 DB::table('employee_shifts')->where('employee_id', $empId)->delete();

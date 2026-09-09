@@ -348,10 +348,11 @@
                 <label class="block text-sm font-medium text-gray-700 mb-1">พนักงาน *</label>
                 <select v-model="form.emp_id" :disabled="isEditing" class="w-full border rounded-lg px-3 py-2 text-sm">
                   <option value="">เลือกพนักงาน</option>
-                  <option v-for="emp in filteredEmployees" :key="emp.id" :value="emp.id">
+                  <option v-for="emp in pickableEmployees" :key="emp.id" :value="emp.id">
                     {{ emp.employee_code }} - {{ emp.name }}
                   </option>
                 </select>
+                <p v-if="pickableEmployees.length === 0" class="text-xs text-amber-600 mt-1">ไม่มีพนักงานที่มีสิทธิ์ทำโอทีในเงื่อนไขที่กรองไว้</p>
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">วันที่ *</label>
@@ -388,10 +389,11 @@
                 <label class="block text-sm font-medium text-gray-700 mb-1">พนักงาน *</label>
                 <select v-model="form.emp_id" :disabled="isEditing" class="w-full border rounded-lg px-3 py-2 text-sm">
                   <option value="">เลือกพนักงาน</option>
-                  <option v-for="emp in filteredEmployees" :key="emp.id" :value="emp.id">
+                  <option v-for="emp in pickableEmployees" :key="emp.id" :value="emp.id">
                     {{ emp.employee_code }} - {{ emp.name }}
                   </option>
                 </select>
+                <p v-if="pickableEmployees.length === 0" class="text-xs text-amber-600 mt-1">ไม่มีพนักงานที่มีสิทธิ์เข้ากะในเงื่อนไขที่กรองไว้</p>
               </div>
               <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">วันที่ *</label>
@@ -520,6 +522,7 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import api from '@/services/api'
 import AppLayout from '@/layouts/AppLayout.vue'
+import { isTopManagement } from '@/constants/position'
 
 const activeTab = ref('attendance')
 const tabs = [
@@ -549,6 +552,18 @@ const filteredEmployees = computed(() => {
   if (filters.value.division) list = list.filter(e => e.division === filters.value.division)
   if (filters.value.department) list = list.filter(e => e.department === filters.value.department)
   return list
+})
+
+// Employee picker for the "add entry" form: OT/shift tabs only list people who
+// are actually eligible, so HR can't pick someone who could never have one.
+const pickableEmployees = computed(() => {
+  if (activeTab.value === 'ot') {
+    return filteredEmployees.value.filter(e => e.has_ot && !isTopManagement(e.position))
+  }
+  if (activeTab.value === 'shift') {
+    return filteredEmployees.value.filter(e => !isTopManagement(e.position))
+  }
+  return filteredEmployees.value
 })
 
 const showForm = ref(false)

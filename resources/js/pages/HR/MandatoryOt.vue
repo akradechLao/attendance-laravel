@@ -363,6 +363,12 @@
 import { ref, reactive, computed, onMounted, watch } from 'vue'
 import api from '../../services/api'
 import AppLayout from '../../layouts/AppLayout.vue'
+import { isTopManagement } from '../../constants/position'
+
+// Mandatory OT can only ever apply to employees with OT rights who aren't
+// top management - filter right at the source so every picker on this page
+// (manual + auto mode) only ever lists people it's possible to assign.
+const otEligible = (e) => e.has_ot && !isTopManagement(e.position)
 
 const loading = ref(true)
 const saving = ref(false)
@@ -521,7 +527,7 @@ async function loadData() {
       api.get('/api/mandatory-ot', { params: { date: selectedDate.value, company_id: selectedCompany.value || undefined } }),
       api.get('/api/companies'),
     ])
-    employees.value = eRes.data.data?.data || eRes.data.data || []
+    employees.value = (eRes.data.data?.data || eRes.data.data || []).filter(otEligible)
     assignments.value = aRes.data.data || []
     companies.value = cRes.data.data || []
   } catch (e) {
@@ -537,7 +543,7 @@ async function loadAutoEmployees() {
     const params = { per_page: 9999, day_only: true }
     if (autoForm.companyFilter) params.company_id = autoForm.companyFilter
     const res = await api.get('/api/employees', { params })
-    const allEmps = res.data.data?.data || res.data.data || []
+    const allEmps = (res.data.data?.data || res.data.data || []).filter(otEligible)
     autoEmployees.value = allEmps.map(e => ({
       ...e,
       work_hours: (e.office_location?.work_start_time?.substring(0,5) || '?') + ' - ' + (e.office_location?.work_end_time?.substring(0,5) || '?'),
