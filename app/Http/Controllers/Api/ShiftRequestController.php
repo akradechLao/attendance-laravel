@@ -7,6 +7,7 @@ use App\Models\ShiftRequest;
 use App\Models\WorkShift;
 use App\Models\Employee;
 use App\Models\EmployeeShift;
+use App\Constants\PositionConstants;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -48,6 +49,16 @@ class ShiftRequestController extends Controller
                         'message' => 'ไม่มีกานี้ที่จะลบ',
                     ], 400);
                 }
+            }
+
+            // Assistant MD-and-above don't work fixed shifts, so there is
+            // nothing for them to request - the frontend already hides this
+            // page for them, but the API must not rely on that alone.
+            if (PositionConstants::isTopManagement($employee->position)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ตำแหน่งนี้ไม่มีสิทธิ์ร้องขอกะ',
+                ], 403);
             }
 
             $shiftReq = ShiftRequest::create([

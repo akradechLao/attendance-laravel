@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\AdminUser;
 use App\Models\Employee;
 use App\Models\WfhRecord;
 use App\Models\RemoteAssignment;
@@ -98,58 +99,10 @@ class WfhRequestController extends Controller
         ]);
     }
 
-    public function store(Request $request): JsonResponse
-    {
-        $request->validate([
-            'date' => 'required|date|after_or_equal:-30 days',
-            'reason' => 'nullable|string',
-        ]);
-
-        $employee = $request->user();
-        $date = Carbon::parse($request->date)->setTimezone('Asia/Bangkok');
-
-        // Allow Saturdays only
-        if ($date->dayOfWeek !== Carbon::SATURDAY) {
-            return response()->json([
-                'success' => false,
-                'message' => 'WFH กำหนดได้เฉพาะวันเสาร์เท่านั้น',
-            ], 400);
-        }
-
-        $existing = WfhRecord::where('emp_id', $employee->id)
-            ->whereYear('date', $date->year)
-            ->whereMonth('date', $date->month)
-            ->where('status', '!=', 'rejected')
-            ->first();
-
-        if ($existing) {
-            return response()->json([
-                'success' => false,
-                'message' => 'คุณมีรายการ WFH ประจำเดือนนี้แล้ว',
-            ], 400);
-        }
-
-        $record = WfhRecord::create([
-            'emp_id' => $employee->id,
-            'date' => $date->format('Y-m-d'),
-            'reason' => $request->get('reason', ''),
-            'status' => 'pending',
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'id' => $record->id,
-                'emp_id' => $record->emp_id,
-                'date' => Carbon::parse($record->date)->format('Y-m-d'),
-                'reason' => $record->reason,
-                'status' => $record->status,
-                'created_at' => $record->created_at ? Carbon::parse($record->created_at)->setTimezone('Asia/Bangkok')->format('Y-m-d H:i') : null,
-                'employee' => $record->employee ? ['id' => $record->employee->id, 'employee_code' => $record->employee->employee_code, 'first_name' => $record->employee->first_name, 'last_name' => $record->employee->last_name] : null,
-            ],
-            'message' => 'ส่งคำขอ WFH สำเร็จ รอหัวหน้าอนุมัติ',
-        ]);
-    }
+    // store() removed - POST /api/wfh now routes to EmployeeRequestController::storeWfh,
+    // which has this same validation plus MD-level auto-approve. Keeping two parallel
+    // WFH-submission implementations is exactly how the auto-approve gap this file
+    // fixes went unnoticed: one endpoint got the fix, the other silently didn't.
 
     public function approve(Request $request, $id): JsonResponse
     {
@@ -190,7 +143,9 @@ class WfhRequestController extends Controller
             $record->update([
                 'date' => $approvedDate,
                 'approved_date' => $approvedDate,
-                'supervisor_id' => $request->user()->id,
+                // wfh_records.supervisor_id is FK'd to admin_users, not employees - a real
+                // Employee-supervisor (not HR/Admin) approving here can't be referenced.
+                'supervisor_id' => $request->user() instanceof \App\Models\AdminUser ? $request->user()->id : null,
                 'supervisor_note' => $request->get('supervisor_note'),
                 'status' => 'approved',
             ]);
@@ -271,7 +226,9 @@ class WfhRequestController extends Controller
         }
 
         $record->update([
-            'supervisor_id' => $request->user()->id,
+            // wfh_records.supervisor_id is FK'd to admin_users, not employees - a real
+                // Employee-supervisor (not HR/Admin) approving here can't be referenced.
+                'supervisor_id' => $request->user() instanceof \App\Models\AdminUser ? $request->user()->id : null,
             'supervisor_note' => $request->get('supervisor_note', ''),
             'status' => 'rejected',
         ]);

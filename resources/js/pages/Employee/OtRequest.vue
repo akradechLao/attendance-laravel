@@ -79,6 +79,7 @@ import { ref, reactive, onMounted, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import api from '../../services/api'
 import store from '../../store'
+import { isTopManagement } from '../../constants/position'
 
 const router = useRouter()
 
@@ -146,6 +147,11 @@ async function handleSubmit() {
 }
 
 onMounted(() => {
+  if (isTopManagement(store.user?.position)) {
+    alert('ตำแหน่งนี้ไม่มีสิทธิ์ทำโอที')
+    router.push('/employee/menu')
+    return
+  }
   if (!store.user?.has_ot) {
     alert('พนักงานไม่มีสิทธิ์ทำโอที')
     router.push('/employee/menu')

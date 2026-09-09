@@ -30,4 +30,15 @@ class PositionConstants
     {
         return in_array($position, self::EXCLUDED_POSITIONS);
     }
+
+    /**
+     * Assistant MD and above (assistant_md, md, executive_director, chairman)
+     * don't request OT, shift swaps, or shift changes - they don't work fixed
+     * shifts. Leave and WFH are unaffected by this (those still auto-approve
+     * for chairman/md/executive_director via the HIERARCHY['md'] threshold).
+     */
+    public static function isTopManagement(string $position): bool
+    {
+        return self::getLevel($position) <= self::HIERARCHY['assistant_md'];
+    }
 }

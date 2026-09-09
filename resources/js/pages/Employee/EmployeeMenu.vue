@@ -323,6 +323,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import store, { logout } from '../../store'
 import api from '../../services/api'
+import { isTopManagement } from '../../constants/position'
 
 const router = useRouter()
 const pendingCounts = ref({ leave: 0, ot: 0, wfh: 0 })
@@ -330,8 +331,12 @@ const warnings = ref([])
 const announcements = ref([])
 const unreadCount = ref(0)
 
-const hasOt = computed(() => store.user?.has_ot === true || store.user?.has_ot === 1)
+// Assistant MD-and-above don't work fixed shifts, so OT / shift-swap /
+// shift-request never apply to them regardless of has_ot or assigned shifts.
+const isExec = computed(() => isTopManagement(store.user?.position))
+const hasOt = computed(() => !isExec.value && (store.user?.has_ot === true || store.user?.has_ot === 1))
 const hasShifts = computed(() => {
+  if (isExec.value) return false
   const shifts = store.user?.work_shifts
   return shifts && shifts.length > 0
 })

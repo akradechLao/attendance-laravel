@@ -9,6 +9,7 @@ use App\Models\ShiftSwap;
 use App\Models\WorkShift;
 use App\Models\LeaveRequest;
 use App\Constants\RoleConstants;
+use App\Constants\PositionConstants;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -53,6 +54,13 @@ class ShiftSwapController extends Controller
 
         if ($validated['requester_id'] == $validated['target_id']) {
             return response()->json(['success' => false, 'message' => 'ไม่สามารถสลับกับตัวเองได้'], 400);
+        }
+
+        // Assistant MD-and-above don't work fixed shifts, so there is nothing
+        // for them to swap - the frontend already hides this page for them,
+        // but the API must not rely on that alone.
+        if (PositionConstants::isTopManagement($employee->position)) {
+            return response()->json(['success' => false, 'message' => 'ตำแหน่งนี้ไม่มีสิทธิ์ขอสลับเวร'], 403);
         }
 
         $swap = ShiftSwap::create($validated);
@@ -219,13 +227,15 @@ class ShiftSwapController extends Controller
 
         $myShiftCode = $mySchedule ? $mySchedule->shift_code : null;
 
-        // Get all employees in same company who have a schedule on this date (exclude self)
+        // Get all employees in same company who have a schedule on this date (exclude self).
+        // Top management shouldn't appear as swap partners even if a schedule was
+        // mistakenly assigned to one - they don't work fixed shifts.
         $schedules = ShiftSchedule::where('company_id', $employee->company_id)
             ->where('work_date', $date)
             ->where('emp_id', '!=', $employee->id)
             ->with('employee:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id')
             ->get()
-            ->filter(fn($s) => $s->employee);
+            ->filter(fn($s) => $s->employee && !PositionConstants::isTopManagement($s->employee->position));
 
         $available = $schedules->map(fn($s) => [
             'id' => $s->employee->id,

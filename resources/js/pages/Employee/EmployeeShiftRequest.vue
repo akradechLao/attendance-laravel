@@ -101,8 +101,12 @@
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import api from '@/services/api'
+import store from '@/store'
+import { isTopManagement } from '@/constants/position'
 
+const router = useRouter()
 const tab = ref('form')
 const loading = ref(false)
 const submitting = ref(false)
@@ -121,6 +125,11 @@ const form = reactive({
 })
 
 onMounted(async () => {
+  if (isTopManagement(store.user?.position)) {
+    alert('ตำแหน่งนี้ไม่มีสิทธิ์ร้องขอกะ')
+    router.push('/employee/menu')
+    return
+  }
   try {
     const res = await api.get('/api/shift-requests/available-shifts')
     if (res.data.success) {

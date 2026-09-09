@@ -217,7 +217,9 @@ Route::middleware('auth:sanctum')->group(function () {
 
         // WFH requests (self service)
         Route::get('/wfh/my-requests', [WfhRequestController::class, 'myRequests']);
-        Route::post('/wfh', [WfhRequestController::class, 'store']);
+        // storeWfh (EmployeeRequestController) has the same validation as
+        // WfhRequestController used to, plus MD-level auto-approve.
+        Route::post('/wfh', [EmployeeRequestController::class, 'storeWfh']);
 
         // Notifications
         Route::get('/employee/notifications', [\App\Http\Controllers\Api\EmployeeNotificationController::class, 'index']);

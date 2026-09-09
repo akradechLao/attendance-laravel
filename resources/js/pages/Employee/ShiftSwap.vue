@@ -163,8 +163,12 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import api from '../../services/api'
 import store from '../../store'
+import { isTopManagement } from '../../constants/position'
+
+const router = useRouter()
 
 const today = new Date()
 const todayStr = today.toISOString().split('T')[0]
@@ -268,5 +272,12 @@ async function loadMyRequests() {
   }
 }
 
-onMounted(loadMyRequests)
+onMounted(() => {
+  if (isTopManagement(store.user?.position)) {
+    alert('ตำแหน่งนี้ไม่มีสิทธิ์ขอสลับเวร')
+    router.push('/employee/menu')
+    return
+  }
+  loadMyRequests()
+})
 </script>

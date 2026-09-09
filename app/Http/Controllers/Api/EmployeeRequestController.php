@@ -160,8 +160,17 @@ class EmployeeRequestController extends Controller
             ]);
 
             $employee = $request->user();
-            $empLevel = PositionConstants::getLevel($employee->position);
-            $isAutoApprove = $empLevel <= PositionConstants::HIERARCHY['md'];
+
+            // Only employees explicitly granted OT rights may request it, and
+            // assistant_md-and-above never do OT (they don't work fixed shifts) -
+            // the frontend already hides this page for both cases, but the API
+            // must not rely on that alone.
+            if (!$employee->has_ot) {
+                return response()->json(['success' => false, 'message' => 'พนักงานไม่มีสิทธิ์ทำโอที'], 403);
+            }
+            if (PositionConstants::isTopManagement($employee->position)) {
+                return response()->json(['success' => false, 'message' => 'ตำแหน่งนี้ไม่มีสิทธิ์ขอโอที'], 403);
+            }
 
             $ot = OtRequest::create([
                 'company_id' => $employee->company_id,
@@ -170,34 +179,20 @@ class EmployeeRequestController extends Controller
                 'start_time' => $request->start_time,
                 'end_time' => $request->end_time,
                 'reason' => $request->reason,
-                'status' => $isAutoApprove ? 'approved' : 'pending_manager',
-                'approved_by' => $isAutoApprove ? $employee->id : null,
-                'approved_at' => $isAutoApprove ? now() : null,
+                'status' => 'pending_manager',
             ]);
 
-            if ($isAutoApprove) {
-                // Notify employee of auto-approval
-                EmployeeNotification::notify(
-                    $employee->id,
-                    'ot_approved',
-                    'อนุมัติโอทีอัตโนมัติ',
-                    "คำขอโอทีของคุณ (วันที่ {$request->date} {$request->start_time}-{$request->end_time}) ได้รับการอนุมัติอัตโนมัติ",
+            // Notify supervisor(s) of new OT request
+            $supervisorIds = $employee->getSupervisorIds();
+            if (!empty($supervisorIds)) {
+                EmployeeNotification::notifyMultiple(
+                    $supervisorIds,
+                    'ot_request',
+                    'มีคำขอโอทีใหม่',
+                    "{$employee->name} ({$employee->employee_code}) ขอโอทีวันที่ {$request->date} เวลา {$request->start_time}-{$request->end_time}" . ($request->reason ? " เหตุผล: {$request->reason}" : ''),
                     $ot->id,
                     'OtRequest'
                 );
-            } else {
-                // Notify supervisor(s) of new OT request
-                $supervisorIds = $employee->getSupervisorIds();
-                if (!empty($supervisorIds)) {
-                    EmployeeNotification::notifyMultiple(
-                        $supervisorIds,
-                        'ot_request',
-                        'มีคำขอโอทีใหม่',
-                        "{$employee->name} ({$employee->employee_code}) ขอโอทีวันที่ {$request->date} เวลา {$request->start_time}-{$request->end_time}" . ($request->reason ? " เหตุผล: {$request->reason}" : ''),
-                        $ot->id,
-                        'OtRequest'
-                    );
-                }
             }
 
             return response()->json([
@@ -261,7 +256,10 @@ class EmployeeRequestController extends Controller
                 'date' => $date->format('Y-m-d'),
                 'reason' => $request->reason,
                 'status' => $isAutoApprove ? 'approved' : 'pending',
-                'supervisor_id' => $isAutoApprove ? $employee->id : null,
+                // wfh_records.supervisor_id is FK'd to admin_users, not employees -
+                // can't reference the employee themselves here even on self-approval.
+                'supervisor_id' => null,
+                'supervisor_note' => $isAutoApprove ? 'อนุมัติอัตโนมัติ (ผู้บริหารระดับสูง)' : null,
                 'approved_date' => $isAutoApprove ? now() : null,
             ]);
 
@@ -275,7 +273,9 @@ class EmployeeRequestController extends Controller
                     'destination' => 'WFH',
                     'reason' => $request->reason ?: 'ปฏิบัติงานนอกสถานที่ (WFH)',
                     'status' => 'approved',
-                    'approved_by' => $employee->id,
+                    // remote_assignments.approved_by is FK'd to admin_users, not
+                    // employees - same reasoning as supervisor_id above.
+                    'approved_by' => null,
                     'approved_at' => now(),
                 ]);
 
