@@ -15,7 +15,14 @@
 $db_host = '127.0.0.1';
 $db_name = 'sql_attendance_northernthai_co_th';
 $db_user = 'sql_attendance_northernthai_co_th';
-$db_pass = 'c66bc5b516ce';
+// รหัสผ่านต้องไม่อยู่ในไฟล์นี้ - ไฟล์นี้ถูก commit ขึ้น git
+// ใช้:  DB_PASS='xxx' php scripts/import-etcl992-locations.php
+$db_pass = getenv('DB_PASS') ?: '';
+if ($db_pass === '') {
+    fwrite(STDERR, "[ERROR] DB_PASS environment variable is required
+");
+    exit(1);
+}
 
 try {
     $pdo = new PDO("mysql:host=$db_host;dbname=$db_name;charset=utf8mb4", $db_user, $db_pass);

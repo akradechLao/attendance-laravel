@@ -8,7 +8,11 @@
 set -e
 
 DB_USER="sql_attendance_northernthai_co_th"
-DB_PASS="c66bc5b516ce"
+# รหัสผ่านต้องไม่อยู่ในไฟล์นี้ - ไฟล์นี้ถูก commit ขึ้น git
+# ใช้:  DB_PASS='xxx' sudo -E bash import-stc-locations.sh
+DB_PASS="${DB_PASS:-}"
+if [ -z "$DB_PASS" ]; then read -rsp "DB password for ${DB_USER}: " DB_PASS; echo ""; fi
+if [ -z "$DB_PASS" ]; then echo "[ERROR] DB_PASS is required" >&2; exit 1; fi
 DB_NAME="sql_attendance_northernthai_co_th"
 COMPANY_ID=4
 RADIUS=200

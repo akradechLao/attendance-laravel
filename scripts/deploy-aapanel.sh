@@ -29,13 +29,25 @@ echo ""
 # Configuration - แก้ไขตรงนี้
 # ============================================
 APP_DIR="/www/wwwroot/attendance.northernthai.co.th"
-REPO_URL="https://github.com/akradechLao/attandance-laravel.git"
+REPO_URL="https://github.com/akradechLao/attendance-laravel.git"
 DOMAIN="attendance.northernthai.co.th"
 
 # Database (แก้ไขให้ตรงกับที่ตั้งค่าใน aaPanel)
 DB_NAME="sql_attendance_northernthai_co_th"
 DB_USER="sql_attendance_northernthai_co_th"
-DB_PASS="c66bc5b516ce"  # ← แก้ไขตรงนี้
+
+# รหัสผ่านต้องไม่อยู่ในไฟล์นี้ - ไฟล์นี้ถูก commit ขึ้น git
+# ส่งผ่าน environment variable:  DB_PASS='xxx' ./scripts/deploy-aapanel.sh
+# หรือปล่อยว่างไว้แล้วพิมพ์ตอนสคริปต์ถาม
+DB_PASS="${DB_PASS:-}"
+if [ -z "$DB_PASS" ]; then
+    read -rsp "DB password for ${DB_USER}: " DB_PASS
+    echo ""
+fi
+if [ -z "$DB_PASS" ]; then
+    log_error "DB_PASS is required"
+    exit 1
+fi
 
 # ============================================
 # Step 1: Clone โค้ด
