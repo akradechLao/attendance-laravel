@@ -362,32 +362,65 @@
             <input v-model="customLocationName" type="text" inputmode="text" class="input-field text-base" placeholder="เช่น โรงแรมABC, สำนักงานลูกค้า" />
           </div>
 
-          <!-- ═══ แผนที่ + สถานะ GPS (office scan) — แสดงก่อน แล้วค่อยเปิดกล้อง ═══ -->
-          <div v-if="scanType === 'office_scan' && officeLocation" class="mb-3">
-            <div class="bg-white rounded-2xl p-3 border border-gray-200 shadow-sm">
-              <div class="flex items-center justify-between mb-2">
-                <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">ตำแหน่งปัจจุบัน</p>
-                <span class="text-[10px] text-gray-400">รัศมี {{ officeLocation.radius_meters }} ม.</span>
+          <!-- ═══ แผนที่ ⇄ กล้อง — พออยู่ในรัศมี แผนที่ลดขนาดไปมุม กล้องขยายขึ้นมาแทน ═══ -->
+          <div v-if="scanType === 'office_scan' && officeLocation" class="relative mb-3">
+            <!-- แผนที่: การ์ดเต็มก่อนเข้ารัศมี, หดเป็น badge มุมขวาบนหลังกล้องมาแทน -->
+            <!-- mapContainer เป็น element เดิมตลอด (ไม่ v-if/v-else สลับ element) กัน Leaflet หลุด ref -->
+            <!-- ใช้ scale() ล้วนๆ ไม่แตะ w-/h- ของ mapContainer เอง กัน Leaflet ต้อง invalidateSize() -->
+            <div
+              class="transition-all duration-500 ease-out"
+              :class="cameraReady
+                ? 'absolute top-[6px] -right-[28px] z-0 w-full origin-top-right scale-[0.32] pointer-events-none'
+                : 'relative z-10 w-full origin-top-right scale-100'"
+            >
+              <div class="bg-white rounded-2xl p-3 border border-gray-200 shadow-sm">
+                <div v-if="!cameraReady" class="flex items-center justify-between mb-2">
+                  <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">ตำแหน่งปัจจุบัน</p>
+                  <span class="text-[10px] text-gray-400">รัศมี {{ officeLocation.radius_meters }} ม.</span>
+                </div>
+
+                <!-- แผนที่ (ขยายจาก h-28/h-36 เดิม) -->
+                <div ref="mapContainer" class="w-full h-48 sm:h-56 rounded-xl overflow-hidden border border-gray-200"></div>
+
+                <!-- สถานะ GPS ใต้แผนที่ - ซ่อนตอนหดเป็น badge เพราะตัวหนังสือจะเล็กเกินอ่าน -->
+                <div v-if="!cameraReady" class="flex items-center gap-2 mt-3">
+                  <div v-if="gpsStatus === 'acquiring'" class="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse shrink-0"></div>
+                  <div v-else-if="gpsStatus === 'found' && gpsReady" class="w-2.5 h-2.5 rounded-full bg-green-500 shrink-0"></div>
+                  <div v-else-if="gpsStatus === 'found' && !gpsReady" class="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shrink-0"></div>
+                  <div v-else class="w-2.5 h-2.5 rounded-full bg-gray-400 shrink-0"></div>
+                  <span class="text-sm font-medium" :class="gpsReady ? 'text-green-700' : 'text-gray-600'">
+                    <template v-if="gpsStatus === 'acquiring'">กำลังระบุตำแหน่ง...</template>
+                    <template v-else-if="gpsStatus === 'found' && gpsReady">อยู่ในพื้นที่เช็คอิน</template>
+                    <template v-else-if="gpsStatus === 'found' && !gpsReady">อยู่นอกพื้นที่เช็คอิน</template>
+                    <template v-else-if="gpsStatus === 'error'">ไม่สามารถระบุตำแหน่งได้</template>
+                  </span>
+                  <span v-if="distanceToOffice !== null" class="ml-auto text-xs text-gray-400">
+                    ห่าง {{ Math.round(distanceToOffice) }} ม.
+                  </span>
+                </div>
               </div>
+            </div>
 
-              <!-- แผนที่ (ขยายจาก h-28/h-36 เดิม) -->
-              <div ref="mapContainer" class="w-full h-48 sm:h-56 rounded-xl overflow-hidden border border-gray-200"></div>
-
-              <!-- สถานะ GPS ใต้แผนที่ -->
-              <div class="flex items-center gap-2 mt-3">
-                <div v-if="gpsStatus === 'acquiring'" class="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse shrink-0"></div>
-                <div v-else-if="gpsStatus === 'found' && gpsReady" class="w-2.5 h-2.5 rounded-full bg-green-500 shrink-0"></div>
-                <div v-else-if="gpsStatus === 'found' && !gpsReady" class="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shrink-0"></div>
-                <div v-else class="w-2.5 h-2.5 rounded-full bg-gray-400 shrink-0"></div>
-                <span class="text-sm font-medium" :class="gpsReady ? 'text-green-700' : 'text-gray-600'">
-                  <template v-if="gpsStatus === 'acquiring'">กำลังระบุตำแหน่ง...</template>
-                  <template v-else-if="gpsStatus === 'found' && gpsReady">อยู่ในพื้นที่เช็คอิน</template>
-                  <template v-else-if="gpsStatus === 'found' && !gpsReady">อยู่นอกพื้นที่เช็คอิน</template>
-                  <template v-else-if="gpsStatus === 'error'">ไม่สามารถระบุตำแหน่งได้</template>
-                </span>
-                <span v-if="distanceToOffice !== null" class="ml-auto text-xs text-gray-400">
-                  ห่าง {{ Math.round(distanceToOffice) }} ม.
-                </span>
+            <!-- ═══ กล้อง — โผล่มาแทนที่แผนที่ พร้อมกรอบ เมื่ออยู่ในรัศมีแล้ว ═══ -->
+            <div v-if="cameraReady" class="relative z-10 animate-fadeIn">
+              <div class="bg-white rounded-2xl p-3 border-4 border-blue-400 shadow-lg">
+                <div class="flex items-center justify-between mb-2">
+                  <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">กล้องหน้า</p>
+                  <span class="px-2 py-0.5 rounded-full bg-gray-100 text-[10px] font-semibold text-gray-500">
+                    วางใบหน้าให้อยู่ในกรอบ
+                  </span>
+                </div>
+                <FaceScanner
+                  :employee-id="selectedEmployee?.id"
+                  :scan-type="scanType"
+                  :scan-mode="scanMode"
+                  :trigger-scan="triggerScan"
+                  :current-latitude="currentLatitude"
+                  :current-longitude="currentLongitude"
+                  @verified="handleVerified"
+                  @failed="handleFailed"
+                  @error="handleError"
+                />
               </div>
             </div>
           </div>
@@ -414,8 +447,8 @@
             </div>
           </div>
 
-          <!-- ═══ กล้อง — แสดงเมื่ออยู่ในรัศมีแล้วเท่านั้น ═══ -->
-          <template v-if="cameraReady">
+          <!-- ═══ กล้อง (remote scan / ไม่มีข้อมูลจุดเช็คอิน) — เงื่อนไขนี้ cameraReady เป็น true อยู่แล้วโดยไม่ต้องรอ GPS ═══ -->
+          <template v-if="cameraReady && !(scanType === 'office_scan' && officeLocation)">
             <div class="bg-white rounded-2xl p-3 border border-gray-200 shadow-sm mb-2 sm:mb-3 animate-fadeIn">
               <div class="flex items-center justify-between mb-2">
                 <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">กล้องหน้า</p>
@@ -435,8 +468,10 @@
                 @error="handleError"
               />
             </div>
+          </template>
 
-            <!-- Scan Button -->
+          <!-- Scan Button -->
+          <template v-if="cameraReady">
             <div v-if="!triggerScan" class="mb-2">
               <button
                 @click="triggerScan = true"
