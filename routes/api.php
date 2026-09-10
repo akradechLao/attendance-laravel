@@ -14,7 +14,6 @@ use App\Http\Controllers\Api\OfficeLocationController;
 use App\Http\Controllers\Api\FaceController;
 use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\RemoteController;
-use App\Http\Controllers\Api\WfhController;
 use App\Http\Controllers\Api\HolidayController;
 use App\Http\Controllers\Api\ShiftController;
 use App\Http\Controllers\Api\SupervisorController;
@@ -270,12 +269,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/ot/{id}/manager-approve', [OtRequestController::class, 'managerApprove']);
     Route::put('/ot/{id}/final-approve', [OtRequestController::class, 'finalApprove']);
     Route::put('/ot/{id}/reject', [OtRequestController::class, 'reject']);
-
-    // WFH (self service + approvals)
-    Route::get('/wfh-records', [WfhController::class, 'index']);
-    Route::post('/wfh-records', [WfhController::class, 'store']);
-    Route::put('/wfh-records/{id}/approve', [WfhController::class, 'approve']);
-    Route::put('/wfh-records/{id}/reject', [WfhController::class, 'reject']);
 
     // Shift Swap approvals
     Route::get('/shift-swaps', [ShiftSwapController::class, 'index']);
