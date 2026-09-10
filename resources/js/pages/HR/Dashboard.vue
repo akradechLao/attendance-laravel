@@ -160,7 +160,6 @@
                   </td>
                   <td class="px-4 py-3">
                     <div class="flex flex-col gap-0.5">
-                      <span v-if="record.has_forced_leave" class="px-2 py-1 rounded-full text-xs font-medium bg-red-100 text-red-700 inline-block w-fit">บังคับลากิจ</span>
                       <span v-if="record.scan_type === 'remote_scan'" class="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700 inline-block w-fit">นอกสถานที่</span>
                       <span v-else class="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 inline-block w-fit">ออฟฟิศ</span>
                     </div>
