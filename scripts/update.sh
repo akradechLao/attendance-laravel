@@ -85,7 +85,7 @@ echo ""
 # ============================================
 log_info "Step 3: Running database migration..."
 
-$PHP_BIN artisan migrate --force 2>/dev/null || true
+$PHP_BIN artisan migrate --force
 
 log_success "Database migrated"
 
