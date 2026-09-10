@@ -428,9 +428,22 @@ const roleHierarchy = {
 router.beforeEach((to, from, next) => {
   const isAuthenticated = !!store.token
   const userRole = store.user?.role || 'employee'
+  // position มีเฉพาะบัญชีพนักงานจริง (ตาราง employees, มี default ใน DB เสมอ) - บัญชี
+  // admin/super_admin (ตาราง admin_users) ไม่มีฟิลด์นี้เลย ใช้แยกแยะ "ประเภทบัญชี" แทน
+  // role ซึ่งเทียบแค่ "ระดับสิทธิ์" (admin/super_admin ถือว่าระดับสูงกว่า employee แต่ไม่ใช่
+  // บัญชีพนักงาน) - ไม่ใช้ employee_code เพราะฟิลด์นั้น nullable ได้
+  const isEmployeeAccount = !!store.user?.position
 
   if (to.meta.requiresAuth && !isAuthenticated) {
     next('/login')
+    return
+  }
+
+  // เมนูพนักงาน (self-service) ต้องเป็นบัญชีพนักงานเท่านั้น - backend (EmployeeOnly
+  // middleware) บล็อก admin/super_admin อยู่แล้ว แต่ถ้าไม่กันตรงนี้ด้วย หน้าจะโหลด
+  // ขึ้นมาเฉย ๆ แล้ว API ทุกตัว 403 รัว ๆ แทนที่จะ redirect ออกไปอย่างเรียบร้อย
+  if (to.meta.requiresAuth && to.path.startsWith('/employee/') && isAuthenticated && !isEmployeeAccount) {
+    next('/dashboard')
     return
   }
 
