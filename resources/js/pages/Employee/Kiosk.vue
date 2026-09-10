@@ -362,67 +362,90 @@
             <input v-model="customLocationName" type="text" inputmode="text" class="input-field text-base" placeholder="เช่น โรงแรมABC, สำนักงานลูกค้า" />
           </div>
 
-          <!-- Map + GPS Status for office scan -->
-          <div v-if="scanType === 'office_scan' && officeLocation" class="mb-2">
-            <!-- GPS Status Bar -->
-            <div class="flex items-center justify-between bg-white rounded-xl p-2 shadow-sm border border-gray-100 mb-1.5">
-              <div class="flex items-center gap-2">
-                <div v-if="gpsStatus === 'acquiring'" class="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse"></div>
-                <div v-else-if="gpsStatus === 'found' && gpsReady" class="w-2.5 h-2.5 rounded-full bg-green-500"></div>
-                <div v-else-if="gpsStatus === 'found' && !gpsReady" class="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse"></div>
-                <div v-else class="w-2.5 h-2.5 rounded-full bg-gray-400"></div>
-                <span class="text-xs font-medium text-gray-600">
+          <!-- ═══ แผนที่ + สถานะ GPS (office scan) — แสดงก่อน แล้วค่อยเปิดกล้อง ═══ -->
+          <div v-if="scanType === 'office_scan' && officeLocation" class="mb-3">
+            <div class="bg-white rounded-2xl p-3 border border-gray-200 shadow-sm">
+              <div class="flex items-center justify-between mb-2">
+                <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">ตำแหน่งปัจจุบัน</p>
+                <span class="text-[10px] text-gray-400">รัศมี {{ officeLocation.radius_meters }} ม.</span>
+              </div>
+
+              <!-- แผนที่ (ขยายจาก h-28/h-36 เดิม) -->
+              <div ref="mapContainer" class="w-full h-48 sm:h-56 rounded-xl overflow-hidden border border-gray-200"></div>
+
+              <!-- สถานะ GPS ใต้แผนที่ -->
+              <div class="flex items-center gap-2 mt-3">
+                <div v-if="gpsStatus === 'acquiring'" class="w-2.5 h-2.5 rounded-full bg-yellow-400 animate-pulse shrink-0"></div>
+                <div v-else-if="gpsStatus === 'found' && gpsReady" class="w-2.5 h-2.5 rounded-full bg-green-500 shrink-0"></div>
+                <div v-else-if="gpsStatus === 'found' && !gpsReady" class="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse shrink-0"></div>
+                <div v-else class="w-2.5 h-2.5 rounded-full bg-gray-400 shrink-0"></div>
+                <span class="text-sm font-medium" :class="gpsReady ? 'text-green-700' : 'text-gray-600'">
                   <template v-if="gpsStatus === 'acquiring'">กำลังระบุตำแหน่ง...</template>
-                  <template v-else-if="gpsStatus === 'found' && distanceToOffice !== null">
-                    ห่าง {{ Math.round(distanceToOffice) }} ม.
-                    <span v-if="gpsReady" class="text-green-600">(ในรัศมี)</span>
-                    <span v-else class="text-red-600">(เกินรัศมี)</span>
-                  </template>
+                  <template v-else-if="gpsStatus === 'found' && gpsReady">อยู่ในพื้นที่เช็คอิน</template>
+                  <template v-else-if="gpsStatus === 'found' && !gpsReady">อยู่นอกพื้นที่เช็คอิน</template>
                   <template v-else-if="gpsStatus === 'error'">ไม่สามารถระบุตำแหน่งได้</template>
                 </span>
+                <span v-if="distanceToOffice !== null" class="ml-auto text-xs text-gray-400">
+                  ห่าง {{ Math.round(distanceToOffice) }} ม.
+                </span>
               </div>
-              <span class="text-[10px] text-gray-400">รัศมี {{ officeLocation.radius_meters }}ม.</span>
             </div>
-            <!-- Map -->
-            <div ref="mapContainer" class="w-full h-28 sm:h-36 rounded-xl overflow-hidden shadow-sm border border-gray-200"></div>
           </div>
 
-          <!-- Camera Area -->
-          <div class="relative mb-2 sm:mb-3">
-            <FaceScanner
-              :employee-id="selectedEmployee?.id"
-              :scan-type="scanType"
-              :scan-mode="scanMode"
-              :trigger-scan="triggerScan"
-              :current-latitude="currentLatitude"
-              :current-longitude="currentLongitude"
-              @verified="handleVerified"
-              @failed="handleFailed"
-              @error="handleError"
-            />
+          <!-- ═══ นอกรัศมี: ยังไม่เปิดกล้อง ═══ -->
+          <div v-if="scanType === 'office_scan' && officeLocation && !gpsReady" class="mb-2 animate-fadeIn">
+            <div class="bg-amber-50 border border-amber-200 rounded-2xl p-5 text-center">
+              <div class="w-12 h-12 mx-auto mb-3 rounded-full bg-amber-100 flex items-center justify-center">
+                <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+              </div>
+              <p class="font-bold text-amber-700">ยังเปิดกล้องไม่ได้</p>
+              <p class="text-sm text-amber-800 mt-1.5 leading-relaxed">
+                กรุณาเข้าใกล้จุดเช็คอินให้อยู่ในรัศมี {{ officeLocation.radius_meters }} ม.
+                หรือเลือก "สแกนนอกสถานที่" หากได้รับอนุมัติให้ปฏิบัติงานนอกพื้นที่
+              </p>
+              <button
+                @click="startRemoteScan"
+                class="mt-4 px-5 py-3 rounded-xl border border-amber-400 bg-white text-amber-700 font-semibold text-sm hover:bg-amber-50 active:bg-amber-100 transition touch-target"
+              >
+                เปลี่ยนเป็นสแกนนอกสถานที่
+              </button>
+            </div>
           </div>
 
-          <!-- Scan Button -->
-          <div v-if="!triggerScan" class="mb-2">
-            <button
-              v-if="scanType === 'office_scan' && officeLocation"
-              @click="triggerScan = true"
-              :disabled="!gpsReady"
-              :class="gpsReady
-                ? 'from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 shadow-lg cursor-pointer'
-                : 'from-gray-300 to-gray-400 cursor-not-allowed shadow-none'"
-              class="w-full py-3 sm:py-4 rounded-xl bg-gradient-to-r text-white font-bold text-base sm:text-lg active:scale-95 transition-all touch-target"
-            >
-              {{ gpsReady ? 'สแกนใบหน้าเพื่อยืนยันตัวตน' : 'กรุณาเข้าใกล้สถานที่เช็คอิน' }}
-            </button>
-            <button
-              v-else
-              @click="triggerScan = true"
-              class="w-full py-3 sm:py-4 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold text-base sm:text-lg shadow-lg active:scale-95 transition-all touch-target"
-            >
-              สแกนใบหน้าเพื่อยืนยันตัวตน
-            </button>
-          </div>
+          <!-- ═══ กล้อง — แสดงเมื่ออยู่ในรัศมีแล้วเท่านั้น ═══ -->
+          <template v-if="cameraReady">
+            <div class="bg-white rounded-2xl p-3 border border-gray-200 shadow-sm mb-2 sm:mb-3 animate-fadeIn">
+              <div class="flex items-center justify-between mb-2">
+                <p class="text-xs font-bold text-gray-500 uppercase tracking-wide">กล้องหน้า</p>
+                <span class="px-2 py-0.5 rounded-full bg-gray-100 text-[10px] font-semibold text-gray-500">
+                  วางใบหน้าให้อยู่ในกรอบ
+                </span>
+              </div>
+              <FaceScanner
+                :employee-id="selectedEmployee?.id"
+                :scan-type="scanType"
+                :scan-mode="scanMode"
+                :trigger-scan="triggerScan"
+                :current-latitude="currentLatitude"
+                :current-longitude="currentLongitude"
+                @verified="handleVerified"
+                @failed="handleFailed"
+                @error="handleError"
+              />
+            </div>
+
+            <!-- Scan Button -->
+            <div v-if="!triggerScan" class="mb-2">
+              <button
+                @click="triggerScan = true"
+                class="w-full py-3 sm:py-4 rounded-xl bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-bold text-base sm:text-lg shadow-lg active:scale-95 transition-all touch-target"
+              >
+                สแกนใบหน้าเพื่อยืนยันตัวตน
+              </button>
+            </div>
+          </template>
 
           <div v-if="scanningError" class="p-2 sm:p-3 bg-red-50 rounded-lg text-center">
             <p class="text-red-600 text-xs sm:text-sm">{{ scanningError }}</p>
@@ -699,6 +722,14 @@ const gpsStatus = ref('acquiring')
 const gpsReady = computed(() => {
   if (!officeLocation.value || distanceToOffice.value === null) return false
   return distanceToOffice.value <= officeLocation.value.radius_meters
+})
+
+// Camera only mounts once geofence is satisfied (or scan doesn't need one) -
+// keeps the camera off until we know it's worth turning on.
+const cameraReady = computed(() => {
+  if (scanType.value === 'remote_scan') return true
+  if (!officeLocation.value) return true // no office-location data = don't gate on GPS
+  return gpsReady.value
 })
 
 const faceRegCameraRef = ref(null)
