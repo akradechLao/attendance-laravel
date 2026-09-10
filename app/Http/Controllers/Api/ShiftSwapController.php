@@ -8,6 +8,8 @@ use App\Models\ShiftSchedule;
 use App\Models\ShiftSwap;
 use App\Models\WorkShift;
 use App\Models\LeaveRequest;
+use App\Models\LeaveType;
+use App\Services\LeaveService;
 use App\Constants\RoleConstants;
 use App\Constants\PositionConstants;
 use Carbon\Carbon;
@@ -18,7 +20,7 @@ class ShiftSwapController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = ShiftSwap::with(['requester:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id', 'target:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id', 'supervisor:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id']);
+        $query = ShiftSwap::with(['requester:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id', 'target:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id']);
 
         if ($request->has('status') && $request->status) {
             $query->where('status', $request->status);
@@ -118,22 +120,31 @@ class ShiftSwapController extends Controller
 
         // Create replacement day off leave request if requested
         if ($swap->request_replacement_day) {
-            $leaveDate = Carbon::parse($swap->swap_date);
-            LeaveRequest::create([
-                'emp_id' => $swap->requester_id,
-                'leave_type_id' => 1,
-                'start_date' => $leaveDate->format('Y-m-d'),
-                'end_date' => $leaveDate->format('Y-m-d'),
-                'total_days' => 1,
-                'reason' => 'วันหยุดทดแทนจากการสลับกะ ' . $leaveDate->format('d/m/Y'),
-                'status' => 'approved',
-                'approved_by' => $request->user()->id ?? null,
-                'approved_at' => now(),
-            ]);
+            $requester = Employee::find($swap->requester_id);
+            // ลากิจ (code "personal") is the closest existing leave type to a
+            // compensatory day off, and leave_types is scoped per company - there is
+            // no single "leave_type_id 1" that's valid for every company.
+            $leaveType = $requester
+                ? LeaveType::where('company_id', $requester->company_id)->where('code', 'personal')->first()
+                : null;
 
-            // Deduct leave balance
-            $leaveService = app(\App\Services\LeaveService::class);
-            $leaveService->deductLeave($swap->requester_id, 1, $leaveDate->format('Y-m-d'), $leaveDate->format('Y-m-d'));
+            if ($requester && $leaveType) {
+                $leaveDate = Carbon::parse($swap->swap_date);
+                LeaveRequest::create([
+                    'company_id' => $requester->company_id,
+                    'emp_id' => $requester->id,
+                    'leave_type_id' => $leaveType->id,
+                    'start_date' => $leaveDate->format('Y-m-d'),
+                    'end_date' => $leaveDate->format('Y-m-d'),
+                    'total_days' => 1,
+                    'reason' => 'วันหยุดทดแทนจากการสลับกะ ' . $leaveDate->format('d/m/Y'),
+                    'status' => 'approved',
+                ]);
+
+                // Deduct leave balance
+                $leaveService = app(LeaveService::class);
+                $leaveService->deductLeave($requester, $leaveType, 1, $leaveDate->year);
+            }
         }
 
         return response()->json([
@@ -178,7 +189,7 @@ class ShiftSwapController extends Controller
 
         $swaps = ShiftSwap::where('requester_id', $employee->id)
             ->orWhere('target_id', $employee->id)
-            ->with(['requester:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id', 'target:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id', 'supervisor:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id'])
+            ->with(['requester:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id', 'target:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id'])
             ->orderBy('created_at', 'desc')
             ->get();
 

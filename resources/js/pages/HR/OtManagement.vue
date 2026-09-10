@@ -293,10 +293,11 @@ async function hrApprove(ot) {
 }
 
 async function rejectOt(ot) {
-  if (!confirm('ยืนยันการปฏิเสธ OT?')) return
+  const reason = prompt('กรุณาระบุเหตุผลในการไม่อนุมัติ:')
+  if (!reason) return
   processing.value = true
   try {
-    await api.put(`/api/ot/${ot.id}/reject`)
+    await api.put(`/api/ot/${ot.id}/reject`, { rejection_reason: reason })
     fetchOts()
   } catch (error) {
     console.error('Error rejecting OT:', error)

@@ -40,7 +40,7 @@ const rejectLeave = async (id) => {
   const reason = prompt('กรุณาระบุเหตุผลในการไม่อนุมัติ:')
   if (reason) {
     try {
-      await api.put(`/api/leave/${id}/reject`, { reason })
+      await api.put(`/api/leave/${id}/reject`, { supervisor_note: reason })
       alert('ไม่อนุมัติคำขอสำเร็จ')
       await loadLeaveRequests()
     } catch (error) {

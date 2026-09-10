@@ -6,7 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\LeaveRequest;
 use App\Models\LeaveType;
 use App\Models\Employee;
+use App\Models\EmployeeNotification;
 use App\Services\LeaveService;
+use App\Services\AuditLogService;
+use App\Services\TelegramService;
 use App\Constants\RoleConstants;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -111,11 +114,18 @@ class LeaveRequestController extends Controller
 
         $leave->update([
             'status' => 'approved',
-            'supervisor_id' => $request->get('supervisor_id'),
+            // leave_requests.supervisor_id has no FK constraint, but Employee::find()
+            // is used to look it back up for notifications - only store it when the
+            // approver is a real Employee-supervisor, never an AdminUser id (which
+            // would collide with an unrelated Employee row of the same id).
+            'supervisor_id' => $user instanceof Employee ? $user->id : null,
             'supervisor_note' => $request->get('supervisor_note', ''),
         ]);
 
         $leave->load(['employee', 'leaveType']);
+
+        AuditLogService::action('approve', $leave, 'อนุมัติใบลา ' . ($leave->employee->name ?? $leave->emp_id) . ' (' . ($leave->employee->employee_code ?? '-') . ')', $request);
+        $this->sendLeaveNotification($leave, 'approved', $user);
 
         return response()->json([
             'success' => true,
@@ -148,11 +158,15 @@ class LeaveRequestController extends Controller
 
         $leave->update([
             'status' => 'rejected',
-            'supervisor_id' => $request->get('supervisor_id'),
+            // see approve() - same reasoning for not storing an AdminUser id here
+            'supervisor_id' => $user instanceof Employee ? $user->id : null,
             'supervisor_note' => $request->get('supervisor_note', ''),
         ]);
 
         $leave->load(['employee', 'leaveType']);
+
+        AuditLogService::action('reject', $leave, 'ไม่อนุมัติใบลา ' . ($leave->employee->name ?? $leave->emp_id) . ' (' . ($leave->employee->employee_code ?? '-') . '): ' . $leave->supervisor_note, $request);
+        $this->sendLeaveNotification($leave, 'rejected', $user);
 
         return response()->json([
             'success' => true,
@@ -168,6 +182,57 @@ class LeaveRequestController extends Controller
             ],
             'message' => 'ปฏิเสธคำขอลา',
         ]);
+    }
+
+    /**
+     * แจ้งเตือนพนักงาน (in-app + Telegram) เมื่อคำขอลาถูกอนุมัติ/ปฏิเสธ
+     */
+    private function sendLeaveNotification(LeaveRequest $leave, string $action, $approver): void
+    {
+        $employee = $leave->employee;
+        if (!$employee) return;
+
+        if ($approver instanceof Employee) {
+            $approverText = "คุณ {$approver->name} (" . $approver->getPositionName() . ")";
+        } elseif ($approver) {
+            $approverText = 'ฝ่ายบุคคล';
+        } else {
+            $approverText = 'ผู้อนุมัติ';
+        }
+
+        $leaveType = $leave->leaveType;
+        $emoji = $action === 'approved' ? '✅' : '❌';
+        $statusText = $action === 'approved' ? 'อนุมัติ' : 'ไม่อนุมัติ';
+
+        $body = "คำขอลาของคุณ (" . ($leaveType->name ?? '-') . " {$leave->start_date} ถึง {$leave->end_date}) ได้รับการ{$statusText}โดย {$approverText}";
+        if ($action === 'rejected' && $leave->supervisor_note) {
+            $body .= " เหตุผล: {$leave->supervisor_note}";
+        }
+
+        EmployeeNotification::notify(
+            $leave->emp_id,
+            $action === 'approved' ? 'leave_approved' : 'leave_rejected',
+            "{$emoji} {$statusText}ลางาน",
+            $body,
+            $leave->id,
+            'LeaveRequest'
+        );
+
+        try {
+            if ($employee->telegram_chat_id) {
+                $message = "{$emoji} <b>ใบลา{$statusText}</b>\n\n";
+                $message .= "👤 <b>ชื่อ:</b> {$employee->name} ({$employee->employee_code})\n";
+                $message .= "📋 <b>ประเภท:</b> " . ($leaveType->name ?? '-') . "\n";
+                $message .= "📅 <b>วันที่:</b> {$leave->start_date} - {$leave->end_date}\n";
+                $message .= "📝 <b>จำนวน:</b> {$leave->total_days} วัน\n";
+                if ($action === 'rejected' && $leave->supervisor_note) {
+                    $message .= "❌ <b>เหตุผล:</b> {$leave->supervisor_note}\n";
+                }
+                (new TelegramService())->sendToChat($employee->telegram_chat_id, $message);
+            }
+        } catch (\Exception $e) {
+            \Log::warning('Telegram notification failed (Leave): ' . $e->getMessage());
+        }
     }
 
     public function myRequests(Request $request): JsonResponse

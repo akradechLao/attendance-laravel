@@ -40,7 +40,7 @@ const rejectOt = async (id) => {
   const reason = prompt('กรุณาระบุเหตุผลในการไม่อนุมัติ:')
   if (reason) {
     try {
-      await api.put(`/api/ot/${id}/reject`, { reason })
+      await api.put(`/api/ot/${id}/reject`, { rejection_reason: reason })
       alert('ไม่อนุมัติคำขอสำเร็จ')
       await loadOtRequests()
     } catch (error) {

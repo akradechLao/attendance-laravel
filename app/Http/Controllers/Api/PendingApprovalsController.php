@@ -170,7 +170,9 @@ class PendingApprovalsController extends Controller
             'created_at' => $l->created_at ? $l->created_at->setTimezone('Asia/Bangkok')->format('Y-m-d H:i') : null,
             'approve_url' => "/api/leave/{$l->id}/approve",
             'reject_url' => "/api/leave/{$l->id}/reject",
-            'reject_field' => 'rejection_reason',
+            // LeaveRequestController::reject() (the controller these URLs actually hit)
+            // only reads/stores supervisor_note - leave_requests has no rejection_reason column.
+            'reject_field' => 'supervisor_note',
         ]);
     }
 

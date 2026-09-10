@@ -275,7 +275,7 @@ async function confirmReject() {
   processing.value = true
   try {
     await api.put(`/api/leave/${rejectTarget.value.id}/reject`, {
-      rejection_reason: rejectReason.value
+      supervisor_note: rejectReason.value
     })
     showRejectModal.value = false
     fetchLeaves()
