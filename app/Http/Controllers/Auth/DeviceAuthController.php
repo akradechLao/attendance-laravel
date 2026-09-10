@@ -108,6 +108,7 @@ class DeviceAuthController extends Controller
                     'company_id' => $employee->company_id,
                     'has_ot' => $employee->has_ot,
                     'position' => $employee->position,
+                    'position_level' => $employee->position_level,
                     'department' => $employee->department,
                     'division' => $employee->division,
                 ],

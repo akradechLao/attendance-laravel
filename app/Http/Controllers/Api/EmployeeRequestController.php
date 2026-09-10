@@ -93,7 +93,7 @@ class EmployeeRequestController extends Controller
                 ], 400);
             }
 
-            $empLevel = PositionConstants::getLevel($employee->position);
+            $empLevel = PositionConstants::getLevel($employee->position_level);
             $isAutoApprove = $empLevel <= PositionConstants::HIERARCHY['md'];
 
             $leave = LeaveRequest::create([
@@ -185,7 +185,7 @@ class EmployeeRequestController extends Controller
             if (!$employee->has_ot) {
                 return response()->json(['success' => false, 'message' => 'พนักงานไม่มีสิทธิ์ทำโอที'], 403);
             }
-            if (PositionConstants::isTopManagement($employee->position)) {
+            if (PositionConstants::isTopManagement($employee->position_level)) {
                 return response()->json(['success' => false, 'message' => 'ตำแหน่งนี้ไม่มีสิทธิ์ขอโอที'], 403);
             }
 
@@ -279,7 +279,7 @@ class EmployeeRequestController extends Controller
                 ], 400);
             }
 
-            $empLevel = PositionConstants::getLevel($employee->position);
+            $empLevel = PositionConstants::getLevel($employee->position_level);
             $isAutoApprove = $empLevel <= PositionConstants::HIERARCHY['md'];
 
             $wfh = WfhRecord::create([

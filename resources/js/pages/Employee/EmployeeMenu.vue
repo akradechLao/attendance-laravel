@@ -352,7 +352,7 @@ const teamPendingCount = ref(0)
 
 // Assistant MD-and-above don't work fixed shifts, so OT / shift-swap /
 // shift-request never apply to them regardless of has_ot or assigned shifts.
-const isExec = computed(() => isTopManagement(store.user?.position))
+const isExec = computed(() => isTopManagement(store.user?.position_level))
 const hasOt = computed(() => !isExec.value && (store.user?.has_ot === true || store.user?.has_ot === 1))
 const hasShifts = computed(() => {
   if (isExec.value) return false

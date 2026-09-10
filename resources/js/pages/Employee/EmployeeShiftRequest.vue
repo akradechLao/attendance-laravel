@@ -125,7 +125,7 @@ const form = reactive({
 })
 
 onMounted(async () => {
-  if (isTopManagement(store.user?.position)) {
+  if (isTopManagement(store.user?.position_level)) {
     alert('ตำแหน่งนี้ไม่มีสิทธิ์ร้องขอกะ')
     router.push('/employee/menu')
     return

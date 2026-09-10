@@ -558,10 +558,10 @@ const filteredEmployees = computed(() => {
 // are actually eligible, so HR can't pick someone who could never have one.
 const pickableEmployees = computed(() => {
   if (activeTab.value === 'ot') {
-    return filteredEmployees.value.filter(e => e.has_ot && !isTopManagement(e.position))
+    return filteredEmployees.value.filter(e => e.has_ot && !isTopManagement(e.position_level))
   }
   if (activeTab.value === 'shift') {
-    return filteredEmployees.value.filter(e => !isTopManagement(e.position))
+    return filteredEmployees.value.filter(e => !isTopManagement(e.position_level))
   }
   return filteredEmployees.value
 })

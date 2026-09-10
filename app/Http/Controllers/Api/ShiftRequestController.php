@@ -54,7 +54,7 @@ class ShiftRequestController extends Controller
             // Assistant MD-and-above don't work fixed shifts, so there is
             // nothing for them to request - the frontend already hides this
             // page for them, but the API must not rely on that alone.
-            if (PositionConstants::isTopManagement($employee->position)) {
+            if (PositionConstants::isTopManagement($employee->position_level)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'ตำแหน่งนี้ไม่มีสิทธิ์ร้องขอกะ',

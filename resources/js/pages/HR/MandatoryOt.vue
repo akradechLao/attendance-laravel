@@ -368,7 +368,7 @@ import { isTopManagement } from '../../constants/position'
 // Mandatory OT can only ever apply to employees with OT rights who aren't
 // top management - filter right at the source so every picker on this page
 // (manual + auto mode) only ever lists people it's possible to assign.
-const otEligible = (e) => e.has_ot && !isTopManagement(e.position)
+const otEligible = (e) => e.has_ot && !isTopManagement(e.position_level)
 
 const loading = ref(true)
 const saving = ref(false)

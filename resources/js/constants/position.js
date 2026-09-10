@@ -10,6 +10,23 @@ export const POSITION_HIERARCHY = {
   employee: 6,
 }
 
+// Thai labels for the coded position_level values - mirrors PositionConstants::LEVEL_LABELS_TH.
+export const POSITION_LEVEL_LABELS = {
+  chairman: 'ประธานกรรมการ',
+  md: 'กรรมการผู้จัดการ',
+  executive_director: 'ผู้อำนวยการบริหาร',
+  assistant_md: 'ผู้ช่วยกรรมการผู้จัดการ',
+  division_manager: 'ผู้จัดการฝ่าย',
+  sub_division_manager: 'ผู้จัดการแผนก',
+  team_lead: 'หัวหน้าทีม',
+  employee: 'พนักงานทั่วไป',
+}
+
+export const POSITION_LEVEL_OPTIONS = Object.keys(POSITION_HIERARCHY).map(value => ({
+  value,
+  label: POSITION_LEVEL_LABELS[value],
+}))
+
 export function getPositionLevel(position) {
   return POSITION_HIERARCHY[position] ?? 6
 }

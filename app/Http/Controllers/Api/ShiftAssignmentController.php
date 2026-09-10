@@ -25,7 +25,10 @@ class ShiftAssignmentController extends Controller
             // Assistant MD-and-above don't work fixed shifts - don't offer them
             // as assignable in this picker at all.
             $query = Employee::where('is_active', true)
-                ->whereNotIn('position', PositionConstants::EXCLUDED_POSITIONS)
+                ->where(function ($q) {
+                    $q->whereNull('position_level')
+                        ->orWhereNotIn('position_level', PositionConstants::EXCLUDED_POSITIONS);
+                })
                 ->with(['workShifts' => function ($q) use ($startDate, $endDate) {
                     $q->where(function ($q2) use ($startDate, $endDate) {
                         $q2->whereNull('start_date')
@@ -91,7 +94,7 @@ class ShiftAssignmentController extends Controller
             ]);
 
             $blocked = Employee::whereIn('id', $validated['employee_ids'])
-                ->whereIn('position', PositionConstants::EXCLUDED_POSITIONS)
+                ->whereIn('position_level', PositionConstants::EXCLUDED_POSITIONS)
                 ->pluck('name');
             if ($blocked->isNotEmpty()) {
                 return response()->json([

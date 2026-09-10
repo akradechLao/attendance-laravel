@@ -74,7 +74,7 @@ class EmployeeAuthController extends Controller
             return response()->json([
                 'success' => true,
                 'data' => [
-                    'user' => $employee->only('id', 'name', 'nickname', 'employee_code', 'photo', 'company_id', 'has_ot', 'position', 'level', 'department', 'division', 'reports_to', 'role', 'is_active'),
+                    'user' => $employee->only('id', 'name', 'nickname', 'employee_code', 'photo', 'company_id', 'has_ot', 'position', 'position_level', 'level', 'department', 'division', 'reports_to', 'role', 'is_active'),
                     'token' => $token,
                 ],
                 'message' => 'เข้าสู่ระบบสำเร็จ',
@@ -109,7 +109,7 @@ class EmployeeAuthController extends Controller
 
             return response()->json([
                 'success' => true,
-                'data' => $employee->only('id', 'name', 'nickname', 'employee_code', 'photo', 'company_id', 'has_ot', 'position', 'level', 'department', 'division', 'reports_to', 'role', 'is_active'),
+                'data' => $employee->only('id', 'name', 'nickname', 'employee_code', 'photo', 'company_id', 'has_ot', 'position', 'position_level', 'level', 'department', 'division', 'reports_to', 'role', 'is_active'),
                 'message' => 'Employee verified successfully.',
             ]);
         } catch (\Exception $e) {

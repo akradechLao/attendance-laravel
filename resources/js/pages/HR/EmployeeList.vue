@@ -82,7 +82,12 @@
                   </td>
                    <td class="px-6 py-4 text-gray-600">{{ employee.employee_code }}</td>
                   <td class="px-6 py-4 text-gray-600">{{ employee.company?.name }}</td>
-                  <td class="px-6 py-4 text-gray-600">{{ employee.position }}</td>
+                  <td class="px-6 py-4 text-gray-600">
+                    {{ employee.position }}
+                    <span v-if="employee.position_level" class="ml-1 inline-block text-xs px-1.5 py-0.5 rounded bg-blue-50 text-blue-600">
+                      {{ positionLevelLabels[employee.position_level] }}
+                    </span>
+                  </td>
                   <td class="px-6 py-4 text-gray-600">{{ employee.department }}</td>
                   <td class="px-6 py-4 text-center">
                     <span
@@ -200,7 +205,14 @@
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">ตำแหน่ง</label>
-            <input v-model="form.position" type="text" class="input-field" />
+            <input v-model="form.position" type="text" class="input-field" placeholder="เช่น กรรมการผู้จัดการ" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">ระดับตำแหน่ง (สำหรับระบบสิทธิ์/การอนุมัติ)</label>
+            <select v-model="form.position_level" class="input-field">
+              <option value="">- ไม่ระบุ (พนักงานทั่วไป) -</option>
+              <option v-for="opt in positionLevelOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+            </select>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">แผนก</label>
@@ -252,6 +264,10 @@ import api from '../../services/api'
 import AppLayout from '../../layouts/AppLayout.vue'
 import LoadingSpinner from '../../components/LoadingSpinner.vue'
 import Modal from '../../components/Modal.vue'
+import { POSITION_LEVEL_OPTIONS, POSITION_LEVEL_LABELS } from '../../constants/position'
+
+const positionLevelOptions = POSITION_LEVEL_OPTIONS
+const positionLevelLabels = POSITION_LEVEL_LABELS
 
 const loading = ref(true)
 const saving = ref(false)
@@ -279,6 +295,7 @@ const form = reactive({
   employee_code: '',
   company_id: '',
   position: '',
+  position_level: '',
   department: ''
 })
 
@@ -355,6 +372,7 @@ function editEmployee(employee) {
     employee_code: employee.employee_code,
     company_id: employee.company_id,
     position: employee.position,
+    position_level: employee.position_level || '',
     department: employee.department
   })
   showEditModal.value = true
@@ -368,10 +386,11 @@ function confirmDelete(employee) {
 async function saveEmployee() {
   saving.value = true
   try {
+    const payload = { ...form, position_level: form.position_level || null }
     if (showEditModal.value) {
-      await api.put(`/api/employees/${editId.value}`, form)
+      await api.put(`/api/employees/${editId.value}`, payload)
     } else {
-      await api.post('/api/employees', form)
+      await api.post('/api/employees', payload)
     }
     closeModal()
     fetchEmployees()
@@ -401,7 +420,7 @@ function closeModal() {
   showAddModal.value = false
   showEditModal.value = false
   editId.value = null
-  Object.assign(form, { name: '', employee_code: '', company_id: '', position: '', department: '', id_card: '', social_security: '', education: '' })
+  Object.assign(form, { name: '', employee_code: '', company_id: '', position: '', position_level: '', department: '', id_card: '', social_security: '', education: '' })
 }
 
 async function resetPassword(employee) {

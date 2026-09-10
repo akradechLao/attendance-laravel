@@ -32,6 +32,7 @@ class Employee extends Authenticatable
         'employee_code',
         'group_type',
         'position',
+        'position_level',
         'level',
         'has_ot',
         'department',
@@ -158,12 +159,12 @@ class Employee extends Authenticatable
 
     public function isExcludedFromAttendance(): bool
     {
-        return PositionConstants::isExcluded($this->position);
+        return PositionConstants::isExcluded($this->position_level);
     }
 
     public function getLevel(): int
     {
-        return PositionConstants::getLevel($this->position);
+        return PositionConstants::getLevel($this->position_level);
     }
 
     public function canApprove(): bool
@@ -173,21 +174,12 @@ class Employee extends Authenticatable
     }
 
     /**
-     * Get human-readable Thai position name.
+     * Get human-readable Thai name for the coded position_level (not the
+     * free-text `position` job title, which is displayed as-is elsewhere).
      */
     public function getPositionName(): string
     {
-        $names = [
-            'chairman' => 'ประธานกรรมการ',
-            'md' => 'Managing Director',
-            'executive_director' => 'ผู้อำนวยการบริหาร',
-            'assistant_md' => 'รองผู้จัดการใหญ่',
-            'division_manager' => 'ผู้จัดการฝ่าย',
-            'sub_division_manager' => 'ผู้จัดการแผนก',
-            'team_lead' => 'หัวหน้าทีม',
-            'employee' => 'พนักงาน',
-        ];
-        return $names[$this->position] ?? 'พนักงาน';
+        return PositionConstants::LEVEL_LABELS_TH[$this->position_level] ?? 'พนักงาน';
     }
 
     /**

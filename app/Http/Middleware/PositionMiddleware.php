@@ -29,7 +29,7 @@ class PositionMiddleware
             return response()->json(['message' => 'Employee not found'], 404);
         }
 
-        $employeePosition = $employee->position ?? 'employee';
+        $employeePosition = $employee->position_level ?? 'employee';
 
         if (!empty($positions) && !in_array($employeePosition, $positions)) {
             return response()->json(['message' => 'Forbidden: insufficient position level'], 403);

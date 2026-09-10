@@ -64,7 +64,7 @@ class ShiftSwapController extends Controller
         // Assistant MD-and-above don't work fixed shifts, so there is nothing
         // for them to swap - the frontend already hides this page for them,
         // but the API must not rely on that alone.
-        if (PositionConstants::isTopManagement($employee->position)) {
+        if (PositionConstants::isTopManagement($employee->position_level)) {
             return response()->json(['success' => false, 'message' => 'ตำแหน่งนี้ไม่มีสิทธิ์ขอสลับเวร'], 403);
         }
 
@@ -255,9 +255,9 @@ class ShiftSwapController extends Controller
         $schedules = ShiftSchedule::where('company_id', $employee->company_id)
             ->where('work_date', $date)
             ->where('emp_id', '!=', $employee->id)
-            ->with('employee:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id')
+            ->with('employee:id,employee_code,name,nickname,photo,company_id,position,position_level,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id')
             ->get()
-            ->filter(fn($s) => $s->employee && !PositionConstants::isTopManagement($s->employee->position));
+            ->filter(fn($s) => $s->employee && !PositionConstants::isTopManagement($s->employee->position_level));
 
         $available = $schedules->map(fn($s) => [
             'id' => $s->employee->id,
