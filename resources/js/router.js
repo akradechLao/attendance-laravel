@@ -255,6 +255,12 @@ const routes = [
     meta: { requiresAuth: true, layout: 'app', requiresRole: 'admin' }
   },
   {
+    path: '/dashboard-analytics',
+    name: 'DashboardAnalytics',
+    component: () => import('./pages/HR/DashboardAnalytics.vue'),
+    meta: { requiresAuth: true, layout: 'app', requiresRole: 'admin' }
+  },
+  {
     path: '/system-config',
     name: 'SystemConfig',
     component: () => import('./pages/HR/SystemConfig.vue'),

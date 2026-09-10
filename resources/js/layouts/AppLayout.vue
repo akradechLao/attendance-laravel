@@ -181,6 +181,7 @@ const navItems = [
   { section: 'ภาพรวม' },
   { path: '/pending-approvals', label: 'รายการรออนุมัติ', icon: '🔔', minRole: 'employee', badge: () => pendingCount.value },
   { path: '/dashboard', label: 'แดชบอร์ด', icon: '📊', minRole: 'admin' },
+  { path: '/dashboard-analytics', label: 'แดชบอร์ดวิเคราะห์ข้อมูล', icon: '📈', minRole: 'admin' },
   { path: '/estimated-checkouts', label: 'Checkout รออนุมัติ', icon: '⚠️', minRole: 'admin' },
   { path: '/employees', label: 'พนักงาน', icon: '👥', minRole: 'admin' },
   { path: '/reports', label: 'รายงาน', icon: '📋', minRole: 'admin' },

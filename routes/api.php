@@ -310,6 +310,7 @@ Route::middleware(['auth:sanctum', 'role:admin,super_admin'])->group(function ()
     // Dashboard (HR)
     Route::get('/dashboard/stats', [DashboardController::class, 'stats']);
     Route::get('/dashboard/today', [DashboardController::class, 'today']);
+    Route::get('/dashboard/analytics', [DashboardController::class, 'analytics']);
 
     // Employee list (read)
     Route::get('/employees', [EmployeeController::class, 'index']);

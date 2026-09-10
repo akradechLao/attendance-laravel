@@ -177,6 +177,133 @@ class DashboardController extends Controller
         }
     }
 
+    public function analytics(Request $request): JsonResponse
+    {
+        try {
+            $companyId = $request->get('company_id');
+            $months = max(1, min(12, (int) $request->get('months', 6)));
+
+            $rangeStart = Carbon::now('Asia/Bangkok')->startOfMonth()->subMonths($months - 1);
+            $rangeEnd = Carbon::now('Asia/Bangkok')->endOfMonth();
+
+            // สร้าง key เดือนตามลำดับล่วงหน้า กันเดือนที่ไม่มีข้อมูลหายไปจากกราฟ
+            $monthKeys = [];
+            $cursor = $rangeStart->copy();
+            while ($cursor->lte($rangeEnd)) {
+                $monthKeys[$cursor->format('Y-m')] = $cursor->translatedFormat('M Y');
+                $cursor->addMonth();
+            }
+
+            // ─── แนวโน้มเข้างานรายเดือน (ตรงเวลา/สาย) ───
+            $attendanceLogs = AttendanceLog::whereBetween('date', [$rangeStart->toDateString(), $rangeEnd->toDateString()])
+                ->whereHas('employee', function ($q) use ($companyId) {
+                    $q->where('is_active', true);
+                    if ($companyId) {
+                        $q->where('company_id', $companyId);
+                    }
+                })
+                ->select('date', 'check_in_status')
+                ->get();
+
+            $attendanceByMonth = array_fill_keys(array_keys($monthKeys), ['on_time' => 0, 'late' => 0]);
+            foreach ($attendanceLogs as $log) {
+                $key = Carbon::parse($log->date)->format('Y-m');
+                if (!isset($attendanceByMonth[$key])) continue;
+                if ($log->check_in_status === 'late') {
+                    $attendanceByMonth[$key]['late']++;
+                } else {
+                    $attendanceByMonth[$key]['on_time']++;
+                }
+            }
+
+            $attendanceTrend = [];
+            foreach ($monthKeys as $key => $label) {
+                $attendanceTrend[] = [
+                    'month' => $label,
+                    'on_time' => $attendanceByMonth[$key]['on_time'],
+                    'late' => $attendanceByMonth[$key]['late'],
+                ];
+            }
+
+            // ─── ชั่วโมง OT รายเดือน ───
+            $otQuery = OtRequest::where('status', 'approved')
+                ->whereBetween('date', [$rangeStart->toDateString(), $rangeEnd->toDateString()]);
+            if ($companyId) {
+                $otQuery->where('company_id', $companyId);
+            }
+            $otRecords = $otQuery->select('date', 'total_hours')->get();
+
+            $otByMonth = array_fill_keys(array_keys($monthKeys), 0.0);
+            foreach ($otRecords as $record) {
+                $key = Carbon::parse($record->date)->format('Y-m');
+                if (!isset($otByMonth[$key])) continue;
+                $otByMonth[$key] += (float) $record->total_hours;
+            }
+
+            $otTrend = [];
+            foreach ($monthKeys as $key => $label) {
+                $otTrend[] = ['month' => $label, 'hours' => round($otByMonth[$key], 1)];
+            }
+
+            // ─── จำนวนพนักงานตามฝ่าย ───
+            $divisionQuery = Employee::where('is_active', true);
+            if ($companyId) {
+                $divisionQuery->where('company_id', $companyId);
+            }
+            $divisionBreakdown = (clone $divisionQuery)
+                ->selectRaw('COALESCE(NULLIF(division, \'\'), \'ไม่ระบุ\') as label, COUNT(*) as total')
+                ->groupBy('label')
+                ->orderByDesc('total')
+                ->get();
+
+            // ─── ช่วงอายุพนักงาน ───
+            $ageBuckets = ['ต่ำกว่า 20' => 0, '20-29' => 0, '30-39' => 0, '40-49' => 0, '50-59' => 0, '60 ขึ้นไป' => 0];
+            $withBirthDate = (clone $divisionQuery)->whereNotNull('birth_date')->pluck('birth_date');
+            foreach ($withBirthDate as $birthDate) {
+                $age = Carbon::parse($birthDate)->age;
+                if ($age < 20) $ageBuckets['ต่ำกว่า 20']++;
+                elseif ($age < 30) $ageBuckets['20-29']++;
+                elseif ($age < 40) $ageBuckets['30-39']++;
+                elseif ($age < 50) $ageBuckets['40-49']++;
+                elseif ($age < 60) $ageBuckets['50-59']++;
+                else $ageBuckets['60 ขึ้นไป']++;
+            }
+
+            // ─── อายุงาน (นับจาก start_date) ───
+            $tenureBuckets = ['น้อยกว่า 1 ปี' => 0, '1-3 ปี' => 0, '3-5 ปี' => 0, '5-10 ปี' => 0, 'มากกว่า 10 ปี' => 0];
+            $withStartDate = (clone $divisionQuery)->whereNotNull('start_date')->pluck('start_date');
+            foreach ($withStartDate as $startDate) {
+                $years = Carbon::parse($startDate)->diffInYears(Carbon::now());
+                if ($years < 1) $tenureBuckets['น้อยกว่า 1 ปี']++;
+                elseif ($years < 3) $tenureBuckets['1-3 ปี']++;
+                elseif ($years < 5) $tenureBuckets['3-5 ปี']++;
+                elseif ($years < 10) $tenureBuckets['5-10 ปี']++;
+                else $tenureBuckets['มากกว่า 10 ปี']++;
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'attendance_trend' => $attendanceTrend,
+                    'ot_trend' => $otTrend,
+                    'division_breakdown' => $divisionBreakdown->map(fn($row) => [
+                        'label' => $row->label,
+                        'total' => $row->total,
+                    ]),
+                    'age_distribution' => collect($ageBuckets)->map(fn($count, $label) => compact('label', 'count'))->values(),
+                    'tenure_distribution' => collect($tenureBuckets)->map(fn($count, $label) => compact('label', 'count'))->values(),
+                    'total_employees' => (clone $divisionQuery)->count(),
+                ],
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'ไม่สามารถดึงข้อมูลได้ กรุณาลองใหม่อีกครั้ง',
+            ], 500);
+        }
+    }
+
     public function today(Request $request): JsonResponse
     {
         try {
