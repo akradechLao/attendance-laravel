@@ -80,6 +80,36 @@
             </div>
           </div>
         </div>
+
+        <h2 class="text-lg font-bold text-navy pt-2">การลางานและการอนุมัติเอกสาร</h2>
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="card">
+            <h2 class="text-sm font-bold text-gray-500 uppercase tracking-wide mb-4">การลางานตามประเภท ({{ months }} ด.)</h2>
+            <div v-if="leaveByType.length === 0" class="h-56 sm:h-64 flex items-center justify-center text-sm text-gray-400">
+              ไม่มีข้อมูล
+            </div>
+            <div v-else class="h-56 sm:h-64">
+              <canvas ref="leaveTypeCanvas"></canvas>
+            </div>
+          </div>
+
+          <div class="card">
+            <h2 class="text-sm font-bold text-gray-500 uppercase tracking-wide mb-4">สถานะการอนุมัติเอกสาร ({{ months }} ด.)</h2>
+            <div v-if="approvalStatusTotal === 0" class="h-56 sm:h-64 flex items-center justify-center text-sm text-gray-400">
+              ไม่มีข้อมูล
+            </div>
+            <div v-else class="h-56 sm:h-64">
+              <canvas ref="approvalStatusCanvas"></canvas>
+            </div>
+          </div>
+
+          <div class="card lg:col-span-2">
+            <h2 class="text-sm font-bold text-gray-500 uppercase tracking-wide mb-4">จำนวนเอกสารตามประเภท ({{ months }} ด.)</h2>
+            <div class="h-56 sm:h-64">
+              <canvas ref="documentsByTypeCanvas"></canvas>
+            </div>
+          </div>
+        </div>
       </template>
     </div>
   </AppLayout>
@@ -100,6 +130,9 @@ const COLORS = {
   late: '#eecd57',
   ot: '#1e3a8a',
   palette: ['#3b82f6', '#d4af37', '#10b981', '#f97316', '#a855f7', '#64748b'],
+  pending: '#f59e0b',
+  approved: '#10b981',
+  rejected: '#ef4444',
 }
 
 const loading = ref(true)
@@ -113,16 +146,23 @@ const divisionBreakdown = ref([])
 const ageDistribution = ref([])
 const tenureDistribution = ref([])
 const totalEmployees = ref(0)
+const leaveByType = ref([])
+const documentsByType = ref([])
+const approvalStatus = ref({ pending: 0, approved: 0, rejected: 0 })
 
 const sumOnTime = computed(() => attendanceTrend.value.reduce((s, m) => s + m.on_time, 0))
 const sumLate = computed(() => attendanceTrend.value.reduce((s, m) => s + m.late, 0))
 const sumOtHours = computed(() => Math.round(otTrend.value.reduce((s, m) => s + m.hours, 0) * 10) / 10)
+const approvalStatusTotal = computed(() => approvalStatus.value.pending + approvalStatus.value.approved + approvalStatus.value.rejected)
 
 const attendanceCanvas = ref(null)
 const otCanvas = ref(null)
 const divisionCanvas = ref(null)
 const ageCanvas = ref(null)
 const tenureCanvas = ref(null)
+const leaveTypeCanvas = ref(null)
+const approvalStatusCanvas = ref(null)
+const documentsByTypeCanvas = ref(null)
 const charts = {}
 
 function destroyCharts() {
@@ -198,6 +238,43 @@ function renderCharts() {
       options: baseOptions({ plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }),
     })
   }
+
+  if (leaveTypeCanvas.value && leaveByType.value.length > 0) {
+    charts.leaveType = new Chart(leaveTypeCanvas.value, {
+      type: 'doughnut',
+      data: {
+        labels: leaveByType.value.map(l => l.label),
+        datasets: [{ data: leaveByType.value.map(l => l.total), backgroundColor: COLORS.palette, borderWidth: 2, borderColor: '#fff' }],
+      },
+      options: baseOptions({ cutout: '65%' }),
+    })
+  }
+
+  if (approvalStatusCanvas.value && approvalStatusTotal.value > 0) {
+    charts.approvalStatus = new Chart(approvalStatusCanvas.value, {
+      type: 'doughnut',
+      data: {
+        labels: ['รออนุมัติ', 'อนุมัติแล้ว', 'ไม่อนุมัติ'],
+        datasets: [{
+          data: [approvalStatus.value.pending, approvalStatus.value.approved, approvalStatus.value.rejected],
+          backgroundColor: [COLORS.pending, COLORS.approved, COLORS.rejected],
+          borderWidth: 2, borderColor: '#fff',
+        }],
+      },
+      options: baseOptions({ cutout: '65%' }),
+    })
+  }
+
+  if (documentsByTypeCanvas.value) {
+    charts.documentsByType = new Chart(documentsByTypeCanvas.value, {
+      type: 'bar',
+      data: {
+        labels: documentsByType.value.map(d => d.label),
+        datasets: [{ label: 'จำนวนเอกสาร', data: documentsByType.value.map(d => d.total), backgroundColor: COLORS.palette[4], borderRadius: 6, maxBarThickness: 48 }],
+      },
+      options: baseOptions({ plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } } }),
+    })
+  }
 }
 
 async function fetchData() {
@@ -218,6 +295,9 @@ async function fetchData() {
     ageDistribution.value = d.age_distribution || []
     tenureDistribution.value = d.tenure_distribution || []
     totalEmployees.value = d.total_employees || 0
+    leaveByType.value = d.leave_by_type || []
+    documentsByType.value = d.documents_by_type || []
+    approvalStatus.value = d.approval_status || { pending: 0, approved: 0, rejected: 0 }
 
     if (companiesRes) companies.value = companiesRes.data?.data || []
   } catch (error) {

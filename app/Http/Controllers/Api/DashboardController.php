@@ -7,7 +7,11 @@ use App\Models\AttendanceLog;
 use App\Models\Employee;
 use App\Models\Company;
 use App\Models\LateForcedLeave;
+use App\Models\LeaveRequest;
 use App\Models\OtRequest;
+use App\Models\ShiftRequest;
+use App\Models\ShiftSwap;
+use App\Models\WfhRecord;
 use App\Helpers\AttendanceCalculator;
 use App\Helpers\AttendanceHelper;
 use App\Services\ShiftResolver;
@@ -281,6 +285,54 @@ class DashboardController extends Controller
                 else $tenureBuckets['มากกว่า 10 ปี']++;
             }
 
+            // ─── ลางานตามประเภท ───
+            $leaveByTypeQuery = LeaveRequest::whereBetween('start_date', [$rangeStart->toDateString(), $rangeEnd->toDateString()]);
+            if ($companyId) {
+                $leaveByTypeQuery->where('leave_requests.company_id', $companyId);
+            }
+            $leaveByType = $leaveByTypeQuery
+                ->join('leave_types', 'leave_types.id', '=', 'leave_requests.leave_type_id')
+                ->selectRaw('leave_types.name as label, COUNT(*) as total')
+                ->groupBy('leave_types.name')
+                ->orderByDesc('total')
+                ->get();
+
+            // ─── เอกสารตามประเภท + สถานะการอนุมัติ (รวมทุกประเภทที่มีขั้นตอนอนุมัติ) ───
+            $approvalTypes = [
+                'leave' => ['model' => LeaveRequest::class, 'label' => 'ลางาน', 'date_col' => 'start_date', 'scope' => 'direct'],
+                'ot' => ['model' => OtRequest::class, 'label' => 'โอที', 'date_col' => 'date', 'scope' => 'direct'],
+                'wfh' => ['model' => WfhRecord::class, 'label' => 'WFH', 'date_col' => 'date', 'scope' => 'employee'],
+                'shift_swap' => ['model' => ShiftSwap::class, 'label' => 'สลับเวร', 'date_col' => 'swap_date', 'scope' => 'requester'],
+                'shift_request' => ['model' => ShiftRequest::class, 'label' => 'ร้องขอกะ', 'date_col' => 'start_date', 'scope' => 'direct'],
+                'forced_leave' => ['model' => LateForcedLeave::class, 'label' => 'บังคับลากิจ', 'date_col' => 'date', 'scope' => 'employee'],
+            ];
+
+            $documentsByType = [];
+            $approvalStatusTotals = ['pending' => 0, 'approved' => 0, 'rejected' => 0];
+
+            foreach ($approvalTypes as $key => $cfg) {
+                $modelClass = $cfg['model'];
+                $q = $modelClass::whereBetween($cfg['date_col'], [$rangeStart->toDateString(), $rangeEnd->toDateString()]);
+                if ($companyId) {
+                    if ($cfg['scope'] === 'direct') {
+                        $q->where('company_id', $companyId);
+                    } else {
+                        $relation = $cfg['scope'] === 'requester' ? 'requester' : 'employee';
+                        $q->whereHas($relation, fn($r) => $r->where('company_id', $companyId));
+                    }
+                }
+                $statuses = $q->pluck('status');
+
+                $documentsByType[] = ['label' => $cfg['label'], 'total' => $statuses->count()];
+
+                foreach ($statuses as $status) {
+                    $bucket = ($key === 'ot' && in_array($status, ['pending_manager', 'pending_hr'], true)) ? 'pending' : $status;
+                    if (isset($approvalStatusTotals[$bucket])) {
+                        $approvalStatusTotals[$bucket]++;
+                    }
+                }
+            }
+
             return response()->json([
                 'success' => true,
                 'data' => [
@@ -292,6 +344,16 @@ class DashboardController extends Controller
                     ]),
                     'age_distribution' => collect($ageBuckets)->map(fn($count, $label) => compact('label', 'count'))->values(),
                     'tenure_distribution' => collect($tenureBuckets)->map(fn($count, $label) => compact('label', 'count'))->values(),
+                    'leave_by_type' => $leaveByType->map(fn($row) => [
+                        'label' => $row->label,
+                        'total' => $row->total,
+                    ]),
+                    'documents_by_type' => $documentsByType,
+                    'approval_status' => [
+                        'pending' => $approvalStatusTotals['pending'],
+                        'approved' => $approvalStatusTotals['approved'],
+                        'rejected' => $approvalStatusTotals['rejected'],
+                    ],
                     'total_employees' => (clone $divisionQuery)->count(),
                 ],
             ]);
