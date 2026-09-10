@@ -240,6 +240,13 @@ class Employee extends Authenticatable
         }
 
         $current = Employee::find($employeeId);
+        // reports_to has no company constraint at the database level - stop
+        // walking the moment the chain leaves this employee's company so a
+        // stray cross-company link can't grant approval visibility across
+        // tenants.
+        if (!$current || $current->company_id !== $this->company_id) {
+            return false;
+        }
         $maxDepth = 10;
 
         while ($current && $maxDepth > 0) {
@@ -247,6 +254,9 @@ class Employee extends Authenticatable
                 return true;
             }
             $current = Employee::find($current->reports_to);
+            if ($current && $current->company_id !== $this->company_id) {
+                return false;
+            }
             $maxDepth--;
         }
 
@@ -269,7 +279,11 @@ class Employee extends Authenticatable
             return;
         }
 
-        $children = Employee::where('reports_to', $parentId)->pluck('id')->toArray();
+        // Scoped to $this->company_id so a stray cross-company reports_to link
+        // can't pull another tenant's employees into this list.
+        $children = Employee::where('reports_to', $parentId)
+            ->where('company_id', $this->company_id)
+            ->pluck('id')->toArray();
         foreach ($children as $childId) {
             $ids[] = $childId;
             $this->collectSubordinates($childId, $ids, $depth + 1);
@@ -294,8 +308,13 @@ class Employee extends Authenticatable
         $maxDepth = 10;
 
         while ($current && $current->reports_to && $maxDepth > 0) {
+            $next = Employee::find($current->reports_to);
+            // Stop at the company boundary - see isSubordinateOf() for why.
+            if (!$next || $next->company_id !== $this->company_id) {
+                break;
+            }
             $ids[] = $current->reports_to;
-            $current = Employee::find($current->reports_to);
+            $current = $next;
             $maxDepth--;
         }
 

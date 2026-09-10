@@ -74,6 +74,24 @@
         </router-link>
       </div>
 
+      <!-- Team Pending Approvals (เฉพาะบัญชีที่มีลูกทีมและมีรายการค้างอนุมัติ) -->
+      <router-link v-if="teamPendingCount > 0" to="/pending-approvals" class="block mb-6 group">
+        <div class="p-4 rounded-2xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 shadow-sm hover:shadow-md transition-all flex items-center gap-3">
+          <div class="w-11 h-11 rounded-xl bg-amber-500 flex items-center justify-center shrink-0 shadow group-hover:scale-105 transition-transform">
+            <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+            </svg>
+          </div>
+          <div class="flex-1 min-w-0">
+            <p class="font-bold text-amber-800 text-sm sm:text-base">มีรายการรออนุมัติจากทีมของคุณ</p>
+            <p class="text-amber-600 text-xs mt-0.5">แตะเพื่อตรวจสอบและอนุมัติ/ไม่อนุมัติ</p>
+          </div>
+          <span class="shrink-0 bg-amber-500 text-white text-sm font-bold w-8 h-8 rounded-full flex items-center justify-center">
+            {{ teamPendingCount > 99 ? '99+' : teamPendingCount }}
+          </span>
+        </div>
+      </router-link>
+
       <!-- Primary Menu Grid -->
       <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-8">
         <!-- สรุปวันนี้ -->
@@ -330,6 +348,7 @@ const pendingCounts = ref({ leave: 0, ot: 0, wfh: 0 })
 const warnings = ref([])
 const announcements = ref([])
 const unreadCount = ref(0)
+const teamPendingCount = ref(0)
 
 // Assistant MD-and-above don't work fixed shifts, so OT / shift-swap /
 // shift-request never apply to them regardless of has_ot or assigned shifts.
@@ -353,11 +372,12 @@ function handleLogout() {
 
 onMounted(async () => {
   try {
-    const [pendingRes, warnRes, annRes, notifRes] = await Promise.allSettled([
+    const [pendingRes, warnRes, annRes, notifRes, teamRes] = await Promise.allSettled([
       api.get('/api/employee/requests/pending-count'),
       api.get('/api/employee/warnings'),
       api.get('/api/announcements'),
-      api.get('/employee/notifications/unread-count'),
+      api.get('/api/employee/notifications/unread-count'),
+      api.get('/api/pending-approvals', { params: { counts_only: 1 } }),
     ])
     if (pendingRes.status === 'fulfilled' && pendingRes.value.data.success) {
       pendingCounts.value = pendingRes.value.data.data
@@ -370,6 +390,9 @@ onMounted(async () => {
     }
     if (notifRes.status === 'fulfilled' && notifRes.value.data.success) {
       unreadCount.value = notifRes.value.data.data.count
+    }
+    if (teamRes.status === 'fulfilled' && teamRes.value.data.success) {
+      teamPendingCount.value = teamRes.value.data.data.counts?.total || 0
     }
   } catch (e) {
     // ignore

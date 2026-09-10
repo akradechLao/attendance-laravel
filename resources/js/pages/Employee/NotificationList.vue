@@ -46,7 +46,7 @@
         <div
           v-for="n in notifications"
           :key="n.id"
-          @click="markAsRead(n)"
+          @click="handleClick(n)"
           :class="[
             'rounded-xl border p-4 cursor-pointer transition-all duration-200',
             n.is_read
@@ -90,7 +90,16 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import api from '../../services/api'
+
+const router = useRouter()
+
+// Notification types that mean "something is waiting for YOU to approve" -
+// clicking these should take the supervisor straight to where they can act,
+// not just mark the message read. The *_approved/*_rejected types are status
+// updates to the requester themselves, nothing to act on, so no navigation.
+const APPROVAL_NEEDED_TYPES = ['leave_request', 'ot_request', 'wfh_request']
 
 const notifications = ref([])
 const unreadCount = ref(0)
@@ -166,7 +175,7 @@ function formatTime(dateStr) {
 
 async function fetchNotifications() {
   try {
-    const res = await api.get('/employee/notifications')
+    const res = await api.get('/api/employee/notifications')
     if (res.data.success) {
       notifications.value = res.data.data
       unreadCount.value = res.data.unread_count
@@ -181,7 +190,7 @@ async function fetchNotifications() {
 async function markAsRead(n) {
   if (!n.is_read) {
     try {
-      await api.put(`/employee/notifications/${n.id}/read`)
+      await api.put(`/api/employee/notifications/${n.id}/read`)
       n.is_read = true
       unreadCount.value = Math.max(0, unreadCount.value - 1)
     } catch (e) {
@@ -190,9 +199,16 @@ async function markAsRead(n) {
   }
 }
 
+function handleClick(n) {
+  markAsRead(n)
+  if (APPROVAL_NEEDED_TYPES.includes(n.type)) {
+    router.push('/pending-approvals')
+  }
+}
+
 async function markAllAsRead() {
   try {
-    await api.put('/employee/notifications/read-all')
+    await api.put('/api/employee/notifications/read-all')
     notifications.value.forEach(n => n.is_read = true)
     unreadCount.value = 0
   } catch (e) {
