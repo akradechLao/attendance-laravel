@@ -466,7 +466,7 @@
           <div v-if="!deviceLoginActive && !deviceToken" class="mb-3">
             <label class="flex items-center gap-2 cursor-pointer p-2 rounded-lg hover:bg-gray-50">
               <input type="checkbox" v-model="rememberDevice" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-              <span class="text-xs sm:text-sm text-gray-600">จดจำอุปกรณ์นี้ (ไม่ต้องใส่พาสเวิร์ดครั้งถัดไป)</span>
+              <span class="text-xs sm:text-sm text-gray-600">จดจำอุปกรณ์นี้ (ครั้งถัดไปไม่ต้องเลือกชื่อซ้ำ สแกนหน้าได้เลย)</span>
             </label>
           </div>
 
@@ -728,8 +728,10 @@ const actionLoading = ref(false)
 const verificationToken = ref(null)
 const pdpaConsent = ref(false)
 
-// Device token (Remember Me)
-const rememberDevice = ref(false)
+// Device token (Remember Me) - defaults on: this is each employee's own
+// phone (not a shared kiosk), so skipping name selection next time is safe
+// and is what most people expect without having to opt in manually.
+const rememberDevice = ref(true)
 const deviceToken = ref(localStorage.getItem('employee_device_token') || null)
 const deviceLoginActive = ref(false)
 

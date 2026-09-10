@@ -63,4 +63,4 @@ echo "=== Deployment Complete ==="
 echo "Service status:"
 sudo systemctl status face-api --no-pager
 echo ""
-echo "Test health: curl http://127.0.0.1:8000/api/face/health"
+echo "Test health: curl http://127.0.0.1:8001/api/face/health"
