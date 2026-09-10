@@ -256,11 +256,11 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/manager/team-report', [ManagerController::class, 'teamReport']);
     });
 
-    // Leave requests (self service + approvals)
+    // Leave requests: listing + types (HR/admin). Approve/reject/store live in
+    // LeaveRequestController - see the /leave prefix group below, which is
+    // registered after this block so its routes are the ones Laravel actually
+    // dispatches to for those same paths.
     Route::get('/leave', [LeaveController::class, 'index']);
-    Route::post('/leave', [LeaveController::class, 'store']);
-    Route::put('/leave/{id}/approve', [LeaveController::class, 'approve']);
-    Route::put('/leave/{id}/reject', [LeaveController::class, 'reject']);
     Route::get('/leave/types', [LeaveController::class, 'types']);
 
     // OT requests (self service + approvals)

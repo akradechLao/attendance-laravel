@@ -20,7 +20,10 @@ class ShiftSwapController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = ShiftSwap::with(['requester:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id', 'target:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id']);
+        $query = ShiftSwap::with(['requester:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id', 'target:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id'])
+            // shift_swaps has no company_id column - scope through the requester
+            // so this listing can't leak another company's swaps.
+            ->whereHas('requester', fn($q) => $q->where('company_id', $request->user()->company_id));
 
         if ($request->has('status') && $request->status) {
             $query->where('status', $request->status);
@@ -115,7 +118,10 @@ class ShiftSwapController extends Controller
         }
 
         $swap->update([
-            'supervisor_id' => $request->get('supervisor_id'),
+            // shift_swaps.supervisor_id is FK'd to admin_users - derive it from
+            // the authenticated approver instead of trusting a client-supplied
+            // value, and only store it when the approver really is an AdminUser.
+            'supervisor_id' => $user instanceof \App\Models\AdminUser ? $user->id : null,
             'supervisor_note' => $request->get('supervisor_note', ''),
             'status' => 'approved',
         ]);
@@ -172,7 +178,8 @@ class ShiftSwapController extends Controller
         }
 
         $swap->update([
-            'supervisor_id' => $request->get('supervisor_id'),
+            // see approve() - same reasoning for deriving this from $user
+            'supervisor_id' => $user instanceof \App\Models\AdminUser ? $user->id : null,
             'supervisor_note' => $request->get('supervisor_note', ''),
             'status' => 'rejected',
         ]);
