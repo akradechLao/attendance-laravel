@@ -11,16 +11,22 @@ use App\Models\RemoteAssignment;
 use App\Models\ShiftSwap;
 use App\Models\ShiftRequest;
 use App\Models\AttendanceLog;
-use App\Models\LateForcedLeave;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class PendingApprovalsController extends Controller
 {
-    /** Section keys, in the order the UI renders them. */
+    /**
+     * Section keys, in the order the UI renders them.
+     *
+     * forced_leave is deliberately excluded - HR reviews late-arrival minutes
+     * and decides on forced leave themselves (via the separate, unlinked
+     * /attendance-adjustment page), so it isn't flagged here as something
+     * needing action, and doesn't count toward any pending-approval badge.
+     */
     private const SECTIONS = [
         'leave', 'ot', 'wfh', 'remote',
-        'shift_swap', 'shift_request', 'forced_leave', 'estimated_checkout',
+        'shift_swap', 'shift_request', 'estimated_checkout',
     ];
 
     private const DEFAULT_PER_PAGE = 20;
@@ -65,7 +71,6 @@ class PendingApprovalsController extends Controller
             'remote' => $this->getPendingRemote($user, $subordinateIds, $isAdmin, $limitFor('remote'), $offsetFor('remote')),
             'shift_swap' => $this->getPendingShiftSwaps($user, $subordinateIds, $isAdmin, $limitFor('shift_swap'), $offsetFor('shift_swap')),
             'shift_request' => $this->getPendingShiftRequests($user, $subordinateIds, $isAdmin, $limitFor('shift_request'), $offsetFor('shift_request')),
-            'forced_leave' => $this->getPendingForcedLeaves($user, $isAdmin, $limitFor('forced_leave'), $offsetFor('forced_leave')),
             'estimated_checkout' => $this->getPendingEstimatedCheckouts($user, $isAdmin, $limitFor('estimated_checkout'), $offsetFor('estimated_checkout')),
         ];
 
@@ -361,40 +366,6 @@ class PendingApprovalsController extends Controller
             'approve_url' => "/api/shift-requests/{$s->id}/approve",
             'reject_url' => "/api/shift-requests/{$s->id}/reject",
             'reject_field' => 'supervisor_note',
-        ]);
-    }
-
-    private function getPendingForcedLeaves($user, bool $isAdmin, int $limit, int $offset): array
-    {
-        if (!$isAdmin) {
-            return $this->emptyPage();
-        }
-
-        $query = LateForcedLeave::with([
-            'employee:id,employee_code,name,company_id,position,department,division',
-            'employee.company:id,name',
-        ])->where('status', 'pending');
-
-        if (empty($user->company_id)) {
-            // super_admin sees all
-        } else {
-            $query->whereHas('employee', fn($q) => $q->where('company_id', $user->company_id));
-        }
-
-        return $this->page($query->orderBy('created_at', 'desc'), $limit, $offset, fn($f) => [
-            'id' => $f->id,
-            'type' => 'forced_leave',
-            'employee_name' => $f->employee?->name ?? '-',
-            'employee_code' => $f->employee?->employee_code ?? '-',
-            'company' => $f->employee?->company?->name ?? '-',
-            'department' => $f->employee?->department ?? '-',
-            'detail' => 'บังคับลาวันที่ ' . ($f->date ?? '-'),
-            'reason' => $f->reason,
-            'status' => $f->status,
-            'created_at' => $f->created_at ? $f->created_at->setTimezone('Asia/Bangkok')->format('Y-m-d H:i') : null,
-            'approve_url' => "/api/attendance-adjustment/forced-leaves/{$f->id}/approve",
-            'reject_url' => "/api/attendance-adjustment/forced-leaves/{$f->id}/reject",
-            'reject_field' => 'rejection_reason',
         ]);
     }
 

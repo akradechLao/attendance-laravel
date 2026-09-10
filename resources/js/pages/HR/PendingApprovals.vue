@@ -116,11 +116,14 @@ import api from '../../services/api'
 
 const loading = ref(true)
 const processing = ref(false)
+// forced_leave is deliberately not listed here - HR reviews late-arrival
+// minutes and decides on it themselves via the separate /attendance-adjustment
+// page, rather than having it flagged as a pending-approval item.
 const data = reactive({
   leave: [], ot: [], wfh: [], remote: [],
-  shift_swap: [], shift_request: [], forced_leave: [], estimated_checkout: [],
+  shift_swap: [], shift_request: [], estimated_checkout: [],
 })
-const counts = reactive({ total: 0, leave: 0, ot: 0, wfh: 0, remote: 0, shift_swap: 0, shift_request: 0, forced_leave: 0, estimated_checkout: 0 })
+const counts = reactive({ total: 0, leave: 0, ot: 0, wfh: 0, remote: 0, shift_swap: 0, shift_request: 0, estimated_checkout: 0 })
 
 const sections = [
   { key: 'leave', label: 'ลางาน', icon: '📅' },
@@ -129,7 +132,6 @@ const sections = [
   { key: 'remote', label: 'ปฏิบัติงานนอกสถานที่', icon: '📍' },
   { key: 'shift_swap', label: 'สลับเวร', icon: '🔄' },
   { key: 'shift_request', label: 'ร้องขอเข้ากะ', icon: '📋' },
-  { key: 'forced_leave', label: 'บังคับลา', icon: '⚠️' },
   { key: 'estimated_checkout', label: 'Checkout ประมาณการ', icon: '🕐' },
 ]
 

@@ -23,7 +23,7 @@
       <div v-if="loading" class="flex justify-center py-12"><LoadingSpinner /></div>
 
       <template v-else>
-        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-8 gap-3">
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           <div class="card text-center">
             <p class="text-xs text-gray-500 mb-1">พนักงานทั้งหมด</p>
             <p class="text-3xl font-bold text-gray-800">{{ stats.total }}</p>
@@ -47,14 +47,6 @@
           <div class="card text-center">
             <p class="text-xs text-gray-500 mb-1">ไม่เข้างาน</p>
             <p class="text-3xl font-bold text-red-600">{{ stats.absent }}</p>
-          </div>
-          <div class="card text-center">
-            <p class="text-xs text-gray-500 mb-1">บังคับลารออนุมัติ</p>
-            <p class="text-3xl font-bold text-orange-600">{{ stats.forced_leaves_pending }}</p>
-          </div>
-          <div class="card text-center">
-            <p class="text-xs text-gray-500 mb-1">บังคับลาอนุมัติแล้ว</p>
-            <p class="text-3xl font-bold text-green-600">{{ stats.forced_leaves_approved }}</p>
           </div>
         </div>
 
@@ -186,8 +178,7 @@ const companies = ref([])
 const records = ref([])
 const companyStats = ref([])
 const stats = reactive({
-  total: 0, present: 0, late: 0, on_time: 0, checked_out: 0, absent: 0,
-  forced_leaves_pending: 0, forced_leaves_approved: 0, ot_hours: 0
+  total: 0, present: 0, late: 0, on_time: 0, checked_out: 0, absent: 0, ot_hours: 0
 })
 
 let refreshInterval = null
@@ -251,8 +242,6 @@ async function fetchData() {
       on_time: sd.today?.on_time || 0,
       checked_out: sd.today?.checked_out || 0,
       absent: sd.today?.absent || 0,
-      forced_leaves_pending: sd.today?.forced_leaves_pending || 0,
-      forced_leaves_approved: sd.today?.forced_leaves_approved || 0,
       ot_hours: sd.monthly?.ot_hours || 0
     })
     companyStats.value = sd.companies || []
