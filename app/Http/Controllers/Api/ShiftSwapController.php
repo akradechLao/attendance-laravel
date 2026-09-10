@@ -82,13 +82,15 @@ class ShiftSwapController extends Controller
             return response()->json(['success' => false, 'message' => 'รายการนี้ดำเนินการแล้ว'], 400);
         }
 
-        // Authorization: must be subordinate or HR admin
+        // Authorization: must be subordinate or HR admin of the same company
         $user = $request->user();
         $userRole = $user->role ?? 'employee';
         if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
             if (!$user->isSubordinateOf($swap->requester_id) && !$user->isSubordinateOf($swap->target_id)) {
                 return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
             }
+        } elseif ($swap->requester?->company_id !== $user->company_id) {
+            return response()->json(['success' => false, 'message' => 'Forbidden: cross-company access denied'], 403);
         }
 
         // Actually swap the shift_schedules
@@ -158,13 +160,15 @@ class ShiftSwapController extends Controller
     {
         $swap = ShiftSwap::findOrFail($id);
 
-        // Authorization: must be subordinate or HR admin
+        // Authorization: must be subordinate or HR admin of the same company
         $user = $request->user();
         $userRole = $user->role ?? 'employee';
         if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
             if (!$user->isSubordinateOf($swap->requester_id) && !$user->isSubordinateOf($swap->target_id)) {
                 return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
             }
+        } elseif ($swap->requester?->company_id !== $user->company_id) {
+            return response()->json(['success' => false, 'message' => 'Forbidden: cross-company access denied'], 403);
         }
 
         $swap->update([

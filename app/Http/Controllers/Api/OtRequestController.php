@@ -23,6 +23,8 @@ class OtRequestController extends Controller
             $userRole = $user->role ?? 'employee';
             if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
                 $query->where('emp_id', $user->id);
+            } else {
+                $query->where('company_id', $user->company_id);
             }
 
             $otRequests = $query->orderBy('created_at', 'desc')
@@ -64,7 +66,8 @@ class OtRequestController extends Controller
                 'reason' => 'nullable|string|max:1000',
             ]);
 
-            $validated['employee_id'] = $user->id;
+            $validated['emp_id'] = $user->id;
+            $validated['company_id'] = $user->company_id;
             $validated['status'] = 'pending_manager';
 
             $otRequest = OtRequest::create($validated);
@@ -117,13 +120,15 @@ class OtRequestController extends Controller
                 ], 400);
             }
 
-            // Authorization: must be subordinate or HR admin
+            // Authorization: must be subordinate or HR admin of the same company
             $user = $request->user();
             $userRole = $user->role ?? 'employee';
             if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
                 if (!$user->isSubordinateOf($otRequest->emp_id)) {
                     return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
                 }
+            } elseif ($otRequest->company_id !== $user->company_id) {
+                return response()->json(['success' => false, 'message' => 'Forbidden: cross-company access denied'], 403);
             }
 
             $otRequest->update([
@@ -247,13 +252,15 @@ class OtRequestController extends Controller
                 ], 400);
             }
 
-            // Authorization: must be subordinate or HR admin
+            // Authorization: must be subordinate or HR admin of the same company
             $user = $request->user();
             $userRole = $user->role ?? 'employee';
             if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
                 if (!$user->isSubordinateOf($otRequest->emp_id)) {
                     return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
                 }
+            } elseif ($otRequest->company_id !== $user->company_id) {
+                return response()->json(['success' => false, 'message' => 'Forbidden: cross-company access denied'], 403);
             }
 
             $validated = $request->validate([

@@ -53,17 +53,34 @@ class EmployeeRequestController extends Controller
     public function storeLeave(Request $request): JsonResponse
     {
         try {
+            $employee = $request->user();
+
             $request->validate([
-                'leave_type_id' => 'required|exists:leave_types,id',
+                'leave_type_id' => [
+                    'required',
+                    \Illuminate\Validation\Rule::exists('leave_types', 'id')->where('company_id', $employee->company_id),
+                ],
                 'start_date' => 'required|date|after_or_equal:-30 days',
                 'end_date' => 'required|date|after_or_equal:start_date',
                 'reason' => 'nullable|string',
             ]);
 
-            $employee = $request->user();
             $start = Carbon::parse($request->start_date)->setTimezone('Asia/Bangkok');
             $end = Carbon::parse($request->end_date)->setTimezone('Asia/Bangkok');
             $totalDays = $start->diffInDays($end) + 1;
+
+            $hasOverlap = LeaveRequest::where('emp_id', $employee->id)
+                ->whereIn('status', ['pending', 'approved'])
+                ->where('start_date', '<=', $request->end_date)
+                ->where('end_date', '>=', $request->start_date)
+                ->exists();
+
+            if ($hasOverlap) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'คุณมีคำขอลาในช่วงวันที่นี้อยู่แล้ว',
+                ], 400);
+            }
 
             $leaveType = LeaveType::find($request->leave_type_id);
             $leaveService = app(LeaveService::class);
@@ -170,6 +187,20 @@ class EmployeeRequestController extends Controller
             }
             if (PositionConstants::isTopManagement($employee->position)) {
                 return response()->json(['success' => false, 'message' => 'ตำแหน่งนี้ไม่มีสิทธิ์ขอโอที'], 403);
+            }
+
+            $hasOverlap = OtRequest::where('emp_id', $employee->id)
+                ->where('date', $request->date)
+                ->where('status', '!=', 'rejected')
+                ->where('start_time', '<', $request->end_time)
+                ->where('end_time', '>', $request->start_time)
+                ->exists();
+
+            if ($hasOverlap) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'คุณมีคำขอโอทีในช่วงเวลานี้อยู่แล้ว',
+                ], 400);
             }
 
             $ot = OtRequest::create([
