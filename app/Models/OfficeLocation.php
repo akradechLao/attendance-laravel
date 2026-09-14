@@ -42,4 +42,9 @@ class OfficeLocation extends Model
     {
         return $this->hasMany(Employee::class);
     }
+
+    public function shiftPatterns(): HasMany
+    {
+        return $this->hasMany(OfficeLocationShiftPattern::class);
+    }
 }

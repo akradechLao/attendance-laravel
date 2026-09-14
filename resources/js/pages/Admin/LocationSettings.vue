@@ -38,6 +38,7 @@
               </div>
               <div class="flex gap-2 ml-4">
                 <button @click="openAssignModal(loc)" class="px-3 py-1.5 text-xs font-medium bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100">จัดกลุ่มพนักงาน</button>
+                <button @click="openPatternModal(loc)" class="px-3 py-1.5 text-xs font-medium bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100">รูปแบบกะ</button>
                 <button @click="openEditForm(loc)" class="px-3 py-1.5 text-xs font-medium bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100">แก้ไข</button>
                 <button @click="deleteLocation(loc)" class="px-3 py-1.5 text-xs font-medium bg-red-50 text-red-600 rounded-lg hover:bg-red-100">ลบ</button>
               </div>
@@ -160,6 +161,90 @@
         </div>
       </div>
     </div>
+
+    <!-- Shift Pattern Modal -->
+    <div v-if="showPattern" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="showPattern = false">
+      <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+        <div class="p-6">
+          <div class="flex items-center justify-between mb-1">
+            <h3 class="text-lg font-bold text-navy">รูปแบบกะประจำพื้นที่ — {{ patternLocation?.name }}</h3>
+            <button @click="showPattern = false" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+          </div>
+          <p class="text-xs text-gray-500 mb-4">กำหนดกะและวันที่ต้องเข้างานของพื้นที่นี้ไว้ล่วงหน้า ระบบจะจดจำและใช้สร้างตารางกะให้อัตโนมัติทุกเดือน โดยจะไม่ทับวันที่มีการมอบหมาย/คำขอปรับเปลี่ยนอยู่แล้ว</p>
+
+          <!-- Existing patterns -->
+          <div v-if="patterns.length === 0" class="text-sm text-gray-400 py-3 text-center border rounded-lg mb-4">ยังไม่มีรูปแบบกะ</div>
+          <div v-else class="border rounded-lg divide-y mb-4">
+            <div v-for="p in patterns" :key="p.id" class="flex items-center justify-between px-4 py-2">
+              <div class="text-sm">
+                <span class="font-medium text-navy">กะ {{ p.work_shift?.group_number }}</span>
+                <span class="text-gray-500 ml-1">({{ p.work_shift?.start_time?.substring(0,5) }}-{{ p.work_shift?.end_time?.substring(0,5) }})</span>
+                <span class="text-gray-400 ml-2">{{ dayLabels(p.days_of_week) }}</span>
+                <span v-if="p.effective_start_date" class="text-gray-400 ml-2 text-xs">
+                  ตั้งแต่ {{ p.effective_start_date }}{{ p.effective_end_date ? ' ถึง ' + p.effective_end_date : '' }}
+                </span>
+                <span v-if="!p.is_active" class="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-gray-100 text-gray-500">ปิดใช้งาน</span>
+              </div>
+              <button @click="deletePattern(p)" class="text-xs text-red-500 hover:text-red-700">ลบ</button>
+            </div>
+          </div>
+
+          <!-- Add new pattern -->
+          <div class="border-t pt-4">
+            <h4 class="text-sm font-semibold text-navy mb-2">เพิ่มรูปแบบกะ</h4>
+            <div class="space-y-3">
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">กะ</label>
+                <select v-model="patternForm.work_shift_id" class="input-field w-full text-sm">
+                  <option value="">เลือกกะ</option>
+                  <option v-for="s in workShifts" :key="s.id" :value="s.id">
+                    กะ {{ s.group_number }} ({{ s.start_time }}-{{ s.end_time }}) {{ s.is_overnight ? 'ข้ามวัน' : '' }}
+                  </option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">วันที่ต้องเข้างาน</label>
+                <div class="flex flex-wrap gap-2">
+                  <label v-for="d in weekDays" :key="d.value" class="flex items-center gap-1 text-xs border rounded-lg px-2 py-1 cursor-pointer"
+                    :class="patternForm.days_of_week.includes(d.value) ? 'bg-purple-50 border-purple-300 text-purple-700' : 'text-gray-600'">
+                    <input type="checkbox" class="rounded" :value="d.value" v-model="patternForm.days_of_week" />
+                    {{ d.label }}
+                  </label>
+                </div>
+              </div>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-xs text-gray-500 mb-1">มีผลตั้งแต่ (ไม่ระบุ = ทันที)</label>
+                  <input v-model="patternForm.effective_start_date" type="date" class="input-field w-full text-sm" />
+                </div>
+                <div>
+                  <label class="block text-xs text-gray-500 mb-1">มีผลถึง (ไม่ระบุ = ไม่สิ้นสุด)</label>
+                  <input v-model="patternForm.effective_end_date" type="date" class="input-field w-full text-sm" />
+                </div>
+              </div>
+              <button @click="savePattern" :disabled="savingPattern" class="btn-primary text-sm">
+                {{ savingPattern ? 'กำลังบันทึก...' : '+ เพิ่มรูปแบบกะ' }}
+              </button>
+            </div>
+          </div>
+
+          <!-- Generate schedule for a month -->
+          <div class="border-t pt-4 mt-4">
+            <h4 class="text-sm font-semibold text-navy mb-2">สร้างตารางกะจากรูปแบบ</h4>
+            <div class="flex items-end gap-3">
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">เดือน</label>
+                <input v-model="generateMonth" type="month" class="input-field text-sm" />
+              </div>
+              <button @click="generateSchedule" :disabled="generating || patterns.length === 0" class="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 disabled:opacity-50">
+                {{ generating ? 'กำลังสร้าง...' : 'สร้างตารางกะเดือนนี้' }}
+              </button>
+            </div>
+            <p v-if="generateResult" class="text-xs text-gray-500 mt-2">{{ generateResult }}</p>
+          </div>
+        </div>
+      </div>
+    </div>
   </AppLayout>
 </template>
 
@@ -204,6 +289,36 @@ const assignLocation = ref(null)
 const assignedEmployees = ref([])
 const unassignedEmployees = ref([])
 const assignSearch = ref('')
+
+const showPattern = ref(false)
+const patternLocation = ref(null)
+const patterns = ref([])
+const workShifts = ref([])
+const savingPattern = ref(false)
+const generating = ref(false)
+const generateMonth = ref(new Date().toISOString().slice(0, 7))
+const generateResult = ref('')
+const patternForm = reactive({
+  work_shift_id: '',
+  days_of_week: [],
+  effective_start_date: '',
+  effective_end_date: '',
+})
+
+const weekDays = [
+  { value: 1, label: 'จันทร์' },
+  { value: 2, label: 'อังคาร' },
+  { value: 3, label: 'พุธ' },
+  { value: 4, label: 'พฤหัสฯ' },
+  { value: 5, label: 'ศุกร์' },
+  { value: 6, label: 'เสาร์' },
+  { value: 0, label: 'อาทิตย์' },
+]
+
+function dayLabels(days) {
+  if (!days || days.length === 0) return '-'
+  return weekDays.filter(d => days.includes(d.value)).map(d => d.label).join(', ')
+}
 
 const mapContainer = ref(null)
 let map = null
@@ -354,6 +469,80 @@ async function removeEmployee(emp) {
     await searchUnassigned()
   } catch (e) {
     alert('เกิดข้อผิดพลาด')
+  }
+}
+
+async function openPatternModal(loc) {
+  patternLocation.value = loc
+  generateResult.value = ''
+  Object.assign(patternForm, { work_shift_id: '', days_of_week: [], effective_start_date: '', effective_end_date: '' })
+  showPattern.value = true
+  await Promise.all([loadPatterns(loc.id), loadWorkShifts()])
+}
+
+async function loadPatterns(locId) {
+  try {
+    const res = await api.get(`/api/office-locations/${locId}/shift-patterns`)
+    patterns.value = res.data.data || []
+  } catch (e) {
+    patterns.value = []
+  }
+}
+
+async function loadWorkShifts() {
+  if (workShifts.value.length > 0) return
+  try {
+    const res = await api.get('/api/shift-schedules', { params: { month: generateMonth.value } })
+    workShifts.value = res.data.work_shifts || []
+  } catch (e) {
+    workShifts.value = []
+  }
+}
+
+async function savePattern() {
+  if (!patternForm.work_shift_id || patternForm.days_of_week.length === 0) {
+    alert('กรุณาเลือกกะและวันที่ต้องเข้างานอย่างน้อย 1 วัน')
+    return
+  }
+  savingPattern.value = true
+  try {
+    await api.post(`/api/office-locations/${patternLocation.value.id}/shift-patterns`, {
+      work_shift_id: patternForm.work_shift_id,
+      days_of_week: patternForm.days_of_week,
+      effective_start_date: patternForm.effective_start_date || null,
+      effective_end_date: patternForm.effective_end_date || null,
+    })
+    Object.assign(patternForm, { work_shift_id: '', days_of_week: [], effective_start_date: '', effective_end_date: '' })
+    await loadPatterns(patternLocation.value.id)
+  } catch (e) {
+    alert('เกิดข้อผิดพลาด: ' + (e.response?.data?.message || e.message))
+  } finally {
+    savingPattern.value = false
+  }
+}
+
+async function deletePattern(p) {
+  if (!confirm('ต้องการลบรูปแบบกะนี้ใช่หรือไม่?')) return
+  try {
+    await api.delete(`/api/office-locations/${patternLocation.value.id}/shift-patterns/${p.id}`)
+    await loadPatterns(patternLocation.value.id)
+  } catch (e) {
+    alert('เกิดข้อผิดพลาด')
+  }
+}
+
+async function generateSchedule() {
+  generating.value = true
+  generateResult.value = ''
+  try {
+    const res = await api.post(`/api/office-locations/${patternLocation.value.id}/shift-patterns/generate`, {
+      month: generateMonth.value,
+    })
+    generateResult.value = res.data.message
+  } catch (e) {
+    generateResult.value = e.response?.data?.message || 'เกิดข้อผิดพลาด'
+  } finally {
+    generating.value = false
   }
 }
 

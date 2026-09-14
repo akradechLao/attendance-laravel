@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\OtRequestController;
 use App\Http\Controllers\Api\ReportController;
 use App\Http\Controllers\Api\DashboardController;
 use App\Http\Controllers\Api\OfficeLocationController;
+use App\Http\Controllers\Api\OfficeLocationShiftPatternController;
 use App\Http\Controllers\Api\FaceController;
 use App\Http\Controllers\Api\CompanyController;
 use App\Http\Controllers\Api\RemoteController;
@@ -456,6 +457,13 @@ Route::middleware(['auth:sanctum', 'role:admin,super_admin'])->group(function ()
     Route::get('/office-locations/{id}/unassigned', [OfficeLocationController::class, 'getUnassignedEmployees']);
     Route::post('/office-locations/{id}/assign', [OfficeLocationController::class, 'assignEmployees']);
     Route::post('/office-locations/{id}/remove', [OfficeLocationController::class, 'removeEmployees']);
+
+    // Office location shift patterns (รูปแบบกะประจำพื้นที่)
+    Route::get('/office-locations/{id}/shift-patterns', [OfficeLocationShiftPatternController::class, 'index']);
+    Route::post('/office-locations/{id}/shift-patterns', [OfficeLocationShiftPatternController::class, 'store']);
+    Route::put('/office-locations/{id}/shift-patterns/{patternId}', [OfficeLocationShiftPatternController::class, 'update']);
+    Route::delete('/office-locations/{id}/shift-patterns/{patternId}', [OfficeLocationShiftPatternController::class, 'destroy']);
+    Route::post('/office-locations/{id}/shift-patterns/generate', [OfficeLocationShiftPatternController::class, 'generate']);
 
     // Employee stats
     Route::get('/employee-stats', [EmployeeStatsController::class, 'index']);
