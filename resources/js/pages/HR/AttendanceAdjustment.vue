@@ -99,7 +99,8 @@
                   <th class="text-left px-4 py-3 text-xs font-semibold text-gray-600">ชื่อ</th>
                   <th class="text-left px-4 py-3 text-xs font-semibold text-gray-600">รหัส</th>
                   <th class="text-left px-4 py-3 text-xs font-semibold text-gray-600">บริษัท</th>
-                  <th class="text-left px-4 py-3 text-xs font-semibold text-gray-600">เวลาเข้า</th>
+                  <th class="text-left px-4 py-3 text-xs font-semibold text-gray-600">เข้างาน</th>
+                  <th class="text-left px-4 py-3 text-xs font-semibold text-gray-600">ออกงาน</th>
                   <th class="text-left px-4 py-3 text-xs font-semibold text-gray-600">สาย (น.)</th>
                   <th class="text-left px-4 py-3 text-xs font-semibold text-gray-600">สถานะเดิม</th>
                   <th class="text-left px-4 py-3 text-xs font-semibold text-gray-600">สถานะปัจจุบัน</th>
@@ -112,7 +113,13 @@
                   <td class="px-4 py-3 text-sm font-medium text-navy">{{ record.employee_name }}</td>
                   <td class="px-4 py-3 text-sm text-gray-600">{{ record.employee_code }}</td>
                   <td class="px-4 py-3 text-sm text-gray-600">{{ record.company_name }}</td>
-                  <td class="px-4 py-3 text-sm font-medium" :class="record.original_status === 'late' ? 'text-yellow-600' : 'text-green-600'">{{ record.check_in || '-' }}</td>
+                  <td class="px-4 py-3">
+                    <AttendanceTimeCell v-bind="checkInPair(selectedDate, record.check_in)"
+                      :color-class="record.original_status === 'late' ? 'text-yellow-600' : 'text-green-600'" />
+                  </td>
+                  <td class="px-4 py-3">
+                    <AttendanceTimeCell v-bind="checkOutPair(selectedDate, record.check_in, record.check_out)" color-class="text-orange-600" />
+                  </td>
                   <td class="px-4 py-3 text-sm" :class="record.late_minutes > 0 ? 'text-red-600 font-medium' : 'text-gray-400'">{{ record.late_minutes || '-' }}</td>
                   <td class="px-4 py-3">
                     <span :class="['px-2 py-1 rounded-full text-xs font-medium', record.original_status === 'late' ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700']">
@@ -264,6 +271,8 @@ import { ref, reactive, onMounted, computed } from 'vue'
 import api from '../../services/api'
 import AppLayout from '../../layouts/AppLayout.vue'
 import MonthCalendar from '../../components/MonthCalendar.vue'
+import AttendanceTimeCell from '../../components/AttendanceTimeCell.vue'
+import { checkInPair, checkOutPair } from '../../utils/datetime'
 
 const loading = ref(true)
 const saving = ref(false)

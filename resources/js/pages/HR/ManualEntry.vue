@@ -86,9 +86,8 @@
           <tr>
             <th class="px-4 py-3 text-left">รหัส</th>
             <th class="px-4 py-3 text-left">ชื่อ</th>
-            <th class="px-4 py-3 text-left">วันที่</th>
-            <th class="px-4 py-3 text-left">เข้า</th>
-            <th class="px-4 py-3 text-left">ออก</th>
+            <th class="px-4 py-3 text-left">เข้างาน</th>
+            <th class="px-4 py-3 text-left">ออกงาน</th>
             <th class="px-4 py-3 text-left">สถานะ</th>
             <th class="px-4 py-3 text-left">บันทึกโดย</th>
             <th class="px-4 py-3 text-center">จัดการ</th>
@@ -98,9 +97,12 @@
           <tr v-for="item in tableData" :key="item.id" class="border-t hover:bg-gray-50">
             <td class="px-4 py-3">{{ item.employee?.employee_code }}</td>
             <td class="px-4 py-3">{{ item.employee?.name }}</td>
-            <td class="px-4 py-3">{{ formatDate(item.date) }}</td>
-            <td class="px-4 py-3">{{ item.check_in }}</td>
-            <td class="px-4 py-3">{{ item.check_out || '-' }}</td>
+            <td class="px-4 py-3">
+              <AttendanceTimeCell v-bind="checkInPair(item.date, item.check_in)" />
+            </td>
+            <td class="px-4 py-3">
+              <AttendanceTimeCell v-bind="checkOutPair(item.date, item.check_in, item.check_out)" color-class="text-orange-600" />
+            </td>
             <td class="px-4 py-3">
               <span :class="statusClass(item.check_in_status)">{{ statusLabel(item.check_in_status) }}</span>
             </td>
@@ -111,7 +113,7 @@
             </td>
           </tr>
           <tr v-if="tableData.length === 0">
-            <td colspan="8" class="px-4 py-8 text-center text-gray-400">ไม่มีข้อมูล</td>
+            <td colspan="7" class="px-4 py-8 text-center text-gray-400">ไม่มีข้อมูล</td>
           </tr>
         </tbody>
       </table>
@@ -319,11 +321,11 @@
               <div class="grid grid-cols-2 gap-4">
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">เวลาเข้า *</label>
-                  <input type="time" v-model="form.check_in" class="w-full border rounded-lg px-3 py-2 text-sm" />
+                  <TimePicker v-model="form.check_in" btn-class="w-full border rounded-lg px-3 py-2" />
                 </div>
                 <div>
                   <label class="block text-sm font-medium text-gray-700 mb-1">เวลาออก</label>
-                  <input type="time" v-model="form.check_out" class="w-full border rounded-lg px-3 py-2 text-sm" />
+                  <TimePicker v-model="form.check_out" btn-class="w-full border rounded-lg px-3 py-2" />
                 </div>
               </div>
               <div>
@@ -522,6 +524,9 @@
 import { ref, computed, onMounted, watch } from 'vue'
 import api from '@/services/api'
 import AppLayout from '@/layouts/AppLayout.vue'
+import TimePicker from '@/components/TimePicker.vue'
+import AttendanceTimeCell from '@/components/AttendanceTimeCell.vue'
+import { checkInPair, checkOutPair } from '@/utils/datetime'
 import { isTopManagement } from '@/constants/position'
 
 const activeTab = ref('attendance')

@@ -82,15 +82,17 @@
                     </div>
                     <div class="text-[10px] text-gray-400">来源: {{ record.shift_source }}</div>
                   </td>
-                  <td class="px-4 py-3 text-sm font-medium text-green-600">{{ record.check_in }}</td>
+                  <td class="px-4 py-3">
+                    <AttendanceTimeCell v-bind="checkInPair(selectedDate, record.check_in)" color-class="text-green-600" />
+                  </td>
                   <td class="px-4 py-3">
                     <div v-if="editingId === record.id" class="flex items-center gap-1">
-                      <input v-model="editTime" type="time" class="input-field w-24 text-sm" />
+                      <TimePicker v-model="editTime" btn-class="w-24" />
                       <button @click="saveEdit(record)" class="text-green-600 hover:text-green-800 text-xs">บันทึก</button>
                       <button @click="cancelEdit" class="text-gray-400 hover:text-gray-600 text-xs">ยกเลิก</button>
                     </div>
                     <div v-else class="flex items-center gap-1">
-                      <span class="text-sm text-orange-600 font-medium">{{ record.check_out }}</span>
+                      <AttendanceTimeCell v-bind="checkOutPair(selectedDate, record.check_in, record.check_out)" color-class="text-orange-600" />
                       <span class="text-orange-500 text-xs">⚠️</span>
                     </div>
                   </td>
@@ -123,6 +125,9 @@ import { ref, onMounted } from 'vue'
 import api from '../../services/api'
 import AppLayout from '../../layouts/AppLayout.vue'
 import LoadingSpinner from '../../components/LoadingSpinner.vue'
+import TimePicker from '../../components/TimePicker.vue'
+import AttendanceTimeCell from '../../components/AttendanceTimeCell.vue'
+import { checkInPair, checkOutPair } from '../../utils/datetime'
 
 const loading = ref(true)
 const approving = ref(false)

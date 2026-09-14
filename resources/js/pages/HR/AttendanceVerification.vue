@@ -91,8 +91,13 @@
                   <td class="px-4 py-3 text-sm text-gray-600">{{ record.employee_code }}</td>
                   <td class="px-4 py-3 text-sm text-gray-600">{{ record.company_name }}</td>
                   <td class="px-4 py-3 text-xs text-gray-500">{{ record.shift_time }}</td>
-                  <td class="px-4 py-3 text-sm font-medium" :class="record.original_status === 'late' ? 'text-yellow-600' : 'text-green-600'">{{ record.check_in || '-' }}</td>
-                  <td class="px-4 py-3 text-sm text-gray-600">{{ record.check_out || '-' }}</td>
+                  <td class="px-4 py-3">
+                    <AttendanceTimeCell v-bind="checkInPair(selectedDate, record.check_in)"
+                      :color-class="record.original_status === 'late' ? 'text-yellow-600' : 'text-green-600'" />
+                  </td>
+                  <td class="px-4 py-3">
+                    <AttendanceTimeCell v-bind="checkOutPair(selectedDate, record.check_in, record.check_out)" color-class="text-gray-600" />
+                  </td>
                   <td class="px-4 py-3">
                     <span :class="[
                       'px-2 py-1 rounded-full text-xs font-medium',
@@ -144,6 +149,8 @@
 import { ref, onMounted } from 'vue'
 import api from '../../services/api'
 import AppLayout from '../../layouts/AppLayout.vue'
+import AttendanceTimeCell from '../../components/AttendanceTimeCell.vue'
+import { checkInPair, checkOutPair } from '../../utils/datetime'
 
 const loading = ref(true)
 const records = ref([])
