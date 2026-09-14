@@ -318,7 +318,7 @@ class FaceController extends Controller
                         $leaveTypeLabel = $existingLeave->leaveType->name ?? $existingLeave->leave_type;
                         $lateForceMsg = ' (ลา: ' . $leaveTypeLabel . ' 1 ชม.)';
                     } else {
-                        $lateForceMsg = ' (บังคับลากิจ 1 ชม.)';
+                        $lateForceMsg = ' (ติดต่อหัวหน้างาน)';
                     }
                 }
 
@@ -762,7 +762,7 @@ class FaceController extends Controller
                 'leave_minutes' => $forcedLeaveMinutes,
                 'leave_type' => 'personal',
                 'status' => 'pending',
-                'reason' => "สายเกิน {$lateThreshold} นาที ({$lateMinutes} นาที) → บังคับลากิจ {$forcedLeaveMinutes} นาที",
+                'reason' => "สายเกิน {$lateThreshold} นาที ({$lateMinutes} นาที) → ติดต่อหัวหน้างาน",
             ]);
         }
 
@@ -784,7 +784,7 @@ class FaceController extends Controller
             $message .= "⏰ <b>สาย:</b> $lateMinutes นาที\n";
             $lateThreshold = SystemConfigService::get('late_threshold_minutes', 30);
             if ($lateMinutes > $lateThreshold) {
-                $message .= "📝 <b>สถานะ:</b> บังคับลากิจ 1 ชม.\n";
+                $message .= "📝 <b>สถานะ:</b> ติดต่อหัวหน้างาน\n";
             }
 
             if ($employee->telegram_chat_id) {

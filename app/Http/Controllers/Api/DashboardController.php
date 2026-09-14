@@ -304,7 +304,7 @@ class DashboardController extends Controller
                 'wfh' => ['model' => WfhRecord::class, 'label' => 'WFH', 'date_col' => 'date', 'scope' => 'employee'],
                 'shift_swap' => ['model' => ShiftSwap::class, 'label' => 'สลับเวร', 'date_col' => 'swap_date', 'scope' => 'requester'],
                 'shift_request' => ['model' => ShiftRequest::class, 'label' => 'ร้องขอกะ', 'date_col' => 'start_date', 'scope' => 'direct'],
-                'forced_leave' => ['model' => LateForcedLeave::class, 'label' => 'บังคับลากิจ', 'date_col' => 'date', 'scope' => 'employee'],
+                'forced_leave' => ['model' => LateForcedLeave::class, 'label' => 'ติดต่อหัวหน้างาน', 'date_col' => 'date', 'scope' => 'employee'],
             ];
 
             $documentsByType = [];
