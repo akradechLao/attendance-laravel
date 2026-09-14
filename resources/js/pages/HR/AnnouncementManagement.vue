@@ -164,10 +164,10 @@ async function saveAnnouncement() {
     if (editingId.value) {
       // PHP does not parse multipart bodies on PUT - spoof the method over POST instead.
       fd.append('_method', 'PUT')
-      await api.post(`/api/announcements/${editingId.value}`, fd)
+      await api.post(`/api/announcements/${editingId.value}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } })
       alert('แก้ไขประกาศสำเร็จ')
     } else {
-      await api.post('/api/announcements', fd)
+      await api.post('/api/announcements', fd, { headers: { 'Content-Type': 'multipart/form-data' } })
       alert('สร้างประกาศสำเร็จ')
     }
     showForm.value = false
@@ -196,7 +196,7 @@ function toggleActive(ann) {
   fd.append('priority', ann.priority)
   fd.append('is_active', ann.is_active ? '0' : '1')
   fd.append('_method', 'PUT')
-  api.post(`/api/announcements/${ann.id}`, fd).then(() => {
+  api.post(`/api/announcements/${ann.id}`, fd, { headers: { 'Content-Type': 'multipart/form-data' } }).then(() => {
     loadAnnouncements(currentPage.value)
   })
 }
