@@ -10,19 +10,31 @@
     <!-- Sidebar -->
     <aside
       :class="[
-        'fixed lg:sticky inset-y-0 lg:inset-y-auto lg:top-0 left-0 z-50 w-64 h-screen lg:self-start bg-white transform transition-transform duration-300 lg:translate-x-0',
-        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        'fixed lg:sticky inset-y-0 lg:inset-y-auto lg:top-0 left-0 z-50 w-64 h-screen lg:self-start bg-white transition-all duration-300 lg:translate-x-0 overflow-hidden',
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full',
+        sidebarCollapsed ? 'lg:w-0 lg:border-0' : 'lg:w-64'
       ]"
     >
-      <div class="flex flex-col h-full">
+      <div class="flex flex-col h-full w-64">
         <!-- Logo -->
-        <div class="p-6 border-b border-gray-200">
+        <div class="p-6 border-b border-gray-200 flex items-center justify-between gap-2">
           <h1 class="text-xl font-bold text-white flex items-center gap-2">
-            <svg class="w-8 h-8 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg class="w-8 h-8 text-blue-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
             </svg>
-            Attendance System
+            <span class="whitespace-nowrap">Attendance System</span>
           </h1>
+          <button
+            @click="sidebarCollapsed = true"
+            class="hidden lg:inline-flex p-1.5 rounded-lg hover:bg-white/10 text-gray-300 hover:text-white shrink-0"
+            title="ซ่อนเมนู"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <rect x="3" y="4" width="18" height="16" rx="2" stroke-width="2" />
+              <path stroke-linecap="round" d="M9 4v16" stroke-width="2" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l-2 2 2 2" />
+            </svg>
+          </button>
         </div>
 
         <!-- Navigation -->
@@ -90,7 +102,19 @@
             </svg>
           </button>
 
-          <div class="hidden lg:block"></div>
+          <button
+            v-if="sidebarCollapsed"
+            @click="sidebarCollapsed = false"
+            class="hidden lg:inline-flex p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-navy transition-colors"
+            title="แสดงเมนู"
+          >
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <rect x="3" y="4" width="18" height="16" rx="2" stroke-width="2" />
+              <path stroke-linecap="round" d="M9 4v16" stroke-width="2" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10l2 2-2 2" />
+            </svg>
+          </button>
+          <div v-else class="hidden lg:block"></div>
 
           <!-- User info -->
           <div class="flex items-center gap-4">
@@ -141,7 +165,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import store, { logout } from '../store'
 import api from '../services/api'
@@ -149,6 +173,12 @@ import api from '../services/api'
 const route = useRoute()
 const router = useRouter()
 const sidebarOpen = ref(false)
+// ซ่อน/แสดงเมนูฝั่งซ้ายบนจอเดสก์ท็อป (แยกจาก sidebarOpen ที่ใช้กับ drawer มือถือ) -
+// จำค่าไว้ใน localStorage เพื่อให้ผู้ใช้ไม่ต้องกดซ่อนใหม่ทุกครั้งที่เปลี่ยนหน้า/รีเฟรช
+const sidebarCollapsed = ref(localStorage.getItem('sidebar_collapsed') === '1')
+watch(sidebarCollapsed, (val) => {
+  localStorage.setItem('sidebar_collapsed', val ? '1' : '0')
+})
 const pendingCount = ref(0)
 
 const fetchPendingCount = async () => {
