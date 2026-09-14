@@ -16,6 +16,7 @@ class MergeMistakenCheckin extends Command
 {
     protected $signature = 'attendance:merge-mistaken-checkin
         {log_id : id ของแถว attendance_logs ที่สร้างผิด (ควรเป็นสแกนออก แต่ดันเป็นสแกนเข้ารอบใหม่)}
+        {--target= : id ของรอบที่จะย้ายเวลาไปรวมด้วย (ไม่ใส่ = หารอบก่อนหน้าที่ check_out ยังว่างให้อัตโนมัติ)}
         {--apply : เขียนข้อมูลจริง (ไม่ใส่ = dry-run แสดงตัวอย่างอย่างเดียว)}';
 
     protected $description = 'ย้ายรอบสแกนเข้าที่สร้างผิด (ตั้งใจจะสแกนออก) ไปเป็นเวลาเช็คเอาท์ของรอบก่อนหน้า แล้วลบรอบที่ผิด';
@@ -32,17 +33,30 @@ class MergeMistakenCheckin extends Command
 
         $date = $mistaken->date instanceof \Carbon\Carbon ? $mistaken->date->toDateString() : (string) $mistaken->date;
 
-        $target = AttendanceLog::where('emp_id', $mistaken->emp_id)
-            ->whereDate('date', $date)
-            ->where('id', '!=', $mistaken->id)
-            ->where('round_no', '<', $mistaken->round_no)
-            ->whereNull('check_out')
-            ->orderBy('round_no', 'desc')
-            ->first();
+        if ($targetId = $this->option('target')) {
+            $target = AttendanceLog::find($targetId);
+            if (!$target) {
+                $this->error('ไม่พบแถวเป้าหมาย id=' . $targetId);
+                return Command::FAILURE;
+            }
+            if ($target->check_out) {
+                $existingCheckout = $target->check_out instanceof \Carbon\Carbon ? $target->check_out->format('H:i:s') : $target->check_out;
+                $estimateNote = $target->is_estimated ? ' (is_estimated=true - ระบบเติมให้เอง ไม่ใช่ของจริง)' : '';
+                $this->warn("*** เตือน: รอบเป้าหมาย #{$target->id} มีเวลาเช็คเอาท์อยู่แล้ว ({$existingCheckout}){$estimateNote} จะถูกเขียนทับ ***");
+            }
+        } else {
+            $target = AttendanceLog::where('emp_id', $mistaken->emp_id)
+                ->whereDate('date', $date)
+                ->where('id', '!=', $mistaken->id)
+                ->where('round_no', '<', $mistaken->round_no)
+                ->whereNull('check_out')
+                ->orderBy('round_no', 'desc')
+                ->first();
 
-        if (!$target) {
-            $this->error('ไม่พบรอบก่อนหน้าที่ยังไม่ได้เช็คเอาท์ในวันเดียวกัน (emp_id=' . $mistaken->emp_id . ', date=' . $date . ') - ไม่แน่ใจว่าจะย้ายไปรวมกับรอบไหน กรุณาตรวจสอบด้วยตนเอง');
-            return Command::FAILURE;
+            if (!$target) {
+                $this->error('ไม่พบรอบก่อนหน้าที่ยังไม่ได้เช็คเอาท์ในวันเดียวกัน (emp_id=' . $mistaken->emp_id . ', date=' . $date . ') - อาจมีรอบก่อนหน้าที่มีเวลาเช็คเอาท์ผิดอยู่แล้ว (เช่น auto-estimate) ลองระบุรอบเป้าหมายตรงๆ ด้วย --target=<id>');
+                return Command::FAILURE;
+            }
         }
 
         $checkInTime = $mistaken->check_in instanceof \Carbon\Carbon ? $mistaken->check_in->format('H:i:s') : (string) $mistaken->check_in;
@@ -65,6 +79,9 @@ class MergeMistakenCheckin extends Command
 
         \DB::transaction(function () use ($target, $mistaken, $checkInTime) {
             $update = ['check_out' => $checkInTime];
+            if ($target->is_estimated) {
+                $update['is_estimated'] = false;
+            }
             if ($mistaken->face_image) {
                 $update['check_out_face_image'] = $mistaken->face_image;
             }
