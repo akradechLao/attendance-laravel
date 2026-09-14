@@ -86,10 +86,33 @@
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">บริษัท</label>
-            <select v-model="filters.companyId" class="input-field">
+            <select v-model="filters.companyId" class="input-field" @change="onCompanyChange">
               <option value="">ทุกบริษัท</option>
               <option v-for="company in companies" :key="company.id" :value="company.id">
                 {{ company.name }}
+              </option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">ฝ่าย</label>
+            <select v-model="filters.division" class="input-field" @change="onDivisionChange">
+              <option value="">ทุกฝ่าย</option>
+              <option v-for="d in divisions" :key="d" :value="d">{{ d }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">แผนก</label>
+            <select v-model="filters.department" class="input-field" @change="onDepartmentChange">
+              <option value="">ทุกแผนก</option>
+              <option v-for="d in departments" :key="d" :value="d">{{ d }}</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">พนักงาน</label>
+            <select v-model="filters.empId" class="input-field">
+              <option value="">ทุกคน (ภาพรวม)</option>
+              <option v-for="emp in employeeOptions" :key="emp.id" :value="emp.id">
+                {{ emp.employee_code }} - {{ emp.name }}
               </option>
             </select>
           </div>
@@ -342,6 +365,9 @@ const loading = ref(false)
 const exporting = ref(false)
 const records = ref([])
 const companies = ref([])
+const divisions = ref([])
+const departments = ref([])
+const employeeOptions = ref([])
 const currentPage = ref(1)
 const perPage = 20
 const activeTab = ref('attendance')
@@ -369,7 +395,10 @@ const now = new Date()
 const filters = reactive({
   startDate: formatDateISO(new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)),
   endDate: formatDateISO(now),
-  companyId: ''
+  companyId: '',
+  division: '',
+  department: '',
+  empId: ''
 })
 
 const datePresets = computed(() => {
@@ -491,6 +520,41 @@ async function fetchCompanies() {
   }
 }
 
+// ดึงตัวเลือกฝ่าย/แผนก/พนักงาน ให้ตรงกับบริษัท+ฝ่าย+แผนกที่เลือกอยู่ (ใช้ endpoint เดียวกับ
+// หน้าจัดการพนักงาน ซึ่งคำนวณ filters.divisions/departments จากเงื่อนไขที่ส่งไปให้แล้ว)
+async function fetchFilterOptions() {
+  try {
+    const params = { per_page: 1000 }
+    if (filters.companyId) params.company_id = filters.companyId
+    if (filters.division) params.division = filters.division
+    if (filters.department) params.department = filters.department
+    const response = await api.get('/api/employees', { params })
+    divisions.value = response.data.filters?.divisions || []
+    departments.value = response.data.filters?.departments || []
+    employeeOptions.value = response.data.data?.data || response.data.data || []
+  } catch (error) {
+    console.error('Error fetching filter options:', error)
+  }
+}
+
+function onCompanyChange() {
+  filters.division = ''
+  filters.department = ''
+  filters.empId = ''
+  fetchFilterOptions()
+}
+
+function onDivisionChange() {
+  filters.department = ''
+  filters.empId = ''
+  fetchFilterOptions()
+}
+
+function onDepartmentChange() {
+  filters.empId = ''
+  fetchFilterOptions()
+}
+
 async function fetchReport() {
   loading.value = true
   currentPage.value = 1
@@ -500,6 +564,9 @@ async function fetchReport() {
       end_date: filters.endDate,
     }
     if (filters.companyId) params.company_id = filters.companyId
+    if (filters.division) params.division = filters.division
+    if (filters.department) params.department = filters.department
+    if (filters.empId) params.emp_id = filters.empId
 
     let endpoint = '/api/reports/attendance'
     if (activeTab.value === 'leave') endpoint = '/api/reports/leave'
@@ -595,6 +662,9 @@ async function exportExcel() {
       type: activeTab.value,
     }
     if (filters.companyId) params.company_id = filters.companyId
+    if (filters.division) params.division = filters.division
+    if (filters.department) params.department = filters.department
+    if (filters.empId) params.emp_id = filters.empId
     const response = await api.get('/api/reports/export-xls', { params, responseType: 'blob' })
     const blob = new Blob([response.data], { type: 'application/vnd.ms-excel' })
     const link = document.createElement('a')
@@ -618,6 +688,9 @@ async function exportPDF() {
       end_date: filters.endDate,
     }
     if (filters.companyId) params.company_id = filters.companyId
+    if (filters.division) params.division = filters.division
+    if (filters.department) params.department = filters.department
+    if (filters.empId) params.emp_id = filters.empId
     const urls = {
       attendance: '/api/reports/export-attendance-pdf',
       leave: '/api/reports/export-leave-pdf',
@@ -639,6 +712,7 @@ async function exportPDF() {
 
 onMounted(() => {
   fetchCompanies()
+  fetchFilterOptions()
   fetchReport()
 })
 </script>

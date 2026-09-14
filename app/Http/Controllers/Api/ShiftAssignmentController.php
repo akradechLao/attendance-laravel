@@ -54,6 +54,8 @@ class ShiftAssignmentController extends Controller
                     'name' => $emp->name,
                     'company_id' => $emp->company_id,
                     'company_name' => $emp->company->name ?? '-',
+                    'division' => $emp->division,
+                    'department' => $emp->department,
                     'current_shift' => $currentShift ? [
                         'id' => $currentShift->id,
                         'group_number' => $currentShift->group_number,
