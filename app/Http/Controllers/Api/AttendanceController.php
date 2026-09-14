@@ -7,6 +7,7 @@ use App\Models\AttendanceLog;
 use App\Models\Employee;
 use App\Models\OfficeLocation;
 use App\Models\RemoteAssignment;
+use App\Helpers\AttendanceHelper;
 use App\Services\AttendanceService;
 use App\Services\LocationService;
 use App\Services\ShiftResolver;
@@ -496,9 +497,11 @@ class AttendanceController extends Controller
 
             $employee = Employee::find($log->emp_id);
             $date = $log->date;
-            $checkIn = $log->check_in instanceof Carbon
-                ? $log->check_in
-                : Carbon::parse($date . ' ' . $log->check_in);
+            // check_in เป็นคอลัมน์ TIME ล้วน - ถ้าอ่านมาเป็น Carbon (จาก cast ของ model) แล้วใช้
+            // ตรงๆ จะติดวันที่ปัจจุบันจริงมาด้วยแทนที่จะเป็น $date ของ log นี้ ต้องดึงแค่เวลาแล้ว
+            // ประกอบวันที่ที่ถูกต้องเองเสมอ (เหมือนที่แก้ใน AttendanceHelper)
+            $checkInTime = $log->check_in instanceof Carbon ? $log->check_in->format('H:i:s') : (string) $log->check_in;
+            $checkIn = Carbon::parse($date . ' ' . $checkInTime);
             $checkOut = Carbon::parse($date . ' ' . $request->check_out);
 
             if ($checkOut->lt($checkIn)) {
@@ -506,19 +509,9 @@ class AttendanceController extends Controller
             }
 
             $workedMinutes = $checkIn->diffInMinutes($checkOut);
+            $workedMinutes -= AttendanceHelper::calculateBreakMinutes($log->emp_id, $date, $checkIn, $checkOut);
 
-            $breakMinutes = 0;
-            $breakStart = Carbon::parse($date . ' 11:45');
-            $breakEnd = Carbon::parse($date . ' 12:45');
-            if ($checkIn->lt($breakEnd) && $checkOut->gt($breakStart)) {
-                $effectiveStart = max($checkIn, $breakStart);
-                $effectiveEnd = min($checkOut, $breakEnd);
-                $breakMinutes = $effectiveStart->diffInMinutes($effectiveEnd);
-                $breakMinutes = min($breakMinutes, 60);
-            }
-            $workedMinutes -= $breakMinutes;
-
-            $shiftInfo = $employee ? \App\Services\ShiftResolver::resolve($employee, $date) : null;
+            $shiftInfo = $employee ? ShiftResolver::resolve($employee, $date) : null;
             $lateMinutes = 0;
             if ($shiftInfo && $shiftInfo['start_time']) {
                 $workStart = Carbon::parse($date . ' ' . $shiftInfo['start_time']);

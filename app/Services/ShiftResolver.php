@@ -28,6 +28,8 @@ class ShiftResolver
      *     end_time: ?string,
      *     work_hours: ?int,
      *     is_overnight: ?bool,
+     *     break_start: ?string,
+     *     break_end: ?string,
      *     source: string,
      *     work_shift_id: ?int,
      * }
@@ -42,12 +44,27 @@ class ShiftResolver
         if ($schedule) {
             $times = ShiftCodeHelper::getTimes($schedule->shift_code);
             $shift = ShiftCodeHelper::get($schedule->shift_code);
+
+            // เวลาพักตั้งอยู่ที่ work_shifts (แก้ผ่านหน้าตั้งค่ากะได้) ไม่ได้ผูกกับ
+            // ShiftCodeHelper ที่เป็นค่าคงที่ในโค้ด - หาแถวที่ตรงกันผ่าน group_number
+            $breakStart = null;
+            $breakEnd = null;
+            if (isset($shift['group'])) {
+                $workShiftRow = WorkShift::where('group_number', $shift['group'])->first();
+                if ($workShiftRow) {
+                    $breakStart = $workShiftRow->break_start_time?->format('H:i');
+                    $breakEnd = $workShiftRow->break_end_time?->format('H:i');
+                }
+            }
+
             return [
                 'shift_code' => $schedule->shift_code,
                 'start_time' => $times['start'],
                 'end_time' => $times['end'],
                 'work_hours' => $shift['hours'] ?? null,
                 'is_overnight' => $shift['overnight'] ?? null,
+                'break_start' => $breakStart,
+                'break_end' => $breakEnd,
                 'source' => 'shift_schedules',
                 'work_shift_id' => null,
             ];
@@ -74,6 +91,8 @@ class ShiftResolver
                 'end_time' => $endTime,
                 'work_hours' => $workShift->work_hours,
                 'is_overnight' => $workShift->is_overnight,
+                'break_start' => $workShift->break_start_time?->format('H:i'),
+                'break_end' => $workShift->break_end_time?->format('H:i'),
                 'source' => 'employee_shifts',
                 'work_shift_id' => $workShift->id,
             ];
@@ -103,6 +122,8 @@ class ShiftResolver
                 'end_time' => $end,
                 'work_hours' => $workHours,
                 'is_overnight' => false,
+                'break_start' => null,
+                'break_end' => null,
                 'source' => 'office_default',
                 'work_shift_id' => null,
             ];
@@ -115,6 +136,8 @@ class ShiftResolver
             'end_time' => '17:00',
             'work_hours' => 8,
             'is_overnight' => false,
+            'break_start' => '12:00',
+            'break_end' => '13:00',
             'source' => 'default',
             'work_shift_id' => null,
         ];

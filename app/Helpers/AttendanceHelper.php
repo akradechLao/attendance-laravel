@@ -3,12 +3,12 @@
 namespace App\Helpers;
 
 use App\Models\AttendanceLog;
+use App\Models\Employee;
+use App\Services\ShiftResolver;
 use Carbon\Carbon;
 
 class AttendanceHelper
 {
-    const BREAK_MINUTES = 60;
-
     public static function calculateWorkedHours(int $empId, string $date, ?string $untilTime = null): ?float
     {
         $logs = AttendanceLog::where('emp_id', $empId)
@@ -47,20 +47,60 @@ class AttendanceHelper
                 // ย้อนหลังหลายวัน จึงคืน null แทนเพื่อบอกว่าคำนวณไม่ได้ ไม่ใช่ทำงาน 0 ชั่วโมง
                 return null;
             }
+        } elseif ($lastOut->lt($firstIn)) {
+            // กะข้ามคืน (เช่น เข้า 20:00 ออก 05:00) - ทั้งสองค่าถูก anchor เข้ากับ $date
+            // เดียวกันไว้ด้านบน ถ้าออกงานเร็วกว่าเข้างานตามเวลานาฬิกา แปลว่าจริงๆ ออกในวันถัดไป
+            $lastOut->addDay();
         }
 
         $totalMinutes = $firstIn->diffInMinutes($lastOut);
-
-        $breakWindowStart = Carbon::parse($date . ' 11:45:00');
-        $breakWindowEnd = Carbon::parse($date . ' 12:45:00');
-
-        if ($firstIn->lt($breakWindowEnd) && $lastOut->gt($breakWindowStart)) {
-            $totalMinutes -= self::BREAK_MINUTES;
-        }
-
+        $totalMinutes -= self::calculateBreakMinutes($empId, $date, $firstIn, $lastOut);
         $totalMinutes = max(0, $totalMinutes);
 
         return round($totalMinutes / 60, 1);
+    }
+
+    /**
+     * คำนวณจำนวนนาทีพักที่ควรหักออกจากช่วงเวลาทำงานจริง ($workStart-$workEnd) โดยอิงเวลาพัก
+     * ของกะที่ resolve ได้สำหรับพนักงาน+วันที่นั้น (ตั้งค่าต่อกะผ่านหน้าจัดการกะ) แทนค่าคงที่
+     * เดิมที่ใช้ 60 นาที ช่วง 11:45-12:45 ตายตัวทุกกะ (ซึ่งไม่เคยหักให้กะกลางคืนเลย เพราะเวลา
+     * เข้า-ออกของกะกลางคืนไม่เคยตรงกับช่วงกลางวันนั้น)
+     *
+     * ใช้ร่วมกันทั้งจาก calculateWorkedHours() และ AttendanceController::editEstimatedCheckout()
+     * เพื่อไม่ให้มีตรรกะคำนวณพักซ้ำกันหลายจุดเหมือนเดิม
+     */
+    public static function calculateBreakMinutes(int $empId, string $date, Carbon $workStart, Carbon $workEnd): int
+    {
+        $employee = Employee::find($empId);
+        if (!$employee) return 0;
+
+        $shiftInfo = ShiftResolver::resolve($employee, $date);
+        if (empty($shiftInfo['break_start']) || empty($shiftInfo['break_end'])) {
+            return 0;
+        }
+
+        $breakStart = Carbon::parse($date . ' ' . $shiftInfo['break_start']);
+        $breakEnd = Carbon::parse($date . ' ' . $shiftInfo['break_end']);
+
+        // เวลาสิ้นสุดพักน้อยกว่าเวลาเริ่มพัก = ช่วงพักข้ามเที่ยงคืน (เช่น 23:00-00:00)
+        if ($breakEnd->lte($breakStart)) {
+            $breakEnd->addDay();
+        }
+
+        // กะข้ามคืนที่ช่วงพักอยู่หลังเที่ยงคืน (เช่น กะเริ่ม 20:00 พัก 00:00-01:00) - เวลาพักที่
+        // แท้จริงอยู่ในวันถัดจาก $date ต้องเลื่อนไปให้ตรงกับ $workStart/$workEnd จริง
+        if (($shiftInfo['is_overnight'] ?? false) && $breakStart->lt($workStart)) {
+            $breakStart->addDay();
+            $breakEnd->addDay();
+        }
+
+        if ($workStart->lt($breakEnd) && $workEnd->gt($breakStart)) {
+            $effectiveStart = $workStart->gt($breakStart) ? $workStart : $breakStart;
+            $effectiveEnd = $workEnd->lt($breakEnd) ? $workEnd : $breakEnd;
+            return (int) $effectiveStart->diffInMinutes($effectiveEnd);
+        }
+
+        return 0;
     }
 
     /**

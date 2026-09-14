@@ -97,12 +97,16 @@ function debounceLoadEmployees() {
   empSearchTimeout = setTimeout(() => loadEmployees(), 300)
 }
 
+// รหัสกะ WC0001-WC0016 ตรงกับ group_number 0-15 บวก 1 เสมอ (ดู ShiftCodeHelper.php ฝั่ง
+// backend) - เดิมฟังก์ชันนี้ไม่ได้บวก 1 ทำให้ได้รหัส WC0000-WC0015 ซึ่ง ShiftCodeHelper
+// ไม่รู้จักเลยสักตัว การกำหนดกะรายวันผ่านหน้านี้จึงบันทึก shift_code ที่ resolve
+// ไม่ได้จริง (เวลาเข้า-ออก/ชั่วโมงพักไม่ถูกคำนวณให้เลย)
 function getShiftCode(gn) {
-  return 'WC' + String(gn).padStart(4, '0')
+  return 'WC' + String(gn + 1).padStart(4, '0')
 }
 
 function getShiftByCode(code) {
-  const gn = parseInt(code.replace('WC', ''), 10)
+  const gn = parseInt(code.replace('WC', ''), 10) - 1
   return workShifts.value.find(ws => ws.group_number === gn)
 }
 
@@ -189,6 +193,43 @@ function openForm() {
     loadEmployees()
   }
 }
+
+const showBreakSettings = ref(false)
+const breakEdits = ref({})
+const savingBreak = ref(null)
+
+function openBreakSettings() {
+  const edits = {}
+  for (const ws of workShifts.value) {
+    edits[ws.group_number] = {
+      start: ws.break_start_time || '',
+      end: ws.break_end_time || '',
+    }
+  }
+  breakEdits.value = edits
+  showBreakSettings.value = true
+}
+
+async function saveBreak(ws) {
+  const edit = breakEdits.value[ws.group_number]
+  if (!!edit.start !== !!edit.end) {
+    alert('กรุณากรอกเวลาพักให้ครบทั้งเริ่มและสิ้นสุด หรือเว้นว่างทั้งคู่')
+    return
+  }
+  savingBreak.value = ws.group_number
+  try {
+    await api.put(`/api/work-shifts/${ws.id}/break`, {
+      break_start_time: edit.start || null,
+      break_end_time: edit.end || null,
+    })
+    ws.break_start_time = edit.start || null
+    ws.break_end_time = edit.end || null
+  } catch (err) {
+    alert(err.response?.data?.message || 'เกิดข้อผิดพลาดในการบันทึกเวลาพัก')
+  } finally {
+    savingBreak.value = null
+  }
+}
 </script>
 
 <template>
@@ -205,6 +246,9 @@ function openForm() {
             <option v-for="c in companies" :key="c.id" :value="c.id">{{ c.name }}</option>
           </select>
           <input v-model="selectedMonth" type="month" class="px-3 py-2 border rounded-lg text-sm" />
+          <button @click="openBreakSettings" class="px-4 py-2 border border-navy text-navy rounded-lg hover:bg-gray-50 text-sm font-medium">
+            ตั้งค่าเวลาพัก
+          </button>
           <button @click="openForm" class="px-4 py-2 bg-navy text-white rounded-lg hover:bg-slate-800 text-sm font-medium">
             + เพิ่มกะ
           </button>
@@ -296,6 +340,40 @@ function openForm() {
               <button @click="showForm = false; selectedCompany = ''; searchQuery = ''" class="px-4 py-2 border rounded-lg hover:bg-gray-50 text-sm">ยกเลิก</button>
               <button @click="addShift" class="px-4 py-2 bg-navy text-white rounded-lg hover:bg-slate-800 text-sm font-medium">เพิ่ม</button>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Break Time Settings Modal -->
+      <div v-if="showBreakSettings" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl p-6 max-h-[85vh] overflow-y-auto">
+          <h3 class="text-lg font-bold text-navy mb-1">ตั้งค่าเวลาพักตามกะ</h3>
+          <p class="text-sm text-gray-500 mb-4">
+            กำหนดช่วงเวลาพักของแต่ละกะ ระบบจะหักเวลานี้ออกจากชั่วโมงทำงานจริงให้อัตโนมัติ
+            (เว้นว่างทั้งสองช่อง = กะนี้ไม่มีการหักเวลาพัก)
+          </p>
+          <div class="space-y-2">
+            <div v-for="ws in workShifts" :key="ws.group_number" class="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 p-3 border rounded-lg">
+              <div class="w-full sm:w-32 shrink-0">
+                <span class="text-sm font-semibold text-navy">{{ getShiftCode(ws.group_number) }}</span>
+                <p class="text-xs text-gray-400">{{ formatTime(ws.start_time) }}-{{ formatTime(ws.end_time) }}{{ ws.is_overnight ? ' (ข้ามคืน)' : '' }}</p>
+              </div>
+              <div class="flex items-center gap-2 flex-1">
+                <input type="time" v-model="breakEdits[ws.group_number].start" class="px-2 py-1.5 border rounded-lg text-sm w-full sm:w-auto" />
+                <span class="text-gray-400 text-sm shrink-0">ถึง</span>
+                <input type="time" v-model="breakEdits[ws.group_number].end" class="px-2 py-1.5 border rounded-lg text-sm w-full sm:w-auto" />
+              </div>
+              <button
+                @click="saveBreak(ws)"
+                :disabled="savingBreak === ws.group_number"
+                class="px-3 py-1.5 bg-navy text-white text-xs font-medium rounded-lg hover:bg-slate-800 disabled:opacity-50 shrink-0"
+              >
+                {{ savingBreak === ws.group_number ? 'กำลังบันทึก...' : 'บันทึก' }}
+              </button>
+            </div>
+          </div>
+          <div class="flex justify-end pt-4 mt-2 border-t">
+            <button @click="showBreakSettings = false" class="px-4 py-2 border rounded-lg hover:bg-gray-50 text-sm">ปิด</button>
           </div>
         </div>
       </div>

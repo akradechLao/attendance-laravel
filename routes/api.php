@@ -374,6 +374,7 @@ Route::middleware(['auth:sanctum', 'role:admin,super_admin'])->group(function ()
     Route::get('/shift-schedules', [ShiftController::class, 'index']);
     Route::post('/shift-schedules', [ShiftController::class, 'store']);
     Route::delete('/shift-schedules/{id}', [ShiftController::class, 'destroy']);
+    Route::put('/work-shifts/{id}/break', [ShiftController::class, 'updateBreak']);
 
     // Shift Assignments
     Route::get('/shift-assignments', [ShiftAssignmentController::class, 'index']);

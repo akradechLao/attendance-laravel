@@ -25,18 +25,45 @@ class ShiftController extends Controller
         $shifts = $query->orderBy('work_date')->get();
 
         $workShifts = WorkShift::orderBy('group_number')->get([
-            'group_number', 'start_time', 'end_time', 'work_hours', 'is_overnight'
+            'id', 'group_number', 'start_time', 'end_time', 'work_hours', 'is_overnight', 'break_start_time', 'break_end_time'
         ])->map(function ($ws) {
             return [
+                'id' => $ws->id,
                 'group_number' => $ws->group_number,
                 'start_time' => $ws->start_time instanceof \Carbon\Carbon ? $ws->start_time->format('H:i') : substr($ws->start_time, 0, 5),
                 'end_time' => $ws->end_time instanceof \Carbon\Carbon ? $ws->end_time->format('H:i') : substr($ws->end_time, 0, 5),
                 'work_hours' => $ws->work_hours,
                 'is_overnight' => $ws->is_overnight,
+                'break_start_time' => $ws->break_start_time?->format('H:i'),
+                'break_end_time' => $ws->break_end_time?->format('H:i'),
             ];
         });
 
         return response()->json(['data' => $shifts, 'work_shifts' => $workShifts]);
+    }
+
+    /**
+     * แก้ไขเวลาพักของกะ (WC0001-WC0016) - ไม่ให้แก้เวลาเข้า-ออก/ชั่วโมงทำงานผ่านจุดนี้
+     * เพราะรหัสกะเหล่านั้นผูกกับค่าคงที่ใน ShiftCodeHelper ด้วย แก้เฉพาะที่นี่จะไม่ตรงกัน
+     */
+    public function updateBreak(Request $request, int $id)
+    {
+        $validated = $request->validate([
+            'break_start_time' => 'nullable|date_format:H:i',
+            'break_end_time' => 'nullable|date_format:H:i',
+        ]);
+
+        if (($validated['break_start_time'] ?? null) xor ($validated['break_end_time'] ?? null)) {
+            return response()->json(['message' => 'กรุณากรอกเวลาพักให้ครบทั้งเริ่มและสิ้นสุด หรือเว้นว่างทั้งคู่'], 422);
+        }
+
+        $workShift = WorkShift::findOrFail($id);
+        $workShift->update([
+            'break_start_time' => $validated['break_start_time'] ?? null,
+            'break_end_time' => $validated['break_end_time'] ?? null,
+        ]);
+
+        return response()->json(['message' => 'บันทึกเวลาพักสำเร็จ', 'data' => $workShift]);
     }
 
     public function store(Request $request)

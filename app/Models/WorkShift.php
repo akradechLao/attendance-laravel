@@ -13,6 +13,8 @@ class WorkShift extends Model
         'end_time',
         'work_hours',
         'is_overnight',
+        'break_start_time',
+        'break_end_time',
     ];
 
     protected $casts = [
@@ -21,6 +23,8 @@ class WorkShift extends Model
         'is_overnight' => 'boolean',
         'start_time' => 'datetime:H:i',
         'end_time' => 'datetime:H:i',
+        'break_start_time' => 'datetime:H:i',
+        'break_end_time' => 'datetime:H:i',
     ];
 
     public function employees()
