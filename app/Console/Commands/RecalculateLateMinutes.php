@@ -66,19 +66,34 @@ class RecalculateLateMinutes extends Command
                 continue;
             }
 
+            // late_minutes คำนวณจาก check_in ของ "รอบแรกของวันนั้น" เสมอ (ตรงกับ logic
+            // ตอนเช็คอินจริงใน FaceController) ไม่ใช่ check_in ของแถวนี้เอง - ไม่งั้นรอบที่ 2
+            // เป็นต้นไปของวันเดียวกัน (เช่น กลับมาสแกนอีกทีตอนเย็น) จะถูกคำนวณว่าสายผิดๆ
+            $firstCheckIn = AttendanceLog::where('emp_id', $log->emp_id)
+                ->whereDate('date', $date)
+                ->orderBy('round_no', 'asc')
+                ->value('check_in');
+            $firstCheckInTimeOnly = $firstCheckIn instanceof Carbon
+                ? $firstCheckIn->format('H:i:s')
+                : substr((string) $firstCheckIn, 0, 8);
+
             $checkInTimeOnly = $log->check_in instanceof Carbon ? $log->check_in->format('H:i:s') : substr((string) $log->check_in, 0, 8);
             $workStart = Carbon::parse($date . ' ' . $resolved['start_time']);
-            $checkIn = Carbon::parse($date . ' ' . $checkInTimeOnly);
+            $checkIn = Carbon::parse($date . ' ' . ($firstCheckInTimeOnly ?: $checkInTimeOnly));
 
             $newLate = AttendanceCalculator::calculateLateMinutes($workStart, $checkIn);
             $newStatus = $newLate > 0 ? 'late' : 'on_time';
+
+            $checkInLabel = $checkInTimeOnly === $firstCheckInTimeOnly
+                ? $checkInTimeOnly
+                : "{$checkInTimeOnly} (คิดสายจากรอบแรกของวัน {$firstCheckInTimeOnly})";
 
             $this->line(sprintf(
                 '  #%d %s %s | เข้า %s | กะ %s (%s) | สาย: %d -> %d นาที | สถานะเดิม: %s -> %s',
                 $log->id,
                 $log->employee->name,
                 $date,
-                $checkInTimeOnly,
+                $checkInLabel,
                 $resolved['shift_code'] ?? '-',
                 $resolved['start_time'],
                 $log->late_minutes,
