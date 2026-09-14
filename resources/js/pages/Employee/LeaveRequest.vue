@@ -77,22 +77,60 @@
 
     <!-- My Requests -->
     <div class="bg-white rounded-xl shadow p-4">
-      <h2 class="font-semibold text-[#0f172a] mb-3">คำขอลาของฉัน</h2>
-      <div v-if="myLeaves.length === 0" class="text-center py-4 text-gray-500">ยังไม่มีคำขอ</div>
-      <div v-else class="space-y-3">
-        <div v-for="leave in myLeaves" :key="leave.id"
-             class="p-3 rounded-lg flex justify-between items-center"
-             :class="{'bg-yellow-50': leave.status==='pending', 'bg-green-50': leave.status==='approved', 'bg-red-50': leave.status==='rejected'}">
-          <div>
-            <div class="font-semibold text-sm">{{ leave.leave_type?.name }}</div>
-            <div class="text-xs text-gray-500">{{ leave.start_date }} - {{ leave.end_date }} ({{ leave.total_days }} วัน)</div>
-          </div>
-          <span class="px-3 py-1 rounded-full text-xs font-semibold"
-                :class="{'bg-yellow-100 text-yellow-700': leave.status==='pending', 'bg-green-100 text-green-700': leave.status==='approved', 'bg-red-100 text-red-700': leave.status==='rejected'}">
-            {{ statusText(leave.status) }}
-          </span>
+      <div class="flex items-center justify-between mb-3">
+        <h2 class="font-semibold text-[#0f172a]">คำขอลาของฉัน</h2>
+        <div class="flex bg-gray-100 rounded-lg p-0.5">
+          <button @click="leaveViewMode = 'list'" :class="leaveViewMode === 'list' ? 'bg-white shadow text-gray-700' : 'text-gray-500'" class="px-2.5 py-1 rounded-md text-xs font-medium transition-all">รายการ</button>
+          <button @click="leaveViewMode = 'calendar'" :class="leaveViewMode === 'calendar' ? 'bg-white shadow text-gray-700' : 'text-gray-500'" class="px-2.5 py-1 rounded-md text-xs font-medium transition-all">ปฏิทิน</button>
         </div>
       </div>
+
+      <template v-if="leaveViewMode === 'list'">
+        <div v-if="myLeaves.length === 0" class="text-center py-4 text-gray-500">ยังไม่มีคำขอ</div>
+        <div v-else class="space-y-3">
+          <div v-for="leave in myLeaves" :key="leave.id"
+               class="p-3 rounded-lg flex justify-between items-center"
+               :class="{'bg-yellow-50': leave.status==='pending', 'bg-green-50': leave.status==='approved', 'bg-red-50': leave.status==='rejected'}">
+            <div>
+              <div class="font-semibold text-sm">{{ leave.leave_type?.name }}</div>
+              <div class="text-xs text-gray-500">{{ leave.start_date }} - {{ leave.end_date }} ({{ leave.total_days }} วัน)</div>
+            </div>
+            <span class="px-3 py-1 rounded-full text-xs font-semibold"
+                  :class="{'bg-yellow-100 text-yellow-700': leave.status==='pending', 'bg-green-100 text-green-700': leave.status==='approved', 'bg-red-100 text-red-700': leave.status==='rejected'}">
+              {{ statusText(leave.status) }}
+            </span>
+          </div>
+        </div>
+      </template>
+
+      <template v-else>
+        <MonthCalendar :year="leaveCalYear" :month="leaveCalMonth" @prev="leaveCalPrevMonth" @next="leaveCalNextMonth">
+          <template #cell="{ cell }">
+            <button
+              v-if="cell"
+              @click="selectLeaveCalDay(cell)"
+              class="w-full h-full rounded-lg flex flex-col items-center justify-center text-[11px] transition-colors"
+              :class="[leaveCalCellClass(cell.date), cell.isToday ? 'ring-2 ring-blue-400' : '', leaveCalCellInfo(cell.date) ? 'cursor-pointer' : 'cursor-default']"
+            >
+              <span>{{ cell.day }}</span>
+              <span v-if="leaveCalCellInfo(cell.date)" class="w-1 h-1 rounded-full mt-0.5" :class="leaveCalDotClass(cell.date)"></span>
+            </button>
+          </template>
+        </MonthCalendar>
+
+        <div class="flex flex-wrap gap-3 mt-4 pt-3 border-t border-gray-100 text-[11px] text-gray-500">
+          <div class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-green-400"></span>อนุมัติแล้ว</div>
+          <div class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-yellow-400"></span>รออนุมัติ</div>
+          <div class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-red-400"></span>ปฏิเสธ</div>
+        </div>
+
+        <div v-if="selectedLeaveDay" class="mt-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
+          <p class="font-medium text-gray-800 text-sm mb-1">{{ selectedLeaveDay.leave_type?.name }}</p>
+          <p class="text-gray-500 text-xs">{{ selectedLeaveDay.start_date }} - {{ selectedLeaveDay.end_date }} ({{ selectedLeaveDay.total_days }} วัน)</p>
+          <p class="text-gray-500 text-xs mt-0.5">สถานะ: {{ statusText(selectedLeaveDay.status) }}</p>
+          <p v-if="selectedLeaveDay.reason" class="text-gray-400 text-xs mt-0.5 italic">{{ selectedLeaveDay.reason }}</p>
+        </div>
+      </template>
     </div>
 
     <div v-if="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 px-6 py-3 rounded-lg text-white text-sm"
@@ -105,6 +143,7 @@
 import { ref, onMounted, computed } from 'vue'
 import api from '@/services/api'
 import state from '@/store'
+import MonthCalendar from '@/components/MonthCalendar.vue'
 
 const user = computed(() => state.user)
 const employeeId = computed(() => user.value?.id)
@@ -113,6 +152,48 @@ const balances = ref([])
 const myLeaves = ref([])
 const submitting = ref(false)
 const toast = ref(null)
+
+// ─── Calendar view (ใช้ myLeaves ที่โหลดไว้แล้ว กรองตามเดือนฝั่ง client) ───
+const leaveViewMode = ref('list')
+const leaveToday = new Date()
+const leaveCalYear = ref(leaveToday.getFullYear())
+const leaveCalMonth = ref(leaveToday.getMonth() + 1)
+const selectedLeaveDay = ref(null)
+
+function leaveCalCellInfo(dateStr) {
+  return myLeaves.value.find(l => dateStr >= l.start_date && dateStr <= l.end_date) || null
+}
+
+function leaveCalDotClass(dateStr) {
+  const l = leaveCalCellInfo(dateStr)
+  if (!l) return ''
+  return l.status === 'approved' ? 'bg-green-400' : l.status === 'rejected' ? 'bg-red-400' : 'bg-yellow-400'
+}
+
+function leaveCalCellClass(dateStr) {
+  const l = leaveCalCellInfo(dateStr)
+  if (!l) return 'text-gray-400 hover:bg-gray-50'
+  if (l.status === 'approved') return 'bg-green-50 text-green-700'
+  if (l.status === 'rejected') return 'bg-red-50 text-red-700'
+  return 'bg-yellow-50 text-yellow-700'
+}
+
+function selectLeaveCalDay(cell) {
+  const l = leaveCalCellInfo(cell.date)
+  if (l) selectedLeaveDay.value = l
+}
+
+function leaveCalPrevMonth() {
+  selectedLeaveDay.value = null
+  leaveCalMonth.value--
+  if (leaveCalMonth.value < 1) { leaveCalMonth.value = 12; leaveCalYear.value-- }
+}
+
+function leaveCalNextMonth() {
+  selectedLeaveDay.value = null
+  leaveCalMonth.value++
+  if (leaveCalMonth.value > 12) { leaveCalMonth.value = 1; leaveCalYear.value++ }
+}
 
 const form = ref({ leave_type_id: '', start_date: '', end_date: '', reason: '' })
 

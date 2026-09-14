@@ -1,7 +1,8 @@
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted } from 'vue'
 import store from '../../store'
 import api from '@/services/api'
+import MonthCalendar from '../../components/MonthCalendar.vue'
 
 const thMonths = ['มกราคม','กุมภาพันธ์','มีนาคม','เมษายน','พฤษภาคม','มิถุนายน','กรกฎาคม','สิงหาคม','กันยายน','ตุลาคม','พฤศจิกายน','ธันวาคม']
 const thMonthsShort = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.']
@@ -81,6 +82,43 @@ function fmtTime(t) {
   if (!t) return '-'
   return t.substring(0, 5)
 }
+
+// ─── Calendar view (ใช้ข้อมูลเดือนเดียวกับตารางที่โหลดไว้แล้ว ไม่ต้องยิง API เพิ่ม) ───
+const viewMode = ref('table')
+const selectedCalDay = ref(null)
+
+function calCellInfo(dateStr) {
+  if (selectedTab.value === 'leave') {
+    const leave = leaveHistory.value.find(l => dateStr >= l.start_date && dateStr <= l.end_date) || null
+    const dotClass = leave ? (leave.status === 'approved' ? 'bg-blue-400' : leave.status === 'rejected' ? 'bg-gray-300' : 'bg-blue-200') : ''
+    return { attendance: null, leave, hasData: !!leave, dotClass }
+  }
+  const attendance = attendanceHistory.value.find(a => a.date === dateStr) || null
+  const dotClass = attendance ? (attendance.status === 'late' ? 'bg-amber-400' : 'bg-emerald-400') : ''
+  return { attendance, leave: null, hasData: !!attendance, dotClass }
+}
+
+function calCellClass(dateStr) {
+  const info = calCellInfo(dateStr)
+  if (info.attendance) {
+    return info.attendance.status === 'late' ? 'bg-amber-50 text-amber-700' : 'bg-emerald-50 text-emerald-700'
+  }
+  if (info.leave) {
+    return info.leave.status === 'approved' ? 'bg-blue-50 text-blue-700' : info.leave.status === 'rejected' ? 'bg-gray-50 text-gray-400' : 'bg-blue-50/50 text-blue-400'
+  }
+  return 'text-gray-400 hover:bg-gray-50'
+}
+
+function selectCalDay(cell) {
+  const info = calCellInfo(cell.date)
+  if (!info.hasData) return
+  selectedCalDay.value = { date: cell.date, attendance: info.attendance, leave: info.leave }
+}
+
+function calPrevMonth() { selectedCalDay.value = null; prevMonth() }
+function calNextMonth() { selectedCalDay.value = null; nextMonth() }
+
+watch(selectedTab, () => { selectedCalDay.value = null })
 </script>
 
 <template>
@@ -133,7 +171,7 @@ function fmtTime(t) {
       </div>
 
       <!-- Tabs -->
-      <div class="border-b">
+      <div class="flex items-center justify-between border-b">
         <nav class="flex gap-6">
           <button
             @click="selectedTab = 'attendance'"
@@ -148,11 +186,67 @@ function fmtTime(t) {
             ประวัติการลา
           </button>
         </nav>
+        <div class="flex bg-gray-100 rounded-lg p-0.5 mb-1">
+          <button @click="viewMode = 'table'" :class="viewMode === 'table' ? 'bg-white shadow text-gray-700' : 'text-gray-500'" class="px-2.5 py-1 rounded-md text-xs font-medium transition-all">รายการ</button>
+          <button @click="viewMode = 'calendar'" :class="viewMode === 'calendar' ? 'bg-white shadow text-gray-700' : 'text-gray-500'" class="px-2.5 py-1 rounded-md text-xs font-medium transition-all">ปฏิทิน</button>
+        </div>
       </div>
 
       <!-- Loading -->
       <div v-if="loading" class="text-center py-12">
         <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+      </div>
+
+      <!-- Calendar View (ทั้งสองแท็บ) -->
+      <div v-else-if="viewMode === 'calendar'" class="bg-white rounded-xl p-4 border border-gray-200 shadow-sm">
+        <MonthCalendar :year="statYear" :month="statMonth" @prev="calPrevMonth" @next="calNextMonth">
+          <template #cell="{ cell }">
+            <button
+              v-if="cell"
+              @click="selectCalDay(cell)"
+              class="w-full h-full rounded-lg flex flex-col items-center justify-center text-[11px] transition-colors"
+              :class="[calCellClass(cell.date), cell.isToday ? 'ring-2 ring-blue-400' : '', calCellInfo(cell.date).hasData ? 'cursor-pointer' : 'cursor-default']"
+            >
+              <span>{{ cell.day }}</span>
+              <span v-if="calCellInfo(cell.date).hasData" class="w-1 h-1 rounded-full mt-0.5" :class="calCellInfo(cell.date).dotClass"></span>
+            </button>
+          </template>
+        </MonthCalendar>
+
+        <div class="flex flex-wrap gap-3 mt-4 pt-3 border-t border-gray-100 text-[11px] text-gray-500">
+          <template v-if="selectedTab === 'attendance'">
+            <div class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span>ปกติ</div>
+            <div class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>สาย</div>
+          </template>
+          <template v-else>
+            <div class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-blue-400"></span>อนุมัติแล้ว</div>
+            <div class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-blue-200"></span>รออนุมัติ</div>
+            <div class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-gray-300"></span>ปฏิเสธ</div>
+          </template>
+          <div class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-gray-200"></span>ไม่มีข้อมูล</div>
+        </div>
+
+        <div v-if="selectedCalDay" class="mt-3 p-3 rounded-xl bg-gray-50 border border-gray-100">
+          <p class="font-medium text-gray-800 text-sm mb-1">{{ fmtDate(selectedCalDay.date) }}</p>
+          <template v-if="selectedCalDay.attendance">
+            <p class="text-gray-500 text-xs">
+              เข้า {{ fmtTime(selectedCalDay.attendance.check_in) }}
+              {{ selectedCalDay.attendance.check_out ? ' → ออก ' + fmtTime(selectedCalDay.attendance.check_out) : '' }}
+            </p>
+            <p class="text-gray-500 text-xs mt-0.5">
+              สถานะ: {{ selectedCalDay.attendance.status === 'late' ? `สาย ${selectedCalDay.attendance.late_minutes} นาที` : 'ปกติ' }}
+              <span v-if="selectedCalDay.attendance.worked_hours != null">• ทำงาน {{ selectedCalDay.attendance.worked_hours }} ชม.</span>
+            </p>
+          </template>
+          <template v-else-if="selectedCalDay.leave">
+            <p class="text-gray-500 text-xs">{{ selectedCalDay.leave.leave_type || selectedCalDay.leave.leaveType?.name }} ({{ selectedCalDay.leave.total_days }} วัน)</p>
+            <p class="text-gray-500 text-xs mt-0.5">
+              {{ fmtDate(selectedCalDay.leave.start_date) }} - {{ fmtDate(selectedCalDay.leave.end_date) }} •
+              {{ selectedCalDay.leave.status === 'approved' ? 'อนุมัติแล้ว' : selectedCalDay.leave.status === 'rejected' ? 'ปฏิเสธ' : 'รออนุมัติ' }}
+            </p>
+            <p v-if="selectedCalDay.leave.reason" class="text-gray-400 text-xs mt-0.5 italic">{{ selectedCalDay.leave.reason }}</p>
+          </template>
+        </div>
       </div>
 
       <!-- Attendance History -->

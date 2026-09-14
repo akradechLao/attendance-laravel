@@ -4,7 +4,7 @@
       <div class="flex items-center justify-between">
         <div>
           <h1 class="text-2xl font-bold text-navy">ปรับแก้สถานะเข้างาน</h1>
-          <p class="text-gray-500">ตรวจสอบและปรับแก้สถานะเข้างาน / อนุมัติลากิจบังคับ</p>
+          <p class="text-gray-500">ตรวจสอบและปรับแก้สถานะเข้างาน / อนุมัติลากรณีเข้างานสาย</p>
         </div>
       </div>
 
@@ -20,41 +20,76 @@
           @click="activeTab = 'forced-leave'"
           :class="['px-4 py-2.5 text-sm font-medium border-b-2 -mb-px', activeTab === 'forced-leave' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700']"
         >
-          ลากิจบังคับ (สายเกิน 30 น.)
+          ลากรณีเข้างานสาย (สายเกิน 30 น.)
           <span v-if="pendingForcedLeaves > 0" class="ml-1 px-1.5 py-0.5 text-xs rounded-full bg-red-100 text-red-600">{{ pendingForcedLeaves }}</span>
         </button>
       </div>
 
       <!-- Filters -->
       <div class="card">
-        <div class="flex flex-col md:flex-row gap-4">
-          <div>
+        <div class="flex flex-col md:flex-row gap-4 items-end">
+          <div v-if="viewMode === 'list'">
             <label class="block text-sm font-medium text-gray-700 mb-1">วันที่</label>
             <input v-model="selectedDate" type="date" class="input-field" @change="loadData" />
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">บริษัท</label>
-            <select v-model="selectedCompany" class="input-field" @change="loadData">
+            <select v-model="selectedCompany" class="input-field" @change="onFilterChange">
               <option value="">ทุกบริษัท</option>
               <option v-for="c in companies" :key="c.id" :value="c.id">{{ c.name }}</option>
             </select>
           </div>
           <div v-if="activeTab === 'forced-leave'">
             <label class="block text-sm font-medium text-gray-700 mb-1">สถานะ</label>
-            <select v-model="selectedStatus" class="input-field" @change="loadData">
+            <select v-model="selectedStatus" class="input-field" @change="onFilterChange">
               <option value="">ทุกสถานะ</option>
               <option value="pending">รออนุมัติ</option>
               <option value="approved">อนุมัติแล้ว</option>
               <option value="rejected">ไม่อนุมัติ</option>
             </select>
           </div>
+          <div class="flex bg-gray-100 rounded-lg p-0.5 md:ml-auto">
+            <button @click="switchViewMode('list')" :class="viewMode === 'list' ? 'bg-white shadow text-gray-700' : 'text-gray-500'" class="px-3 py-1.5 rounded-md text-xs font-medium transition-all">รายวัน</button>
+            <button @click="switchViewMode('calendar')" :class="viewMode === 'calendar' ? 'bg-white shadow text-gray-700' : 'text-gray-500'" class="px-3 py-1.5 rounded-md text-xs font-medium transition-all">ปฏิทิน</button>
+          </div>
         </div>
       </div>
 
       <div v-if="loading" class="text-center py-12 text-gray-500">กำลังโหลด...</div>
 
+      <!-- Calendar view: heatmap รายเดือน คลิกวันเพื่อดูรายละเอียดในโหมดรายวัน -->
+      <template v-if="viewMode === 'calendar' && !loading">
+        <div class="card p-4">
+          <MonthCalendar :year="calYear" :month="calMonth" @prev="calPrevMonth" @next="calNextMonth">
+            <template #cell="{ cell }">
+              <button
+                v-if="cell"
+                @click="pickDateFromCalendar(cell.date)"
+                class="w-full h-full rounded-lg flex flex-col items-center justify-center text-[11px] transition-colors"
+                :class="[calCellClass(cell.date), cell.isToday ? 'ring-2 ring-blue-400' : '']"
+              >
+                <span>{{ cell.day }}</span>
+                <span v-if="calCellCount(cell.date) > 0" class="text-[9px] font-bold">{{ calCellCount(cell.date) }}</span>
+              </button>
+            </template>
+          </MonthCalendar>
+
+          <div class="flex flex-wrap gap-3 mt-4 pt-3 border-t border-gray-100 text-[11px] text-gray-500">
+            <template v-if="activeTab === 'adjustment'">
+              <div class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-yellow-300"></span>มีคนมาสาย</div>
+              <div class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-green-200"></span>เข้างานปกติทั้งหมด</div>
+            </template>
+            <template v-else>
+              <div class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-red-300"></span>มีรออนุมัติ</div>
+              <div class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-gray-200"></span>ไม่มีรายการ</div>
+            </template>
+            <span class="text-gray-400">ตัวเลข = จำนวนรายการ • คลิกวันเพื่อดูรายละเอียด</span>
+          </div>
+        </div>
+      </template>
+
       <!-- Tab: Attendance Adjustment -->
-      <template v-if="activeTab === 'adjustment' && !loading">
+      <template v-if="activeTab === 'adjustment' && viewMode === 'list' && !loading">
         <div v-if="records.length === 0" class="card text-center py-8 text-gray-400">ไม่มีรายการเข้างานวันนี้</div>
         <div v-else class="card overflow-hidden">
           <div class="overflow-x-auto">
@@ -109,8 +144,8 @@
       </template>
 
       <!-- Tab: Forced Leave -->
-      <template v-if="activeTab === 'forced-leave' && !loading">
-        <div v-if="forcedLeaves.length === 0" class="card text-center py-8 text-gray-400">ไม่มีรายการลากิจบังคับวันนี้</div>
+      <template v-if="activeTab === 'forced-leave' && viewMode === 'list' && !loading">
+        <div v-if="forcedLeaves.length === 0" class="card text-center py-8 text-gray-400">ไม่มีรายการลากรณีเข้างานสายวันนี้</div>
         <div v-else class="card overflow-hidden">
           <div class="overflow-x-auto">
             <table class="w-full">
@@ -204,7 +239,7 @@
     <!-- Reject Modal -->
     <div v-if="showRejectModal" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="showRejectModal = false">
       <div class="bg-white rounded-xl shadow-xl w-full max-w-md p-6">
-        <h3 class="text-lg font-bold text-navy mb-4">ไม่อนุมัติลากิจบังคับ</h3>
+        <h3 class="text-lg font-bold text-navy mb-4">ไม่อนุมัติลากรณีเข้างานสาย</h3>
         <div class="space-y-3 mb-4">
           <div class="text-sm"><span class="font-medium text-gray-600">พนักงาน:</span> {{ rejectingLeave?.employee_name }}</div>
           <div class="text-sm"><span class="font-medium text-gray-600">สาย:</span> {{ rejectingLeave?.late_minutes }} นาที</div>
@@ -228,6 +263,7 @@
 import { ref, reactive, onMounted, computed } from 'vue'
 import api from '../../services/api'
 import AppLayout from '../../layouts/AppLayout.vue'
+import MonthCalendar from '../../components/MonthCalendar.vue'
 
 const loading = ref(true)
 const saving = ref(false)
@@ -238,6 +274,81 @@ const companies = ref([])
 const selectedDate = ref(new Date().toISOString().slice(0, 10))
 const selectedCompany = ref('')
 const selectedStatus = ref('')
+
+// ─── Calendar view (heatmap รายเดือน) ───
+const viewMode = ref('list')
+const calToday = new Date()
+const calYear = ref(calToday.getFullYear())
+const calMonth = ref(calToday.getMonth() + 1)
+const calAdjustment = ref([])
+const calForcedLeave = ref([])
+
+function calCellInfo(dateStr) {
+  if (activeTab.value === 'forced-leave') {
+    return calForcedLeave.value.find(r => r.date === dateStr) || null
+  }
+  return calAdjustment.value.find(r => r.date === dateStr) || null
+}
+
+function calCellCount(dateStr) {
+  const info = calCellInfo(dateStr)
+  if (!info) return 0
+  return activeTab.value === 'forced-leave' ? (info.pending_count || info.total_count) : info.total_count
+}
+
+function calCellClass(dateStr) {
+  const info = calCellInfo(dateStr)
+  if (!info || info.total_count == 0) return 'text-gray-300 hover:bg-gray-50'
+  if (activeTab.value === 'forced-leave') {
+    return info.pending_count > 0 ? 'bg-red-50 text-red-700' : 'bg-gray-50 text-gray-500'
+  }
+  return info.late_count > 0 ? 'bg-yellow-50 text-yellow-700' : 'bg-green-50 text-green-700'
+}
+
+async function loadCalendarSummary() {
+  try {
+    const params = { month: calMonth.value, year: calYear.value, company_id: selectedCompany.value }
+    if (selectedStatus.value) params.status = selectedStatus.value
+    const res = await api.get('/api/attendance-adjustment/calendar-summary', { params })
+    if (res.data.success) {
+      calAdjustment.value = res.data.data.adjustment || []
+      calForcedLeave.value = res.data.data.forced_leave || []
+    }
+  } catch (e) {
+    console.error(e)
+  }
+}
+
+function calPrevMonth() {
+  calMonth.value--
+  if (calMonth.value < 1) { calMonth.value = 12; calYear.value-- }
+  loadCalendarSummary()
+}
+
+function calNextMonth() {
+  calMonth.value++
+  if (calMonth.value > 12) { calMonth.value = 1; calYear.value++ }
+  loadCalendarSummary()
+}
+
+function switchViewMode(mode) {
+  viewMode.value = mode
+  if (mode === 'calendar') loadCalendarSummary()
+}
+
+function pickDateFromCalendar(dateStr) {
+  selectedDate.value = dateStr
+  viewMode.value = 'list'
+  loadData()
+}
+
+function onFilterChange() {
+  if (viewMode.value === 'calendar') {
+    loadCalendarSummary()
+  } else {
+    loadData()
+  }
+}
 
 const showAdjustModal = ref(false)
 const adjustingRecord = ref(null)
@@ -293,7 +404,7 @@ async function saveAdjust() {
 }
 
 async function approveLeave(leave) {
-  if (!confirm(`อนุมัติลากิจบังคับของ ${leave.employee_name} ใช่หรือไม่?`)) return
+  if (!confirm(`อนุมัติลากรณีเข้างานสายของ ${leave.employee_name} ใช่หรือไม่?`)) return
   try {
     await api.put(`/api/attendance-adjustment/forced-leaves/${leave.id}/approve`)
     await loadData()

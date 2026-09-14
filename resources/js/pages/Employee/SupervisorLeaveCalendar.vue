@@ -12,11 +12,54 @@
     </header>
 
     <main class="max-w-4xl mx-auto px-4 py-6">
-      <div v-if="loading" class="text-center py-12">
+      <!-- View tabs -->
+      <div class="flex bg-white rounded-xl p-1 border border-gray-200 shadow-sm mb-4">
+        <button @click="mainTab = 'overview'" :class="mainTab === 'overview' ? 'bg-blue-500 text-white shadow' : 'text-gray-600 hover:bg-gray-50'"
+          class="flex-1 py-1.5 rounded-lg text-xs font-medium transition-all">ภาพรวม</button>
+        <button @click="switchToMonthly" :class="mainTab === 'monthly' ? 'bg-blue-500 text-white shadow' : 'text-gray-600 hover:bg-gray-50'"
+          class="flex-1 py-1.5 rounded-lg text-xs font-medium transition-all">รายเดือน</button>
+      </div>
+
+      <div v-if="mainTab === 'overview' && loading" class="text-center py-12">
         <div class="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
       </div>
 
-      <div v-else class="space-y-6">
+      <!-- Monthly Tab -->
+      <div v-if="mainTab === 'monthly'" class="bg-white rounded-2xl p-4 border border-gray-200 shadow-sm">
+        <MonthCalendar :year="monthlyYear" :month="monthlyMonth" @prev="monthlyPrev" @next="monthlyNext">
+          <template #cell="{ cell }">
+            <button
+              v-if="cell"
+              @click="selectMonthlyDay(cell.date)"
+              class="w-full h-full rounded-lg flex flex-col items-center justify-center text-[11px] transition-colors"
+              :class="[leavesForDate(cell.date).length > 0 ? 'bg-purple-50 text-purple-700 cursor-pointer' : 'text-gray-400 hover:bg-gray-50', cell.isToday ? 'ring-2 ring-blue-400' : '']"
+            >
+              <span>{{ cell.day }}</span>
+              <span v-if="leavesForDate(cell.date).length > 0" class="text-[9px] font-bold">{{ leavesForDate(cell.date).length }}</span>
+            </button>
+          </template>
+        </MonthCalendar>
+
+        <div v-if="monthlyLoading" class="text-center py-6 text-gray-400 text-xs">กำลังโหลด...</div>
+
+        <div class="flex items-center gap-2 mt-4 pt-3 border-t border-gray-100 text-[11px] text-gray-500">
+          <span class="w-2.5 h-2.5 rounded-full bg-purple-400"></span>
+          <span>ตัวเลข = จำนวนคนลาในวันนั้น • คลิกวันเพื่อดูรายชื่อ</span>
+        </div>
+
+        <div v-if="selectedMonthlyDate" class="mt-3 space-y-2">
+          <p class="font-medium text-gray-800 text-sm">{{ formatDate(new Date(selectedMonthlyDate)) }}</p>
+          <div v-if="leavesForDate(selectedMonthlyDate).length === 0" class="text-gray-400 text-xs">ไม่มีใครลาวันนี้</div>
+          <div v-for="item in leavesForDate(selectedMonthlyDate)" :key="item.id" class="bg-gray-50 rounded-xl p-3 border border-gray-100">
+            <p class="font-medium text-gray-800 text-sm">{{ item.employee?.name || '-' }}</p>
+            <p class="text-gray-400 text-[10px]">{{ item.employee?.department || '' }} • {{ item.leave_type }}</p>
+            <p class="text-gray-400 text-[10px]">{{ formatDateShort(item.start_date) }} - {{ formatDateShort(item.end_date) }} ({{ item.total_days }} วัน)</p>
+            <p v-if="item.reason" class="text-gray-400 text-[10px] italic mt-0.5">เหตุผล: {{ item.reason }}</p>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="mainTab === 'overview' && !loading" class="space-y-6">
         <!-- Today -->
         <Section
           title="วันนี้"
@@ -64,11 +107,66 @@
 <script setup>
 import { ref, computed, h, onMounted } from 'vue'
 import api from '../../services/api'
+import MonthCalendar from '../../components/MonthCalendar.vue'
 
 const thMonths = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.']
 
 const loading = ref(true)
 const data = ref({ today: [], tomorrow: [], this_week: [], upcoming: [] })
+
+// ─── Monthly tab ───
+const mainTab = ref('overview')
+const monthlyLoading = ref(false)
+const monthlyLoaded = ref(false)
+const monthlyToday = new Date()
+const monthlyYear = ref(monthlyToday.getFullYear())
+const monthlyMonth = ref(monthlyToday.getMonth() + 1)
+const monthlyLeaves = ref([])
+const selectedMonthlyDate = ref(null)
+
+function leavesForDate(dateStr) {
+  if (!dateStr) return []
+  return monthlyLeaves.value.filter(l => dateStr >= l.start_date && dateStr <= l.end_date)
+}
+
+function selectMonthlyDay(dateStr) {
+  selectedMonthlyDate.value = dateStr
+}
+
+async function loadMonthly() {
+  monthlyLoading.value = true
+  selectedMonthlyDate.value = null
+  try {
+    const res = await api.get('/api/supervisor/leave-calendar/monthly', { params: { month: monthlyMonth.value, year: monthlyYear.value } })
+    if (res.data.success) {
+      monthlyLeaves.value = res.data.data || []
+    }
+  } catch (e) {
+    console.error(e)
+  } finally {
+    monthlyLoading.value = false
+  }
+}
+
+function switchToMonthly() {
+  mainTab.value = 'monthly'
+  if (!monthlyLoaded.value) {
+    monthlyLoaded.value = true
+    loadMonthly()
+  }
+}
+
+function monthlyPrev() {
+  monthlyMonth.value--
+  if (monthlyMonth.value < 1) { monthlyMonth.value = 12; monthlyYear.value-- }
+  loadMonthly()
+}
+
+function monthlyNext() {
+  monthlyMonth.value++
+  if (monthlyMonth.value > 12) { monthlyMonth.value = 1; monthlyYear.value++ }
+  loadMonthly()
+}
 
 const today = new Date()
 const tomorrow = new Date(today); tomorrow.setDate(tomorrow.getDate() + 1)

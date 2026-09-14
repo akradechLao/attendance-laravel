@@ -247,6 +247,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/supervisor/ot-approval', [SupervisorController::class, 'otApproval']);
         Route::get('/supervisor/team-calendar', [SupervisorController::class, 'teamCalendar']);
         Route::get('/supervisor/leave-calendar', [SupervisorLeaveCalendarController::class, 'index']);
+        Route::get('/supervisor/leave-calendar/monthly', [SupervisorLeaveCalendarController::class, 'monthly']);
         Route::get('/supervisor/shift-assign/team', [\App\Http\Controllers\Api\SupervisorShiftController::class, 'team']);
         Route::get('/supervisor/shift-assign/summary', [\App\Http\Controllers\Api\SupervisorShiftController::class, 'summary']);
         Route::post('/supervisor/shift-assign', [\App\Http\Controllers\Api\SupervisorShiftController::class, 'assign']);
@@ -345,6 +346,7 @@ Route::middleware(['auth:sanctum', 'role:admin,super_admin'])->group(function ()
 
     // Attendance Adjustment
     Route::get('/attendance-adjustment', [AttendanceAdjustmentController::class, 'index']);
+    Route::get('/attendance-adjustment/calendar-summary', [AttendanceAdjustmentController::class, 'calendarSummary']);
     Route::put('/attendance-adjustment/{id}/adjust', [AttendanceAdjustmentController::class, 'adjust']);
     Route::get('/attendance-adjustment/forced-leaves', [AttendanceAdjustmentController::class, 'forcedLeaves']);
     Route::put('/attendance-adjustment/forced-leaves/{id}/approve', [AttendanceAdjustmentController::class, 'approveForcedLeave']);

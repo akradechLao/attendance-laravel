@@ -70,7 +70,7 @@ class DashboardController extends Controller
             $presentToday += $overnightOnly->count();
             $absentToday = max(0, $totalEmployees - $presentToday);
 
-            // นับลากิจบังคับวันนี้ + กะข้ามคืน
+            // นับลากรณีเข้างานสายวันนี้ + กะข้ามคืน
             $forcedLeaveQuery = LateForcedLeave::where(function ($q) use ($today, $yesterday) {
                     $q->where('date', $today)
                       ->orWhere('date', $yesterday);
