@@ -365,22 +365,35 @@ class FaceController extends Controller
 
                 // ─── DB Transaction ป้องกัน race condition ───
                 $result = \DB::transaction(function () use ($employee, $shiftStartDate, $now, $request) {
-                    // 1) หา record ที่ check_out IS NULL ก่อน (ปกติ)
-                    $log = AttendanceLog::where('emp_id', $employee->id)
-                        ->whereDate('date', $shiftStartDate)
-                        ->whereNull('check_out')
-                        ->orderBy('round_no', 'desc')
-                        ->lockForUpdate()
-                        ->first();
+                    // ค้นหาทั้งวันที่คำนวณได้ (shiftStartDate) และวันก่อนหน้า - ครอบคลุมกรณี
+                    // พนักงานกะปกติ (ไม่ได้ตั้ง flag is_overnight) แต่ทำ OT ต่อข้ามเที่ยงคืน
+                    // ซึ่ง getEmployeeShiftInfo() จะคำนวณ shiftStartDate เป็นวันใหม่ ทั้งที่
+                    // record เช็คอินจริงยังเป็นของเมื่อวาน
+                    $candidateDates = [$shiftStartDate, Carbon::parse($shiftStartDate)->subDay()->toDateString()];
 
-                    // 2) ถ้าไม่มี record ว่าง ให้หา record ล่าสุดที่ is_estimated = true (auto-checkout)
-                    if (!$log) {
+                    // 1) หา record ที่ check_out IS NULL ก่อน (ปกติ)
+                    $log = null;
+                    foreach ($candidateDates as $date) {
                         $log = AttendanceLog::where('emp_id', $employee->id)
-                            ->whereDate('date', $shiftStartDate)
-                            ->where('is_estimated', true)
+                            ->whereDate('date', $date)
+                            ->whereNull('check_out')
                             ->orderBy('round_no', 'desc')
                             ->lockForUpdate()
                             ->first();
+                        if ($log) break;
+                    }
+
+                    // 2) ถ้าไม่มี record ว่าง ให้หา record ล่าสุดที่ is_estimated = true (auto-checkout)
+                    if (!$log) {
+                        foreach ($candidateDates as $date) {
+                            $log = AttendanceLog::where('emp_id', $employee->id)
+                                ->whereDate('date', $date)
+                                ->where('is_estimated', true)
+                                ->orderBy('round_no', 'desc')
+                                ->lockForUpdate()
+                                ->first();
+                            if ($log) break;
+                        }
                     }
 
                     if (!$log) {
@@ -424,10 +437,13 @@ class FaceController extends Controller
                 $wasEstimated = $result['was_estimated'];
 
                 // ─── ตรวจจับ OT หลังเวลา (กลับช้า ≥ 1 ชม.) ───
+                // ใช้วันที่จริงของ record ที่พบ (\$log->date) แทน \$shiftStartDate ตรงๆ
+                // เพราะกรณี fallback ข้ามคืนด้านบน record ที่เจออาจเป็นของเมื่อวาน
+                $logDate = $log->date instanceof Carbon ? $log->date->toDateString() : (string) $log->date;
                 $shiftInfo = $this->getEmployeeShiftInfo($employee, $now);
                 $resolvedShift = $shiftInfo['resolved'];
                 if ($resolvedShift && $resolvedShift['end_time'] && $employee->has_ot) {
-                    $this->detectAfterShiftOt($employee, $log, $shiftStartDate, $resolvedShift['end_time'], $now);
+                    $this->detectAfterShiftOt($employee, $log, $logDate, $resolvedShift['end_time'], $now);
                 }
 
                 $roundLabel = $log->round_no > 1 ? ' (รอบที่ ' . $log->round_no . ')' : '';

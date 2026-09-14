@@ -150,7 +150,7 @@ async function startScan() {
       type: apiType,
       latitude: props.currentLatitude,
       longitude: props.currentLongitude,
-    })
+    }, { timeout: 15000 })
 
     if (response.data.success) {
       verified.value = true
@@ -170,7 +170,9 @@ async function startScan() {
       scanning.value = false
       setTimeout(() => startScan(), 1500)
     } else {
-      const msg = error.response?.data?.message || 'เกิดข้อผิดพลาดในการสแกน'
+      const msg = error.code === 'ECONNABORTED'
+        ? 'หมดเวลาเชื่อมต่อ กรุณาตรวจสอบสัญญาณอินเทอร์เน็ตแล้วลองใหม่'
+        : (error.response?.data?.message || 'เกิดข้อผิดพลาดในการสแกน')
       failed.value = true
       emit('error', msg)
     }

@@ -1096,7 +1096,7 @@ async function registerDeviceToken(employee) {
       employee_id: employee.id,
       device_name: deviceName,
       device_fingerprint: fingerprint
-    })
+    }, { timeout: 15000 })
     if (res.data.success) {
       localStorage.setItem('employee_device_token', res.data.data.token)
       deviceToken.value = res.data.data.token
@@ -1462,7 +1462,7 @@ async function handleActionSelect(type) {
       longitude: currentLongitude.value,
       verification_token: verificationToken.value,
       pdpa_consent: scanType.value === 'remote_scan' ? pdpaConsent.value : true,
-    })
+    }, { timeout: 15000 })
 
     if (response.data.success) {
       const now = new Date()
@@ -1490,7 +1490,9 @@ async function handleActionSelect(type) {
       scanningError.value = response.data.message || 'ไม่สามารถดำเนินการได้ กรุณาลองใหม่'
     }
   } catch (error) {
-    scanningError.value = error.response?.data?.message || error.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่'
+    scanningError.value = error.code === 'ECONNABORTED'
+      ? 'หมดเวลาเชื่อมต่อ กรุณาตรวจสอบสัญญาณอินเทอร์เน็ตแล้วลองใหม่'
+      : (error.response?.data?.message || error.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่')
   } finally {
     actionLoading.value = false
   }
