@@ -1,4 +1,5 @@
 <template>
+  <AppLayout>
   <div class="max-w-lg mx-auto p-6">
     <h1 class="text-2xl font-bold text-gray-800 mb-6">โปรไฟล์ของฉัน</h1>
 
@@ -45,11 +46,13 @@
       </button>
     </div>
   </div>
+  </AppLayout>
 </template>
 
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import axios from 'axios'
+import AppLayout from '../../layouts/AppLayout.vue'
 
 const loading = ref(false)
 const error = ref('')

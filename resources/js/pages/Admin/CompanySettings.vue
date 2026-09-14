@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import api from '@/services/api'
+import AppLayout from '@/layouts/AppLayout.vue'
 
 const loading = ref(false)
 const saving = ref(false)
@@ -163,6 +164,7 @@ async function removeLogo() {
 </script>
 
 <template>
+  <AppLayout>
   <div class="p-4 sm:p-6 max-w-6xl mx-auto">
     <!-- Header -->
     <div class="mb-6">
@@ -307,4 +309,5 @@ async function removeLogo() {
       </div>
     </template>
   </div>
+  </AppLayout>
 </template>

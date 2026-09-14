@@ -1,6 +1,7 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
-    <header class="bg-white border-b border-gray-200 shadow-sm">
+  <component :is="isAdminView ? AppLayout : 'div'">
+  <div class="min-h-screen bg-gray-50" :class="{ 'min-h-0 bg-transparent': isAdminView }">
+    <header v-if="!isAdminView" class="bg-white border-b border-gray-200 shadow-sm">
       <div class="max-w-5xl mx-auto px-4 py-3 flex items-center gap-3">
         <router-link to="/employee/menu" class="text-blue-500 active:text-blue-600">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -13,8 +14,14 @@
         </span>
       </div>
     </header>
+    <div v-else class="flex items-center gap-3 mb-4">
+      <h1 class="text-2xl font-bold text-navy">รายการรออนุมัติ</h1>
+      <span v-if="counts.total > 0" class="bg-red-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+        {{ counts.total }}
+      </span>
+    </div>
 
-    <main class="max-w-5xl mx-auto px-4 py-6 space-y-4">
+    <main class="max-w-5xl mx-auto px-4 py-6 space-y-4" :class="{ 'px-0 py-0': isAdminView }">
       <div v-if="loading" class="text-center py-10 text-gray-500">กำลังโหลด...</div>
 
       <template v-for="section in sections" :key="section.key">
@@ -108,11 +115,19 @@
       </div>
     </div>
   </div>
+  </component>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue'
+import { ref, reactive, computed, onMounted } from 'vue'
 import api from '../../services/api'
+import store from '../../store'
+import AppLayout from '../../layouts/AppLayout.vue'
+
+// เข้าถึงหน้านี้ได้ทั้งจากเมนูฝั่ง admin/หัวหน้างาน (desktop, ต้องมี sidebar ติดไปด้วย)
+// และจากเมนูมือถือของพนักงาน (self-service, ใช้ปุ่มย้อนกลับแบบเดิม) - แยกด้วยชนิดบัญชี
+// เดียวกับที่ router.js ใช้แยก isEmployeeAccount (บัญชีพนักงานมี position เสมอ)
+const isAdminView = computed(() => !store.user?.position)
 
 const loading = ref(true)
 const processing = ref(false)
