@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\AttendanceLog;
 use App\Models\AutoOtRecord;
+use App\Models\LateForcedLeave;
 use Illuminate\Console\Command;
 
 /**
@@ -21,6 +22,13 @@ class MergeMistakenCheckin extends Command
         {--apply : เขียนข้อมูลจริง (ไม่ใส่ = dry-run แสดงตัวอย่างอย่างเดียว)}';
 
     protected $description = 'ย้ายรอบสแกนเข้าที่สร้างผิด (ตั้งใจจะสแกนออก) ไปเป็นเวลาเช็คเอาท์ของรอบก่อนหน้า แล้วลบรอบที่ผิด';
+
+    // ตารางที่อ้างอิง attendance_logs ผ่าน attendance_log_id (foreign key) - ต้องเคลียร์ก่อนลบ
+    // แถวที่ผิด ไม่งั้นจะติด constraint กันไม่ให้ลบ
+    private const DEPENDENT_MODELS = [
+        ['model' => AutoOtRecord::class, 'label' => 'OT อัตโนมัติ', 'unit' => 'นาที', 'amount_field' => 'ot_minutes'],
+        ['model' => LateForcedLeave::class, 'label' => 'ลาบังคับ (สาย)', 'unit' => 'นาที', 'amount_field' => 'leave_minutes'],
+    ];
 
     public function handle(): int
     {
@@ -72,23 +80,34 @@ class MergeMistakenCheckin extends Command
         }
         $this->warn("หลังทำเสร็จ: แถว #{$mistaken->id} จะถูกลบทิ้ง");
 
-        // แถว attendance_logs ที่จะลบ อาจมีรายการ OT อัตโนมัติผูกอยู่ (คำนวณมาจากเวลาที่ผิด
-        // อยู่แล้ว) - ต้องจัดการก่อนลบ ไม่งั้นจะติด foreign key constraint
-        $relatedOt = AutoOtRecord::where('attendance_log_id', $mistaken->id)->get();
-        $approvedOt = $relatedOt->where('status', 'approved');
-        if ($relatedOt->isNotEmpty()) {
+        // แถว attendance_logs ที่จะลบ อาจมีรายการ OT อัตโนมัติ / ลาบังคับ ผูกอยู่ (คำนวณมาจาก
+        // เวลาที่ผิดอยู่แล้ว) - ต้องเคลียร์ก่อนลบ ไม่งั้นจะติด foreign key constraint กัน
+        $blockers = [];
+        $toDelete = [];
+        foreach (self::DEPENDENT_MODELS as $dep) {
+            $rows = $dep['model']::where('attendance_log_id', $mistaken->id)->get();
+            if ($rows->isEmpty()) {
+                continue;
+            }
             $this->newLine();
-            $this->warn('พบรายการ OT อัตโนมัติที่ผูกกับแถวนี้ ' . $relatedOt->count() . ' รายการ:');
-            foreach ($relatedOt as $ot) {
-                $this->line("  - OT #{$ot->id} วันที่ {$ot->date} {$ot->ot_minutes} นาที สถานะ: {$ot->status}");
+            $this->warn("พบรายการ {$dep['label']} ที่ผูกกับแถวนี้ " . $rows->count() . ' รายการ:');
+            foreach ($rows as $row) {
+                $rowDate = $row->date instanceof \Carbon\Carbon ? $row->date->toDateString() : $row->date;
+                $this->line("  - #{$row->id} วันที่ {$rowDate} {$row->{$dep['amount_field']}} {$dep['unit']} สถานะ: {$row->status}");
+            }
+            $approved = $rows->where('status', 'approved');
+            if ($approved->isNotEmpty()) {
+                $blockers[] = "{$dep['label']} ({$approved->count()} รายการอนุมัติแล้ว)";
+            } else {
+                $this->warn("  ยังไม่ได้อนุมัติ (" . $rows->pluck('status')->unique()->implode(', ') . ') จะถูกลบไปด้วยเพราะคำนวณมาจากเวลาที่ผิดอยู่แล้ว');
+                $toDelete[$dep['label']] = $rows;
             }
         }
-        if ($approvedOt->isNotEmpty()) {
-            $this->error('มีรายการ OT ที่อนุมัติแล้วผูกอยู่กับแถวนี้ - ไม่ดำเนินการต่ออัตโนมัติ กรุณาตรวจสอบ/ยกเลิกรายการ OT นั้นก่อน (อาจมีผลต่อเงินเดือนที่จ่ายไปแล้ว)');
+
+        if (!empty($blockers)) {
+            $this->newLine();
+            $this->error('มีรายการที่อนุมัติแล้วผูกอยู่กับแถวนี้: ' . implode(', ', $blockers) . ' - ไม่ดำเนินการต่ออัตโนมัติ กรุณาตรวจสอบ/ยกเลิกรายการนั้นก่อน (อาจมีผลต่อเงินเดือน/วันลาที่บันทึกไปแล้ว)');
             return Command::FAILURE;
-        }
-        if ($relatedOt->isNotEmpty()) {
-            $this->warn('รายการ OT ข้างต้นยังไม่ได้อนุมัติ (' . $relatedOt->pluck('status')->unique()->implode(', ') . ') จะถูกลบไปด้วยเพราะคำนวณมาจากเวลาที่ผิดอยู่แล้ว');
         }
         $this->newLine();
 
@@ -97,7 +116,7 @@ class MergeMistakenCheckin extends Command
             return Command::SUCCESS;
         }
 
-        \DB::transaction(function () use ($target, $mistaken, $checkInTime, $relatedOt) {
+        \DB::transaction(function () use ($target, $mistaken, $checkInTime, $toDelete) {
             $update = ['check_out' => $checkInTime];
             if ($target->is_estimated) {
                 $update['is_estimated'] = false;
@@ -112,16 +131,18 @@ class MergeMistakenCheckin extends Command
             }
             $target->update($update);
 
-            foreach ($relatedOt as $ot) {
-                $ot->delete();
+            foreach ($toDelete as $rows) {
+                foreach ($rows as $row) {
+                    $row->delete();
+                }
             }
 
             $mistaken->delete();
         });
 
         $this->info("เรียบร้อย: รอบ #{$target->id} ได้เวลาเช็คเอาท์ {$checkInTime} แล้ว และลบแถว #{$mistaken->id} ที่สร้างผิดทิ้งแล้ว");
-        if ($relatedOt->isNotEmpty()) {
-            $this->info('ลบรายการ OT อัตโนมัติที่ผูกอยู่ ' . $relatedOt->count() . ' รายการไปด้วยแล้ว');
+        foreach ($toDelete as $label => $rows) {
+            $this->info("ลบรายการ {$label} ที่ผูกอยู่ {$rows->count()} รายการไปด้วยแล้ว");
         }
 
         return Command::SUCCESS;
