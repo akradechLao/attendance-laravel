@@ -564,7 +564,7 @@
           <div class="grid grid-cols-2 gap-3 sm:gap-4">
             <button
               @click="handleActionSelect('check_in')"
-              :disabled="actionLoading || (scanType === 'office_scan' && !gpsReady)"
+              :disabled="actionLoading || (scanType === 'office_scan' && officeLocation && !gpsReady)"
               class="p-4 sm:p-6 rounded-xl border-2 transition-all duration-200 text-center touch-target shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed
                 border-green-200 bg-gradient-to-b from-green-50 to-white hover:from-green-100 hover:border-green-400 active:from-green-200"
             >
@@ -575,7 +575,7 @@
 
             <button
               @click="handleActionSelect('check_out')"
-              :disabled="actionLoading || (scanType === 'office_scan' && !gpsReady)"
+              :disabled="actionLoading || (scanType === 'office_scan' && officeLocation && !gpsReady)"
               class="p-4 sm:p-6 rounded-xl border-2 transition-all duration-200 text-center touch-target shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed
                 border-red-200 bg-gradient-to-b from-red-50 to-white hover:from-red-100 hover:border-red-400 active:from-red-200"
             >
@@ -587,7 +587,7 @@
             <button
               v-if="verifiedEmployeeData?.has_ot"
               @click="handleActionSelect('ot_start')"
-              :disabled="actionLoading || (scanType === 'office_scan' && !gpsReady)"
+              :disabled="actionLoading || (scanType === 'office_scan' && officeLocation && !gpsReady)"
               class="p-4 sm:p-6 rounded-xl border-2 transition-all duration-200 text-center touch-target shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed
                 border-yellow-200 bg-gradient-to-b from-yellow-50 to-white hover:from-yellow-100 hover:border-yellow-400 active:from-yellow-200"
             >
@@ -599,7 +599,7 @@
             <button
               v-if="verifiedEmployeeData?.has_ot"
               @click="handleActionSelect('ot_end')"
-              :disabled="actionLoading || (scanType === 'office_scan' && !gpsReady)"
+              :disabled="actionLoading || (scanType === 'office_scan' && officeLocation && !gpsReady)"
               class="p-4 sm:p-6 rounded-xl border-2 transition-all duration-200 text-center touch-target shadow-sm hover:shadow-md disabled:opacity-50 disabled:cursor-not-allowed
                 border-purple-200 bg-gradient-to-b from-purple-50 to-white hover:from-purple-100 hover:border-purple-400 active:from-purple-200"
             >
