@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\AttendanceLog;
+use App\Models\AutoOtRecord;
 use Illuminate\Console\Command;
 
 /**
@@ -70,6 +71,25 @@ class MergeMistakenCheckin extends Command
             $this->line('  จะย้าย face_image ของรอบที่ผิด ไปเป็น check_out_face_image ของรอบเป้าหมายด้วย');
         }
         $this->warn("หลังทำเสร็จ: แถว #{$mistaken->id} จะถูกลบทิ้ง");
+
+        // แถว attendance_logs ที่จะลบ อาจมีรายการ OT อัตโนมัติผูกอยู่ (คำนวณมาจากเวลาที่ผิด
+        // อยู่แล้ว) - ต้องจัดการก่อนลบ ไม่งั้นจะติด foreign key constraint
+        $relatedOt = AutoOtRecord::where('attendance_log_id', $mistaken->id)->get();
+        $approvedOt = $relatedOt->where('status', 'approved');
+        if ($relatedOt->isNotEmpty()) {
+            $this->newLine();
+            $this->warn('พบรายการ OT อัตโนมัติที่ผูกกับแถวนี้ ' . $relatedOt->count() . ' รายการ:');
+            foreach ($relatedOt as $ot) {
+                $this->line("  - OT #{$ot->id} วันที่ {$ot->date} {$ot->ot_minutes} นาที สถานะ: {$ot->status}");
+            }
+        }
+        if ($approvedOt->isNotEmpty()) {
+            $this->error('มีรายการ OT ที่อนุมัติแล้วผูกอยู่กับแถวนี้ - ไม่ดำเนินการต่ออัตโนมัติ กรุณาตรวจสอบ/ยกเลิกรายการ OT นั้นก่อน (อาจมีผลต่อเงินเดือนที่จ่ายไปแล้ว)');
+            return Command::FAILURE;
+        }
+        if ($relatedOt->isNotEmpty()) {
+            $this->warn('รายการ OT ข้างต้นยังไม่ได้อนุมัติ (' . $relatedOt->pluck('status')->unique()->implode(', ') . ') จะถูกลบไปด้วยเพราะคำนวณมาจากเวลาที่ผิดอยู่แล้ว');
+        }
         $this->newLine();
 
         if (!$apply) {
@@ -77,7 +97,7 @@ class MergeMistakenCheckin extends Command
             return Command::SUCCESS;
         }
 
-        \DB::transaction(function () use ($target, $mistaken, $checkInTime) {
+        \DB::transaction(function () use ($target, $mistaken, $checkInTime, $relatedOt) {
             $update = ['check_out' => $checkInTime];
             if ($target->is_estimated) {
                 $update['is_estimated'] = false;
@@ -91,10 +111,18 @@ class MergeMistakenCheckin extends Command
                 $update['remote_accuracy'] = $mistaken->remote_accuracy;
             }
             $target->update($update);
+
+            foreach ($relatedOt as $ot) {
+                $ot->delete();
+            }
+
             $mistaken->delete();
         });
 
         $this->info("เรียบร้อย: รอบ #{$target->id} ได้เวลาเช็คเอาท์ {$checkInTime} แล้ว และลบแถว #{$mistaken->id} ที่สร้างผิดทิ้งแล้ว");
+        if ($relatedOt->isNotEmpty()) {
+            $this->info('ลบรายการ OT อัตโนมัติที่ผูกอยู่ ' . $relatedOt->count() . ' รายการไปด้วยแล้ว');
+        }
 
         return Command::SUCCESS;
     }
