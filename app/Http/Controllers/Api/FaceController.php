@@ -681,8 +681,16 @@ class FaceController extends Controller
         $todayStr = $now->toDateString();
         $resolvedToday = \App\Services\ShiftResolver::resolve($employee, $todayStr);
 
-        // Handle overnight shifts
-        if ($resolvedToday['is_overnight'] ?? false) {
+        // Handle overnight shifts - ต้องเช็คด้วยว่ากะ "ข้ามเที่ยงคืนจริง" (start_time > end_time)
+        // ไม่ใช่แค่ดู flag is_overnight อย่างเดียว เพราะบางกะ (เช่น WC0014 00:00-08:00) ถูกตั้ง
+        // flag นี้ไว้เพื่อจัดกลุ่มเป็นกะกลางคืน ทั้งที่จริงแล้วเริ่ม-จบภายในวันเดียวกัน ไม่ได้
+        // ข้ามเที่ยงคืน - ถ้าไม่เช็คเงื่อนไขนี้ พนักงานกะนี้ที่สแกนเข้าตอนเช้า (ก่อน end_time)
+        // จะถูกคำนวณว่ากะเริ่มตั้งแต่เที่ยงคืนของ "เมื่อวาน" ทำให้สายเพี้ยนไปเกือบ 1 วันเต็ม
+        $startTime = $resolvedToday['start_time'] ?? null;
+        $endTimeRaw = $resolvedToday['end_time'] ?? null;
+        $spansMidnight = $startTime && $endTimeRaw && $startTime > $endTimeRaw;
+
+        if (($resolvedToday['is_overnight'] ?? false) && $spansMidnight) {
             $endTime = $resolvedToday['end_time'] ?? null;
             if ($endTime) {
                 $endCarbon = Carbon::parse($endTime);
