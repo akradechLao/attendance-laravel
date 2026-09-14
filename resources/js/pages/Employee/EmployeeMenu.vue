@@ -20,12 +20,18 @@
           </router-link>
         </div>
         <div class="flex items-center gap-3">
+          <img
+            v-if="currentCompany?.logo_url"
+            :src="currentCompany.logo_url"
+            :alt="currentCompany.name"
+            class="w-9 h-9 rounded-lg object-contain bg-white border border-gray-100 shadow-sm shrink-0"
+          />
           <div class="w-10 h-10 rounded-full bg-blue-500 flex items-center justify-center text-white font-bold text-sm shadow">
             {{ initials }}
           </div>
           <div class="hidden sm:block">
             <p class="text-gray-800 font-semibold text-sm">{{ store.user?.name }}</p>
-            <p class="text-blue-600 text-xs">{{ store.user?.company?.name }}</p>
+            <p class="text-blue-600 text-xs">{{ currentCompany?.name || store.user?.company?.name }}</p>
           </div>
           <button
             @click="handleLogout"
@@ -349,6 +355,7 @@ const warnings = ref([])
 const announcements = ref([])
 const unreadCount = ref(0)
 const teamPendingCount = ref(0)
+const currentCompany = ref(null)
 
 // Assistant MD-and-above don't work fixed shifts, so OT / shift-swap /
 // shift-request never apply to them regardless of has_ot or assigned shifts.
@@ -372,12 +379,13 @@ function handleLogout() {
 
 onMounted(async () => {
   try {
-    const [pendingRes, warnRes, annRes, notifRes, teamRes] = await Promise.allSettled([
+    const [pendingRes, warnRes, annRes, notifRes, teamRes, companiesRes] = await Promise.allSettled([
       api.get('/api/employee/requests/pending-count'),
       api.get('/api/employee/warnings'),
       api.get('/api/announcements'),
       api.get('/api/employee/notifications/unread-count'),
       api.get('/api/pending-approvals', { params: { counts_only: 1 } }),
+      api.get('/api/companies'),
     ])
     if (pendingRes.status === 'fulfilled' && pendingRes.value.data.success) {
       pendingCounts.value = pendingRes.value.data.data
@@ -393,6 +401,10 @@ onMounted(async () => {
     }
     if (teamRes.status === 'fulfilled' && teamRes.value.data.success) {
       teamPendingCount.value = teamRes.value.data.data.counts?.total || 0
+    }
+    if (companiesRes.status === 'fulfilled' && companiesRes.value.data.success) {
+      const list = companiesRes.value.data.data || []
+      currentCompany.value = list.find(c => c.id === store.user?.company_id) || null
     }
   } catch (e) {
     // ignore
