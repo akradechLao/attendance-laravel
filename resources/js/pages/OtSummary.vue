@@ -27,23 +27,23 @@
     <!-- Summary Cards -->
     <div class="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
       <div class="bg-white rounded-lg shadow p-4 text-center">
-        <div class="text-2xl font-bold text-blue-600">{{ totals.total_hours }}</div>
+        <div class="text-2xl font-bold text-blue-600">{{ fmtHours(totals.total_hours) }}</div>
         <div class="text-sm text-gray-500">ชั่วโมงรวม</div>
       </div>
       <div class="bg-white rounded-lg shadow p-4 text-center">
-        <div class="text-2xl font-bold text-green-600">{{ totals.hours_1x }}</div>
+        <div class="text-2xl font-bold text-green-600">{{ fmtHours(totals.hours_1x) }}</div>
         <div class="text-sm text-gray-500">1 เท่า (วันหยุด)</div>
       </div>
       <div class="bg-white rounded-lg shadow p-4 text-center">
-        <div class="text-2xl font-bold text-yellow-600">{{ totals.hours_15x }}</div>
+        <div class="text-2xl font-bold text-yellow-600">{{ fmtHours(totals.hours_15x) }}</div>
         <div class="text-sm text-gray-500">1.5 เท่า (วันปกติ)</div>
       </div>
       <div class="bg-white rounded-lg shadow p-4 text-center">
-        <div class="text-2xl font-bold text-orange-600">{{ totals.hours_2x }}</div>
+        <div class="text-2xl font-bold text-orange-600">{{ fmtHours(totals.hours_2x) }}</div>
         <div class="text-sm text-gray-500">2 เท่า (รายวัน)</div>
       </div>
       <div class="bg-white rounded-lg shadow p-4 text-center">
-        <div class="text-2xl font-bold text-red-600">{{ totals.hours_3x }}</div>
+        <div class="text-2xl font-bold text-red-600">{{ fmtHours(totals.hours_3x) }}</div>
         <div class="text-sm text-gray-500">3 เท่า (เกิน 8 ชม.)</div>
       </div>
     </div>
@@ -68,11 +68,11 @@
             <td class="px-4 py-3 text-sm">{{ emp.employee_code }}</td>
             <td class="px-4 py-3 text-sm font-medium">{{ emp.emp_name }}</td>
             <td class="px-4 py-3 text-center text-sm">{{ emp.ot_days }}</td>
-            <td class="px-4 py-3 text-center text-sm font-semibold">{{ emp.total_hours }}</td>
-            <td class="px-4 py-3 text-center text-sm text-green-600">{{ emp.hours_1x || '-' }}</td>
-            <td class="px-4 py-3 text-center text-sm text-yellow-600">{{ emp.hours_15x || '-' }}</td>
-            <td class="px-4 py-3 text-center text-sm text-orange-600">{{ emp.hours_2x || '-' }}</td>
-            <td class="px-4 py-3 text-center text-sm text-red-600">{{ emp.hours_3x || '-' }}</td>
+            <td class="px-4 py-3 text-center text-sm font-semibold">{{ fmtHours(emp.total_hours) }}</td>
+            <td class="px-4 py-3 text-center text-sm text-green-600">{{ emp.hours_1x ? fmtHours(emp.hours_1x) : '-' }}</td>
+            <td class="px-4 py-3 text-center text-sm text-yellow-600">{{ emp.hours_15x ? fmtHours(emp.hours_15x) : '-' }}</td>
+            <td class="px-4 py-3 text-center text-sm text-orange-600">{{ emp.hours_2x ? fmtHours(emp.hours_2x) : '-' }}</td>
+            <td class="px-4 py-3 text-center text-sm text-red-600">{{ emp.hours_3x ? fmtHours(emp.hours_3x) : '-' }}</td>
           </tr>
           <tr v-if="!summary.summaries?.length" class="border-t">
             <td colspan="8" class="px-4 py-8 text-center text-gray-400">ไม่มีข้อมูลโอทีในรอบนี้</td>
@@ -82,11 +82,11 @@
           <tr>
             <td colspan="2" class="px-4 py-3 text-sm">รวม</td>
             <td class="px-4 py-3 text-center text-sm">{{ summary.summaries?.length }}</td>
-            <td class="px-4 py-3 text-center text-sm">{{ totals.total_hours }}</td>
-            <td class="px-4 py-3 text-center text-sm text-green-600">{{ totals.hours_1x }}</td>
-            <td class="px-4 py-3 text-center text-sm text-yellow-600">{{ totals.hours_15x }}</td>
-            <td class="px-4 py-3 text-center text-sm text-orange-600">{{ totals.hours_2x }}</td>
-            <td class="px-4 py-3 text-center text-sm text-red-600">{{ totals.hours_3x }}</td>
+            <td class="px-4 py-3 text-center text-sm">{{ fmtHours(totals.total_hours) }}</td>
+            <td class="px-4 py-3 text-center text-sm text-green-600">{{ fmtHours(totals.hours_1x) }}</td>
+            <td class="px-4 py-3 text-center text-sm text-yellow-600">{{ fmtHours(totals.hours_15x) }}</td>
+            <td class="px-4 py-3 text-center text-sm text-orange-600">{{ fmtHours(totals.hours_2x) }}</td>
+            <td class="px-4 py-3 text-center text-sm text-red-600">{{ fmtHours(totals.hours_3x) }}</td>
           </tr>
         </tfoot>
       </table>
@@ -125,6 +125,12 @@ const totals = computed(() => {
     hours_3x: s.reduce((sum, e) => sum + (e.hours_3x || 0), 0),
   }
 })
+
+// แสดงชั่วโมง OT เป็นจำนวนเต็ม (ตัวเลขดิบมักมีทศนิยมยาวจาก floating point เวลารวมหลายรายการ)
+// - เฉพาะการแสดงผลหน้านี้ ไม่กระทบตัวเลขจริงที่ใช้คำนวณ/ส่งออก CSV
+function fmtHours(n) {
+  return Math.round(n || 0)
+}
 
 const fetchSummary = async () => {
   try {
