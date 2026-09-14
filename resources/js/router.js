@@ -419,6 +419,28 @@ const router = createRouter({
   routes
 })
 
+// หลัง deploy ใหม่ ไฟล์ JS เก่า (hash เดิม) จะถูกลบไปแล้วบน server แต่ browser ที่เปิดค้าง
+// หน้าเว็บไว้ตั้งแต่ก่อน deploy ยังอ้างอิง hash เก่าอยู่ - พอกดเปลี่ยนหน้าแล้วต้องโหลด
+// chunk ใหม่แบบ dynamic import จะเจอ 404 ทันที ("Failed to fetch dynamically imported
+// module") ทำให้ใช้งานต่อไม่ได้จนกว่าจะ refresh มือ - reload อัตโนมัติครั้งเดียวแก้ปัญหานี้
+// ให้ browser ดึงหน้าเว็บเวอร์ชันล่าสุดที่มี hash ตรงกันมาแทน
+const CHUNK_RELOAD_KEY = 'chunk_reload_attempted'
+
+router.onError((error, to) => {
+  const isChunkLoadError = /Failed to fetch dynamically imported module|error loading dynamically imported module|Importing a module script failed/i.test(error?.message || '')
+  if (isChunkLoadError && !sessionStorage.getItem(CHUNK_RELOAD_KEY)) {
+    sessionStorage.setItem(CHUNK_RELOAD_KEY, '1')
+    window.location.href = to.fullPath
+  }
+})
+
+// นำทางสำเร็จแล้ว = ได้ไฟล์ hash ล่าสุดครบแล้ว เคลียร์ flag ทิ้ง เผื่อมี deploy ใหม่อีกใน
+// อนาคตขณะที่ browser ยังเปิดแท็บเดิมค้างอยู่ (sessionStorage อยู่ยันปิดแท็บ ถ้าไม่เคลียร์
+// จะบล็อกการ auto-reload รอบถัดไปไป)
+router.afterEach(() => {
+  sessionStorage.removeItem(CHUNK_RELOAD_KEY)
+})
+
 const roleHierarchy = {
   employee: 1,
   admin: 2,
