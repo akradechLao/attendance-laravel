@@ -37,6 +37,13 @@
             </select>
           </div>
           <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">พื้นที่</label>
+            <select v-model="selectedOfficeLocation" class="input-field">
+              <option value="">ทุกพื้นที่</option>
+              <option v-for="loc in officeLocations" :key="loc.id" :value="loc.id">{{ loc.name }}</option>
+            </select>
+          </div>
+          <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">ค้นหา</label>
             <input v-model="searchQuery" type="text" class="input-field" placeholder="ชื่อหรือรหัส..." />
           </div>
@@ -105,6 +112,7 @@
                   <th class="text-left px-4 py-3 text-sm font-semibold text-gray-600">รหัส</th>
                   <th class="text-left px-4 py-3 text-sm font-semibold text-gray-600">ฝ่าย</th>
                   <th class="text-left px-4 py-3 text-sm font-semibold text-gray-600">แผนก</th>
+                  <th class="text-left px-4 py-3 text-sm font-semibold text-gray-600">พื้นที่</th>
                   <th class="text-left px-4 py-3 text-sm font-semibold text-gray-600">กะปัจจุบัน</th>
                   <th class="text-center px-4 py-3 text-sm font-semibold text-gray-600">มอบหมายกะ</th>
                 </tr>
@@ -127,6 +135,7 @@
                   <td class="px-4 py-3 text-sm text-gray-600">{{ emp.employee_code }}</td>
                   <td class="px-4 py-3 text-sm text-gray-600">{{ emp.division || '-' }}</td>
                   <td class="px-4 py-3 text-sm text-gray-600">{{ emp.department || '-' }}</td>
+                  <td class="px-4 py-3 text-sm text-gray-600">{{ emp.office_location_name || '-' }}</td>
                   <td class="px-4 py-3">
                     <span v-if="emp.current_shift" class="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
                       กะ {{ emp.current_shift.group_number }} ({{ emp.current_shift.start_time }}-{{ emp.current_shift.end_time }})
@@ -171,6 +180,8 @@ const selectedMonth = ref(new Date().toISOString().slice(0, 7))
 const selectedCompany = ref('')
 const selectedDivision = ref('')
 const selectedDepartment = ref('')
+const selectedOfficeLocation = ref('')
+const officeLocationsAll = ref([])
 const searchQuery = ref('')
 const selectedEmpIds = ref([])
 const batchShiftId = ref('')
@@ -189,10 +200,20 @@ const departments = computed(() => {
   return [...set].sort()
 })
 
+// พื้นที่ (จุดเช็คอิน) ของบริษัทที่เลือกอยู่ - ดึงมาจากรายการพื้นที่ทั้งหมด ไม่ได้อิงจากรายชื่อ
+// พนักงานที่โหลดมา เพราะอยากให้เห็นพื้นที่ที่ยังไม่มีใครถูกมอบหมายด้วย
+const officeLocations = computed(() => {
+  const list = selectedCompany.value
+    ? officeLocationsAll.value.filter(loc => loc.company_id === selectedCompany.value)
+    : officeLocationsAll.value
+  return [...list].sort((a, b) => a.name.localeCompare(b.name))
+})
+
 const filteredEmployees = computed(() => {
   let list = employees.value
   if (selectedDivision.value) list = list.filter(e => e.division === selectedDivision.value)
   if (selectedDepartment.value) list = list.filter(e => e.department === selectedDepartment.value)
+  if (selectedOfficeLocation.value) list = list.filter(e => e.office_location_id === selectedOfficeLocation.value)
   if (searchQuery.value) {
     const q = searchQuery.value.toLowerCase()
     list = list.filter(e => e.name.toLowerCase().includes(q) || e.employee_code.toLowerCase().includes(q))
@@ -230,6 +251,7 @@ function toggleAll() {
 function onCompanyChange() {
   selectedDivision.value = ''
   selectedDepartment.value = ''
+  selectedOfficeLocation.value = ''
   loadData()
 }
 
@@ -240,13 +262,15 @@ function onDivisionChange() {
 async function loadData() {
   loading.value = true
   try {
-    const [locRes, compRes] = await Promise.all([
+    const [locRes, compRes, officeLocRes] = await Promise.all([
       api.get('/api/shift-assignments', { params: { month: selectedMonth.value, company_id: selectedCompany.value } }),
       api.get('/api/companies'),
+      api.get('/api/office-locations'),
     ])
     employees.value = locRes.data.data?.employees || []
     shifts.value = locRes.data.data?.shifts || []
     companies.value = compRes.data.data || []
+    officeLocationsAll.value = officeLocRes.data.data || []
   } catch (e) {
     console.error(e)
   } finally {

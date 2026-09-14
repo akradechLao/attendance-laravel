@@ -40,7 +40,7 @@ class ShiftAssignmentController extends Controller
                                     });
                             });
                     });
-                }, 'company']);
+                }, 'company.officeLocations', 'assignedOfficeLocations']);
 
             if ($companyId) {
                 $query->where('company_id', $companyId);
@@ -48,6 +48,12 @@ class ShiftAssignmentController extends Controller
 
             $employees = $query->get()->map(function ($emp) {
                 $currentShift = $emp->workShifts->first();
+
+                // เลียนแบบ Employee::getAssignedOfficeLocation() แต่ใช้ relation ที่ eager-load
+                // ไว้แล้วแทนการ query ซ้ำต่อพนักงานทีละคน (กันปัญหา N+1 เมื่อมีพนักงานจำนวนมาก)
+                $officeLocation = $emp->assignedOfficeLocations->first()
+                    ?? $emp->company?->officeLocations->firstWhere('is_active', true);
+
                 return [
                     'id' => $emp->id,
                     'employee_code' => $emp->employee_code,
@@ -56,6 +62,8 @@ class ShiftAssignmentController extends Controller
                     'company_name' => $emp->company->name ?? '-',
                     'division' => $emp->division,
                     'department' => $emp->department,
+                    'office_location_id' => $officeLocation?->id,
+                    'office_location_name' => $officeLocation?->name,
                     'current_shift' => $currentShift ? [
                         'id' => $currentShift->id,
                         'group_number' => $currentShift->group_number,
