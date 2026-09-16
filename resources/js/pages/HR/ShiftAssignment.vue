@@ -43,9 +43,12 @@
               <option v-for="loc in officeLocations" :key="loc.id" :value="loc.id">{{ loc.name }}</option>
             </select>
           </div>
-          <div>
+          <div class="flex-1 min-w-[180px]">
             <label class="block text-sm font-medium text-gray-700 mb-1">ค้นหา</label>
-            <input v-model="searchQuery" type="text" class="input-field" placeholder="ชื่อหรือรหัส..." />
+            <div class="relative">
+              <svg class="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke-width="2" /><path stroke-linecap="round" stroke-width="2" d="M21 21l-4.35-4.35" /></svg>
+              <input v-model="searchQuery" type="text" class="input-field w-full" placeholder="ชื่อหรือรหัส..." />
+            </div>
           </div>
         </div>
       </div>
@@ -59,43 +62,48 @@
             v-for="shift in shifts"
             :key="shift.id"
             @click="quickAssignShift = shift.id"
-            class="card p-3 text-left transition-all hover:shadow-md"
+            class="card !p-3 text-left transition-all hover:shadow-md relative overflow-hidden"
             :class="quickAssignShift === shift.id ? 'ring-2 ring-blue-500 bg-blue-50' : ''"
           >
-            <div class="flex items-center justify-between mb-1">
+            <span class="absolute top-0 left-0 w-1 h-full" :class="shift.is_overnight ? 'bg-indigo-500' : 'bg-blue-500'"></span>
+            <div class="flex items-center justify-between mb-1 pl-1.5">
               <span class="text-sm font-bold text-navy">กะ {{ shift.group_number }}</span>
-              <span class="text-[10px] text-gray-400">{{ getAssignedCount(shift.group_number) }} คน</span>
+              <span class="inline-flex items-center gap-0.5 text-[10px] text-gray-400">
+                <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 21v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" stroke-width="2" /></svg>
+                {{ getAssignedCount(shift.group_number) }}
+              </span>
             </div>
-            <p class="text-sm font-semibold text-blue-600">{{ shift.start_time }}-{{ shift.end_time }}</p>
-            <p class="text-[10px] text-gray-400 mt-0.5">{{ shift.is_overnight ? 'ข้ามวัน' : '' }} {{ shift.work_hours }}ชม.</p>
+            <p class="text-sm font-semibold pl-1.5" :class="shift.is_overnight ? 'text-indigo-600' : 'text-blue-600'">{{ shift.start_time }}-{{ shift.end_time }}</p>
+            <p class="text-[10px] text-gray-400 mt-0.5 pl-1.5">{{ shift.is_overnight ? 'ข้ามวัน · ' : '' }}{{ shift.work_hours }}ชม.</p>
           </button>
           <button
             @click="quickAssignShift = ''"
-            class="card p-3 text-left transition-all hover:shadow-md"
+            class="card !p-3 text-left transition-all hover:shadow-md relative overflow-hidden"
             :class="!quickAssignShift ? 'ring-2 ring-red-500 bg-red-50' : ''"
           >
-            <span class="text-sm font-bold text-red-600">ลบกะ</span>
-            <p class="text-[10px] text-gray-400 mt-0.5">นำพนักงานออก</p>
+            <span class="absolute top-0 left-0 w-1 h-full bg-red-400"></span>
+            <span class="text-sm font-bold text-red-600 pl-1.5">ลบกะ</span>
+            <p class="text-[10px] text-gray-400 mt-0.5 pl-1.5">นำพนักงานออก</p>
           </button>
         </div>
 
         <!-- Batch action bar -->
-        <div v-if="selectedEmpIds.length > 0" class="card p-3 bg-blue-50 border-blue-200 flex items-center justify-between">
+        <div v-if="selectedEmpIds.length > 0" class="card !p-3 bg-blue-50 border-blue-200 flex items-center justify-between flex-wrap gap-2">
           <span class="text-sm font-medium text-blue-700">เลือก {{ selectedEmpIds.length }} คน</span>
-          <div class="flex gap-2">
-            <select v-model="batchShiftId" class="input-field text-sm py-1">
+          <div class="flex gap-2 flex-wrap">
+            <select v-model="batchShiftId" class="input-field text-sm py-1.5 !pl-3">
               <option value="">เลือกกะ</option>
               <option v-for="shift in shifts" :key="shift.id" :value="shift.id">
                 กะ {{ shift.group_number }} ({{ shift.start_time }}-{{ shift.end_time }})
               </option>
             </select>
-            <button @click="batchAssign" :disabled="!batchShiftId" class="px-3 py-1 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50">
+            <button @click="batchAssign" :disabled="!batchShiftId" class="px-3 py-1.5 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50 transition-colors">
               มอบหมาย
             </button>
-            <button v-if="quickAssignShift" @click="quickBatchAssign" class="px-3 py-1 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700">
+            <button v-if="quickAssignShift" @click="quickBatchAssign" class="px-3 py-1.5 bg-emerald-600 text-white text-sm font-medium rounded-lg hover:bg-emerald-700 transition-colors">
               มอบหมายกะ {{ quickAssignShift }}
             </button>
-            <button @click="selectedEmpIds = []" class="px-3 py-1 bg-gray-200 text-gray-600 text-sm rounded-lg hover:bg-gray-300">ยกเลิก</button>
+            <button @click="selectedEmpIds = []" class="px-3 py-1.5 bg-white text-gray-500 text-sm font-medium rounded-lg hover:bg-gray-50 border border-gray-200 transition-colors">ยกเลิก</button>
           </div>
         </div>
 
@@ -137,7 +145,8 @@
                   <td class="px-4 py-3 text-sm text-gray-600">{{ emp.department || '-' }}</td>
                   <td class="px-4 py-3 text-sm text-gray-600">{{ emp.office_location_name || '-' }}</td>
                   <td class="px-4 py-3">
-                    <span v-if="emp.current_shift" class="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                    <span v-if="emp.current_shift" class="px-2 py-1 rounded-full text-xs font-medium"
+                      :class="emp.current_shift.is_overnight ? 'bg-indigo-100 text-indigo-700' : 'bg-blue-100 text-blue-700'">
                       กะ {{ emp.current_shift.group_number }} ({{ emp.current_shift.start_time }}-{{ emp.current_shift.end_time }})
                     </span>
                     <span v-else class="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-500">ไม่มีกะ</span>
@@ -146,7 +155,7 @@
                     <select
                       :value="emp.current_shift?.id || ''"
                       @change="e => quickAssign(emp, e.target.value)"
-                      class="text-xs border rounded-lg px-2 py-1"
+                      class="text-xs border border-gray-200 rounded-lg px-2 py-1.5 text-gray-700"
                     >
                       <option value="">ไม่มีกะ</option>
                       <option v-for="shift in shifts" :key="shift.id" :value="shift.id">
