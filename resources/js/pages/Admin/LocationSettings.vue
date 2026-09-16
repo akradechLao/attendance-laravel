@@ -6,41 +6,93 @@
           <h1 class="text-2xl font-bold text-navy">จุดเช็คอิน/เช็คเอาท์ สำหรับพนักงาน</h1>
           <p class="text-gray-500">กำหนดตำแหน่งจุดอ้างอิง (ระยะรัศมี 200 เมตร) และจัดกลุ่มพนักงาน</p>
         </div>
-        <button @click="openCreateForm" class="btn-primary">+ เพิ่มสถานที่</button>
+        <button @click="openCreateForm" class="btn-primary flex items-center gap-1.5">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.4" d="M12 5v14M5 12h14" /></svg>
+          เพิ่มสถานที่
+        </button>
       </div>
 
       <div v-if="loading" class="text-center py-12 text-gray-500">กำลังโหลด...</div>
 
       <template v-else>
+        <!-- Summary -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div class="card !p-4">
+            <p class="text-xs text-gray-500">พื้นที่ทั้งหมด</p>
+            <p class="text-2xl font-bold text-navy mt-0.5">{{ locations.length }}<span class="text-sm font-medium text-gray-400 ml-1">แห่ง</span></p>
+          </div>
+          <div class="card !p-4">
+            <p class="text-xs text-gray-500">เปิดใช้งาน</p>
+            <p class="text-2xl font-bold text-emerald-600 mt-0.5">{{ activeLocationCount }}<span class="text-sm font-medium text-gray-400 ml-1">แห่ง</span></p>
+          </div>
+          <div class="card !p-4 col-span-2 sm:col-span-2">
+            <p class="text-xs text-gray-500">พนักงานที่ถูกมอบหมายทั้งหมด</p>
+            <p class="text-2xl font-bold text-blue-600 mt-0.5">{{ totalAssignedEmployees }}<span class="text-sm font-medium text-gray-400 ml-1">คน</span></p>
+          </div>
+        </div>
+
         <div v-for="company in companies" :key="company.id" class="space-y-3">
-          <h2 class="text-lg font-semibold text-navy flex items-center gap-2">
-            <span class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" :style="companyStyle(company.code_prefix)">{{ company.code_prefix?.charAt(0) }}</span>
+          <h2 class="text-base font-semibold text-navy flex items-center gap-2.5">
+            <span class="w-7 h-7 rounded-lg flex items-center justify-center text-white text-xs font-bold shadow-sm" :style="companyStyle(company.code_prefix)">{{ company.code_prefix?.charAt(0) }}</span>
             {{ company.name }}
+            <span class="text-xs font-normal text-gray-400">{{ getLocationsByCompany(company.id).length }} พื้นที่</span>
           </h2>
 
           <div v-if="getLocationsByCompany(company.id).length === 0" class="card text-sm text-gray-400 py-4 text-center">ยังไม่มีสถานที่</div>
 
-          <div v-for="loc in getLocationsByCompany(company.id)" :key="loc.id" class="card p-4">
-            <div class="flex items-start justify-between">
-              <div class="flex-1">
-                <div class="flex items-center gap-2">
-                  <h3 class="font-semibold text-navy">{{ loc.name }}</h3>
-                  <span v-if="loc.is_active" class="px-2 py-0.5 rounded text-xs bg-green-100 text-green-700">เปิดใช้งาน</span>
-                  <span v-else class="px-2 py-0.5 rounded text-xs bg-gray-100 text-gray-500">ปิดใช้งาน</span>
-                </div>
-                <p v-if="loc.address" class="text-sm text-gray-500 mt-1">{{ loc.address }}</p>
-                <div class="flex flex-wrap gap-4 mt-2 text-xs text-gray-500">
-                  <span>📍 {{ Number(loc.latitude).toFixed(6) }}, {{ Number(loc.longitude).toFixed(6) }}</span>
-                  <span>🔵 รัศมี {{ loc.radius_meters }} ม.</span>
-                  <span v-if="loc.work_start_time">🕐 {{ loc.work_start_time }} - {{ loc.work_end_time }}</span>
-                  <span class="text-blue-600 font-medium">{{ loc.assigned_employees_count || 0 }} คน</span>
+          <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-3">
+            <div v-for="loc in getLocationsByCompany(company.id)" :key="loc.id"
+              class="card !p-4 transition-shadow hover:shadow-lg"
+            >
+              <div class="flex items-start justify-between gap-3">
+                <div class="flex items-start gap-3 min-w-0">
+                  <div class="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center shrink-0 mt-0.5">
+                    <svg class="w-[18px] h-[18px] text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                  </div>
+                  <div class="min-w-0">
+                    <div class="flex items-center gap-2 flex-wrap">
+                      <h3 class="font-semibold text-navy truncate">{{ loc.name }}</h3>
+                      <span class="inline-flex items-center gap-1 text-[11px] font-medium px-1.5 py-0.5 rounded-full"
+                        :class="loc.is_active ? 'bg-emerald-50 text-emerald-600' : 'bg-gray-100 text-gray-500'">
+                        <span class="w-1.5 h-1.5 rounded-full" :class="loc.is_active ? 'bg-emerald-500' : 'bg-gray-400'"></span>
+                        {{ loc.is_active ? 'เปิดใช้งาน' : 'ปิดใช้งาน' }}
+                      </span>
+                    </div>
+                    <p v-if="loc.address" class="text-xs text-gray-400 mt-0.5 truncate">{{ loc.address }}</p>
+                  </div>
                 </div>
               </div>
-              <div class="flex gap-2 ml-4">
-                <button @click="openAssignModal(loc)" class="px-3 py-1.5 text-xs font-medium bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100">จัดกลุ่มพนักงาน</button>
-                <button @click="openPatternModal(loc)" class="px-3 py-1.5 text-xs font-medium bg-purple-50 text-purple-600 rounded-lg hover:bg-purple-100">รูปแบบกะ</button>
-                <button @click="openEditForm(loc)" class="px-3 py-1.5 text-xs font-medium bg-gray-50 text-gray-600 rounded-lg hover:bg-gray-100">แก้ไข</button>
-                <button @click="deleteLocation(loc)" class="px-3 py-1.5 text-xs font-medium bg-red-50 text-red-600 rounded-lg hover:bg-red-100">ลบ</button>
+
+              <div class="flex flex-wrap gap-1.5 mt-3">
+                <span class="inline-flex items-center gap-1 text-[11px] text-gray-500 bg-gray-50 rounded-lg px-2 py-1">
+                  <svg class="w-3 h-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke-width="2" /><circle cx="12" cy="12" r="3" stroke-width="2" /></svg>
+                  รัศมี {{ loc.radius_meters }} ม.
+                </span>
+                <span v-if="loc.work_start_time" class="inline-flex items-center gap-1 text-[11px] text-gray-500 bg-gray-50 rounded-lg px-2 py-1">
+                  <svg class="w-3 h-3 opacity-70" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" stroke-width="2" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 7v5l3 3" /></svg>
+                  {{ loc.work_start_time }}-{{ loc.work_end_time }}
+                </span>
+                <span class="inline-flex items-center gap-1 text-[11px] font-medium text-blue-600 bg-blue-50 rounded-lg px-2 py-1">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 21v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" stroke-width="2" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75" /></svg>
+                  {{ loc.assigned_employees_count || 0 }} คน
+                </span>
+              </div>
+
+              <div class="flex gap-1.5 mt-3 pt-3 border-t border-gray-100">
+                <button @click="openAssignModal(loc)" class="flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-medium bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 21v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" stroke-width="2" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 8v6M22 11h-6" /></svg>
+                  จัดกลุ่ม
+                </button>
+                <button @click="openPatternModal(loc)" class="flex-1 inline-flex items-center justify-center gap-1 px-2 py-1.5 text-xs font-medium bg-violet-50 text-violet-600 rounded-lg hover:bg-violet-100 transition-colors">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" stroke-width="2" /><path stroke-linecap="round" d="M16 2v4M8 2v4M3 10h18" stroke-width="2" /></svg>
+                  รูปแบบกะ
+                </button>
+                <button @click="openEditForm(loc)" class="inline-flex items-center justify-center px-2.5 py-1.5 text-gray-500 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors" title="แก้ไข">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 20h9" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4 12.5-12.5z" /></svg>
+                </button>
+                <button @click="deleteLocation(loc)" class="inline-flex items-center justify-center px-2.5 py-1.5 text-red-500 bg-red-50 rounded-lg hover:bg-red-100 transition-colors" title="ลบ">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0l-1 14a2 2 0 01-2 2H7a2 2 0 01-2-2L4 6" /></svg>
+                </button>
               </div>
             </div>
           </div>
@@ -116,45 +168,60 @@
     </div>
 
     <!-- Assign Employees Modal -->
-    <div v-if="showAssign" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="showAssign = false">
-      <div class="bg-white rounded-xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+    <div v-if="showAssign" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fadeIn" @click.self="showAssign = false">
+      <div class="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] overflow-y-auto">
         <div class="p-6">
-          <div class="flex items-center justify-between mb-4">
-            <h3 class="text-lg font-bold text-navy">จัดกลุ่มพนักงาน — {{ assignLocation?.name }}</h3>
-            <button @click="showAssign = false" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+          <div class="flex items-center justify-between mb-1">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center shrink-0">
+                <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 21v-2a4 4 0 00-4-4H7a4 4 0 00-4 4v2" /><circle cx="9" cy="7" r="4" stroke-width="2" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 8v6M22 11h-6" /></svg>
+              </div>
+              <h3 class="text-lg font-bold text-navy">จัดกลุ่มพนักงาน — {{ assignLocation?.name }}</h3>
+            </div>
+            <button @click="showAssign = false" class="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
           </div>
+          <p class="text-xs text-gray-400 mb-5">พนักงานที่ยังไม่ถูกจัดกลุ่มพื้นที่ไหน จะใช้พื้นที่หลักของบริษัทเป็นค่าเริ่มต้นให้อัตโนมัติ</p>
 
           <!-- Assigned employees -->
-          <div class="mb-4">
-            <div class="flex items-center justify-between mb-2">
-              <h4 class="text-sm font-semibold text-navy">พนักงานที่ assigned ({{ assignedEmployees.length }} คน)</h4>
-            </div>
-            <div v-if="assignedEmployees.length === 0" class="text-sm text-gray-400 py-3 text-center border rounded-lg">ยังไม่มีพนักงานที่ assigned</div>
-            <div v-else class="border rounded-lg divide-y max-h-48 overflow-y-auto">
-              <div v-for="emp in assignedEmployees" :key="emp.id" class="flex items-center justify-between px-4 py-2">
-                <div>
-                  <span class="text-sm font-medium">{{ emp.name }}</span>
-                  <span class="text-xs text-gray-500 ml-2">{{ emp.employee_code }}</span>
-                  <span v-if="emp.division" class="text-xs text-gray-400 ml-2">({{ emp.division }})</span>
+          <div class="mb-5">
+            <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">พนักงานในพื้นที่นี้ ({{ assignedEmployees.length }} คน)</h4>
+            <div v-if="assignedEmployees.length === 0" class="text-sm text-gray-400 py-4 text-center border border-dashed rounded-xl">ยังไม่มีพนักงานในพื้นที่นี้</div>
+            <div v-else class="border border-gray-100 rounded-xl divide-y divide-gray-100 max-h-48 overflow-y-auto custom-scrollbar">
+              <div v-for="emp in assignedEmployees" :key="emp.id" class="flex items-center justify-between px-3 py-2 hover:bg-gray-50/60">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <span class="w-7 h-7 rounded-full bg-blue-100 text-blue-600 text-xs font-semibold flex items-center justify-center shrink-0">{{ emp.name?.charAt(0) }}</span>
+                  <div class="min-w-0">
+                    <span class="text-sm font-medium text-navy">{{ emp.name }}</span>
+                    <span class="text-xs text-gray-400 ml-1.5">{{ emp.employee_code }}</span>
+                    <span v-if="emp.division" class="text-xs text-gray-400">· {{ emp.division }}</span>
+                  </div>
                 </div>
-                <button @click="removeEmployee(emp)" class="text-xs text-red-500 hover:text-red-700">ลบ</button>
+                <button @click="removeEmployee(emp)" class="text-xs text-red-500 hover:text-red-700 font-medium shrink-0 ml-2">ลบ</button>
               </div>
             </div>
           </div>
 
           <!-- Search and add employees -->
           <div>
-            <h4 class="text-sm font-semibold text-navy mb-2">เพิ่มพนักงาน</h4>
-            <input v-model="assignSearch" @input="searchUnassigned" type="text" class="input-field w-full mb-2" placeholder="ค้นหาชื่อ, รหัส, แผนก..." />
-            <div v-if="unassignedEmployees.length === 0" class="text-sm text-gray-400 py-3 text-center border rounded-lg">ไม่พบพนักงาน</div>
-            <div v-else class="border rounded-lg divide-y max-h-64 overflow-y-auto">
-              <div v-for="emp in unassignedEmployees" :key="emp.id" class="flex items-center justify-between px-4 py-2 hover:bg-gray-50">
-                <div>
-                  <span class="text-sm font-medium">{{ emp.name }}</span>
-                  <span class="text-xs text-gray-500 ml-2">{{ emp.employee_code }}</span>
-                  <span v-if="emp.division" class="text-xs text-gray-400 ml-2">({{ emp.division }})</span>
+            <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">เพิ่มพนักงาน</h4>
+            <div class="relative mb-2">
+              <svg class="w-4 h-4 text-gray-400 absolute left-3.5 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7" stroke-width="2" /><path stroke-linecap="round" stroke-width="2" d="M21 21l-4.35-4.35" /></svg>
+              <input v-model="assignSearch" @input="searchUnassigned" type="text" class="input-field w-full" placeholder="ค้นหาชื่อ, รหัส, แผนก..." />
+            </div>
+            <div v-if="unassignedEmployees.length === 0" class="text-sm text-gray-400 py-4 text-center border border-dashed rounded-xl">ไม่พบพนักงาน</div>
+            <div v-else class="border border-gray-100 rounded-xl divide-y divide-gray-100 max-h-64 overflow-y-auto custom-scrollbar">
+              <div v-for="emp in unassignedEmployees" :key="emp.id" class="flex items-center justify-between px-3 py-2 hover:bg-gray-50/60">
+                <div class="flex items-center gap-2.5 min-w-0">
+                  <span class="w-7 h-7 rounded-full bg-gray-100 text-gray-500 text-xs font-semibold flex items-center justify-center shrink-0">{{ emp.name?.charAt(0) }}</span>
+                  <div class="min-w-0">
+                    <span class="text-sm font-medium text-navy">{{ emp.name }}</span>
+                    <span class="text-xs text-gray-400 ml-1.5">{{ emp.employee_code }}</span>
+                    <span v-if="emp.division" class="text-xs text-gray-400">· {{ emp.division }}</span>
+                  </div>
                 </div>
-                <button @click="assignEmployee(emp)" class="text-xs text-blue-600 hover:text-blue-800 font-medium">+ เพิ่ม</button>
+                <button @click="assignEmployee(emp)" class="text-xs text-blue-600 hover:text-blue-800 font-medium shrink-0 ml-2">+ เพิ่ม</button>
               </div>
             </div>
           </div>
@@ -163,84 +230,109 @@
     </div>
 
     <!-- Shift Pattern Modal -->
-    <div v-if="showPattern" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50" @click.self="showPattern = false">
-      <div class="bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+    <div v-if="showPattern" class="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 animate-fadeIn" @click.self="showPattern = false">
+      <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
         <div class="p-6">
           <div class="flex items-center justify-between mb-1">
-            <h3 class="text-lg font-bold text-navy">รูปแบบกะประจำพื้นที่ — {{ patternLocation?.name }}</h3>
-            <button @click="showPattern = false" class="text-gray-400 hover:text-gray-600 text-xl">&times;</button>
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-lg bg-violet-50 flex items-center justify-center shrink-0">
+                <svg class="w-4 h-4 text-violet-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2" stroke-width="2" /><path stroke-linecap="round" d="M16 2v4M8 2v4M3 10h18" stroke-width="2" /></svg>
+              </div>
+              <h3 class="text-lg font-bold text-navy">รูปแบบกะประจำพื้นที่ — {{ patternLocation?.name }}</h3>
+            </div>
+            <button @click="showPattern = false" class="text-gray-400 hover:text-gray-600 p-1 rounded-lg hover:bg-gray-100">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg>
+            </button>
           </div>
-          <p class="text-xs text-gray-500 mb-4">กำหนดกะและวันที่ต้องเข้างานของพื้นที่นี้ไว้ล่วงหน้า ระบบจะจดจำและใช้สร้างตารางกะให้อัตโนมัติทุกเดือน โดยจะไม่ทับวันที่มีการมอบหมาย/คำขอปรับเปลี่ยนอยู่แล้ว</p>
+          <p class="text-xs text-gray-400 mb-5">กำหนดกะและวันที่ต้องเข้างานของพื้นที่นี้ไว้ล่วงหน้า ระบบจะจดจำและใช้สร้างตารางกะให้อัตโนมัติทุกเดือน โดยจะไม่ทับวันที่มีการมอบหมาย/คำขอปรับเปลี่ยนอยู่แล้ว</p>
 
           <!-- Existing patterns -->
-          <div v-if="patterns.length === 0" class="text-sm text-gray-400 py-3 text-center border rounded-lg mb-4">ยังไม่มีรูปแบบกะ</div>
-          <div v-else class="border rounded-lg divide-y mb-4">
-            <div v-for="p in patterns" :key="p.id" class="flex items-center justify-between px-4 py-2">
-              <div class="text-sm">
-                <span class="font-medium text-navy">กะ {{ p.work_shift?.group_number }}</span>
-                <span class="text-gray-500 ml-1">({{ p.work_shift?.start_time?.substring(0,5) }}-{{ p.work_shift?.end_time?.substring(0,5) }})</span>
-                <span class="text-gray-400 ml-2">{{ dayLabels(p.days_of_week) }}</span>
-                <span v-if="p.effective_start_date" class="text-gray-400 ml-2 text-xs">
-                  ตั้งแต่ {{ p.effective_start_date }}{{ p.effective_end_date ? ' ถึง ' + p.effective_end_date : '' }}
-                </span>
-                <span v-if="!p.is_active" class="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-gray-100 text-gray-500">ปิดใช้งาน</span>
+          <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">รูปแบบที่ตั้งไว้</h4>
+          <div v-if="patterns.length === 0" class="text-sm text-gray-400 py-4 text-center border border-dashed rounded-xl mb-5">ยังไม่มีรูปแบบกะ</div>
+          <div v-else class="space-y-2 mb-5">
+            <div v-for="p in patterns" :key="p.id" class="flex items-center gap-3 border border-gray-100 rounded-xl px-3 py-2.5">
+              <div class="w-14 h-11 rounded-lg flex flex-col items-center justify-center shrink-0"
+                :class="p.work_shift?.is_overnight ? 'bg-indigo-600' : 'bg-blue-600'">
+                <span class="text-[10px] font-bold text-white/70">กะ {{ p.work_shift?.group_number }}</span>
+                <span class="text-xs font-bold text-white">{{ p.work_shift?.work_hours || 8 }} ชม.</span>
               </div>
-              <button @click="deletePattern(p)" class="text-xs text-red-500 hover:text-red-700">ลบ</button>
+              <div class="min-w-0 flex-1">
+                <div class="text-sm font-medium text-navy">
+                  {{ p.work_shift?.start_time?.substring(0,5) }}–{{ p.work_shift?.end_time?.substring(0,5) }} น.
+                  <span v-if="!p.is_active" class="ml-1.5 px-1.5 py-0.5 rounded text-[10px] bg-gray-100 text-gray-500 font-normal">ปิดใช้งาน</span>
+                </div>
+                <div class="flex gap-1 mt-1.5">
+                  <span v-for="d in weekDays" :key="d.value" class="w-5 h-5 rounded flex items-center justify-center text-[10px] font-semibold"
+                    :class="p.days_of_week?.includes(d.value) ? 'bg-blue-100 text-blue-700' : 'text-gray-300'">
+                    {{ d.short }}
+                  </span>
+                </div>
+                <p v-if="p.effective_start_date" class="text-[11px] text-gray-400 mt-1">
+                  ตั้งแต่ {{ p.effective_start_date }}{{ p.effective_end_date ? ' ถึง ' + p.effective_end_date : '' }}
+                </p>
+              </div>
+              <button @click="deletePattern(p)" class="text-gray-400 hover:text-red-500 p-1.5 rounded-lg hover:bg-red-50 shrink-0">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2m3 0l-1 14a2 2 0 01-2 2H7a2 2 0 01-2-2L4 6" /></svg>
+              </button>
             </div>
           </div>
 
           <!-- Add new pattern -->
-          <div class="border-t pt-4">
-            <h4 class="text-sm font-semibold text-navy mb-2">เพิ่มรูปแบบกะ</h4>
-            <div class="space-y-3">
+          <div class="border border-dashed border-gray-200 rounded-xl p-4">
+            <h4 class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">เพิ่มรูปแบบกะ</h4>
+            <div class="space-y-3.5">
               <div>
-                <label class="block text-xs text-gray-500 mb-1">กะ</label>
-                <select v-model="patternForm.work_shift_id" class="input-field w-full text-sm">
-                  <option value="">เลือกกะ</option>
-                  <option v-for="s in workShifts" :key="s.id" :value="s.id">
-                    กะ {{ s.group_number }} ({{ s.start_time }}-{{ s.end_time }}) {{ s.is_overnight ? 'ข้ามวัน' : '' }}
-                  </option>
-                </select>
+                <label class="block text-xs text-gray-500 mb-1.5">กะ</label>
+                <div class="flex gap-2 overflow-x-auto pb-1 custom-scrollbar">
+                  <button v-for="s in workShifts" :key="s.id" type="button" @click="patternForm.work_shift_id = s.id"
+                    class="shrink-0 px-3 py-2 rounded-lg border text-center transition-colors"
+                    :class="patternForm.work_shift_id === s.id ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'">
+                    <div class="text-[11px] font-semibold" :class="patternForm.work_shift_id === s.id ? 'text-blue-700' : 'text-gray-500'">กะ {{ s.group_number }}</div>
+                    <div class="text-xs font-medium text-navy whitespace-nowrap">{{ s.start_time }}-{{ s.end_time }}</div>
+                  </button>
+                </div>
               </div>
               <div>
-                <label class="block text-xs text-gray-500 mb-1">วันที่ต้องเข้างาน</label>
-                <div class="flex flex-wrap gap-2">
-                  <label v-for="d in weekDays" :key="d.value" class="flex items-center gap-1 text-xs border rounded-lg px-2 py-1 cursor-pointer"
-                    :class="patternForm.days_of_week.includes(d.value) ? 'bg-purple-50 border-purple-300 text-purple-700' : 'text-gray-600'">
-                    <input type="checkbox" class="rounded" :value="d.value" v-model="patternForm.days_of_week" />
-                    {{ d.label }}
-                  </label>
+                <label class="block text-xs text-gray-500 mb-1.5">วันที่ต้องเข้างาน</label>
+                <div class="flex gap-1.5">
+                  <button v-for="d in weekDays" :key="d.value" type="button"
+                    @click="toggleDay(d.value)"
+                    class="flex-1 py-2 rounded-lg text-xs font-semibold transition-colors"
+                    :class="patternForm.days_of_week.includes(d.value) ? 'bg-blue-600 text-white' : 'bg-gray-50 text-gray-500 hover:bg-gray-100'">
+                    {{ d.short }}
+                  </button>
                 </div>
               </div>
               <div class="grid grid-cols-2 gap-3">
                 <div>
-                  <label class="block text-xs text-gray-500 mb-1">มีผลตั้งแต่ (ไม่ระบุ = ทันที)</label>
-                  <input v-model="patternForm.effective_start_date" type="date" class="input-field w-full text-sm" />
+                  <label class="block text-xs text-gray-500 mb-1.5">มีผลตั้งแต่ (ไม่ระบุ = ทันที)</label>
+                  <input v-model="patternForm.effective_start_date" type="date" class="input-field w-full text-sm !pl-3" />
                 </div>
                 <div>
-                  <label class="block text-xs text-gray-500 mb-1">มีผลถึง (ไม่ระบุ = ไม่สิ้นสุด)</label>
-                  <input v-model="patternForm.effective_end_date" type="date" class="input-field w-full text-sm" />
+                  <label class="block text-xs text-gray-500 mb-1.5">มีผลถึง (ไม่ระบุ = ไม่สิ้นสุด)</label>
+                  <input v-model="patternForm.effective_end_date" type="date" class="input-field w-full text-sm !pl-3" />
                 </div>
               </div>
-              <button @click="savePattern" :disabled="savingPattern" class="btn-primary text-sm">
+              <button @click="savePattern" :disabled="savingPattern" class="btn-primary text-sm w-full">
                 {{ savingPattern ? 'กำลังบันทึก...' : '+ เพิ่มรูปแบบกะ' }}
               </button>
             </div>
           </div>
 
           <!-- Generate schedule for a month -->
-          <div class="border-t pt-4 mt-4">
-            <h4 class="text-sm font-semibold text-navy mb-2">สร้างตารางกะจากรูปแบบ</h4>
-            <div class="flex items-end gap-3">
-              <div>
-                <label class="block text-xs text-gray-500 mb-1">เดือน</label>
-                <input v-model="generateMonth" type="month" class="input-field text-sm" />
-              </div>
-              <button @click="generateSchedule" :disabled="generating || patterns.length === 0" class="px-4 py-2 bg-green-600 text-white text-sm rounded-lg hover:bg-green-700 disabled:opacity-50">
-                {{ generating ? 'กำลังสร้าง...' : 'สร้างตารางกะเดือนนี้' }}
+          <div class="mt-5 rounded-xl p-4 bg-gradient-to-br from-blue-600 to-blue-700 text-white">
+            <div class="flex items-center gap-2 mb-1">
+              <svg class="w-4 h-4 text-blue-200" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+              <h4 class="text-sm font-semibold">สร้างตารางกะจากรูปแบบ</h4>
+            </div>
+            <p class="text-xs text-blue-100/80 mb-3">ใช้รูปแบบด้านบนสร้างตารางกะให้พนักงานทุกคนในพื้นที่นี้ ข้ามวันที่มีการมอบหมาย/ปรับเปลี่ยนไว้แล้วให้อัตโนมัติ</p>
+            <div class="flex items-end gap-2">
+              <input v-model="generateMonth" type="month" class="text-sm rounded-lg px-3 py-2 text-navy flex-1" />
+              <button @click="generateSchedule" :disabled="generating || patterns.length === 0" class="px-4 py-2 bg-white text-blue-700 text-sm font-semibold rounded-lg hover:bg-blue-50 disabled:opacity-50 shrink-0">
+                {{ generating ? 'กำลังสร้าง...' : 'สร้างตารางกะ' }}
               </button>
             </div>
-            <p v-if="generateResult" class="text-xs text-gray-500 mt-2">{{ generateResult }}</p>
+            <p v-if="generateResult" class="text-xs text-blue-50 bg-white/10 rounded-lg px-3 py-2 mt-3">{{ generateResult }}</p>
           </div>
         </div>
       </div>
@@ -249,7 +341,7 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, nextTick, watch } from 'vue'
+import { ref, reactive, computed, onMounted, nextTick, watch } from 'vue'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png'
@@ -306,18 +398,19 @@ const patternForm = reactive({
 })
 
 const weekDays = [
-  { value: 1, label: 'จันทร์' },
-  { value: 2, label: 'อังคาร' },
-  { value: 3, label: 'พุธ' },
-  { value: 4, label: 'พฤหัสฯ' },
-  { value: 5, label: 'ศุกร์' },
-  { value: 6, label: 'เสาร์' },
-  { value: 0, label: 'อาทิตย์' },
+  { value: 1, label: 'จันทร์', short: 'จ' },
+  { value: 2, label: 'อังคาร', short: 'อ' },
+  { value: 3, label: 'พุธ', short: 'พ' },
+  { value: 4, label: 'พฤหัสฯ', short: 'พฤ' },
+  { value: 5, label: 'ศุกร์', short: 'ศ' },
+  { value: 6, label: 'เสาร์', short: 'ส' },
+  { value: 0, label: 'อาทิตย์', short: 'อา' },
 ]
 
-function dayLabels(days) {
-  if (!days || days.length === 0) return '-'
-  return weekDays.filter(d => days.includes(d.value)).map(d => d.label).join(', ')
+function toggleDay(value) {
+  const idx = patternForm.days_of_week.indexOf(value)
+  if (idx === -1) patternForm.days_of_week.push(value)
+  else patternForm.days_of_week.splice(idx, 1)
 }
 
 const mapContainer = ref(null)
@@ -334,6 +427,9 @@ const companyColors = {
 function companyStyle(code) {
   return companyColors[code] || 'background: linear-gradient(135deg, #64748b, #334155)'
 }
+
+const activeLocationCount = computed(() => locations.value.filter(l => l.is_active).length)
+const totalAssignedEmployees = computed(() => locations.value.reduce((sum, l) => sum + (l.assigned_employees_count || 0), 0))
 
 function getLocationsByCompany(companyId) {
   return locations.value.filter(l => l.company_id === companyId)
