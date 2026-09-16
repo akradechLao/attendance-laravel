@@ -92,12 +92,13 @@
                   <td class="px-6 py-4 text-center">
                     <span
                       v-if="employee.face_data_count > 0"
-                      class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700"
+                      class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700"
                     >
                       <svg class="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
                       ลงทะเบียนแล้ว
                     </span>
-                    <span v-else class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-700">
+                    <span v-else class="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                      <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" /></svg>
                       ยังไม่ลงทะเบียน
                     </span>
                   </td>
@@ -148,15 +149,15 @@
           </div>
 
           <!-- Pagination -->
-          <div v-if="totalPages > 1" class="flex items-center justify-between px-6 py-4 border-t">
+          <div v-if="totalPages > 1" class="flex items-center justify-between px-6 py-4 border-t border-gray-100">
             <p class="text-sm text-gray-500">
-              แสดง {{ (currentPage - 1) * perPage + 1 }}-{{ Math.min(currentPage * perPage, totalItems) }} จาก {{ totalItems }} รายการ
+              แสดง <span class="font-medium text-navy">{{ (currentPage - 1) * perPage + 1 }}-{{ Math.min(currentPage * perPage, totalItems) }}</span> จาก {{ totalItems }} รายการ
             </p>
-            <div class="flex items-center gap-2">
+            <div class="flex items-center gap-1.5">
               <button
                 @click="currentPage--"
                 :disabled="currentPage === 1"
-                class="px-3 py-1 rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 ก่อนหน้า
               </button>
@@ -165,8 +166,8 @@
                 :key="page"
                 @click="currentPage = page"
                 :class="[
-                  'px-3 py-1 rounded border',
-                  currentPage === page ? 'bg-blue-500 text-white border-blue-500' : 'border-gray-300 hover:bg-gray-50'
+                  'w-8 h-8 rounded-lg text-sm font-medium transition-colors',
+                  currentPage === page ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50 border border-gray-200'
                 ]"
               >
                 {{ page }}
@@ -174,7 +175,7 @@
               <button
                 @click="currentPage++"
                 :disabled="currentPage === totalPages"
-                class="px-3 py-1 rounded border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                class="px-3 py-1.5 rounded-lg border border-gray-200 text-sm text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
               >
                 ถัดไป
               </button>
@@ -232,7 +233,7 @@
             </div>
           </div>
           <div class="flex justify-end gap-3 pt-4">
-            <button type="button" @click="closeModal" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+            <button type="button" @click="closeModal" class="px-4 py-2 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors">
               ยกเลิก
             </button>
             <button type="submit" :disabled="saving" class="btn-primary">
@@ -246,7 +247,7 @@
       <Modal :show="showDeleteModal" @close="showDeleteModal = false" title="ยืนยันการลบ">
         <p class="text-gray-600 mb-6">ต้องการลบพนักงาน <strong>{{ deleteTarget?.name }}</strong> ใช่หรือไม่?</p>
         <div class="flex justify-end gap-3">
-          <button @click="showDeleteModal = false" class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50">
+          <button @click="showDeleteModal = false" class="px-4 py-2 border border-gray-200 text-gray-600 rounded-lg hover:bg-gray-50 transition-colors">
             ยกเลิก
           </button>
           <button @click="deleteEmployee" :disabled="deleting" class="btn-danger">
