@@ -24,6 +24,20 @@
       HR / Admin
     </button>
 
+    <!-- Announcement Bell Button -->
+    <button
+      @click="showAnnouncements = true; loadPublicAnnouncements()"
+      class="fixed top-3 right-[110px] sm:top-4 sm:right-[130px] z-50 px-3 py-1.5 sm:px-4 sm:py-2 bg-white/80 backdrop-blur-sm rounded-lg shadow-sm border border-gray-200 text-amber-500 hover:bg-white hover:shadow-md transition-all text-xs sm:text-sm font-medium flex items-center gap-1.5"
+    >
+      <div class="relative">
+        <svg class="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+        </svg>
+        <span v-if="publicAnnouncements.length > 0" class="absolute -top-1.5 -right-1.5 w-4 h-4 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center leading-none">{{ publicAnnouncements.length > 9 ? '9+' : publicAnnouncements.length }}</span>
+      </div>
+      <span class="hidden sm:inline">ประกาศ</span>
+    </button>
+
     <!-- Admin Login Modal -->
     <div v-if="showAdminLogin" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
       <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 animate-fadeIn">
@@ -669,6 +683,65 @@
       </div>
     </div>
 
+    <!-- Announcement Drawer -->
+    <div v-if="showAnnouncements" class="fixed inset-0 z-[60] flex justify-end" @click.self="showAnnouncements = false">
+      <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" @click="showAnnouncements = false"></div>
+      <div class="relative w-full max-w-md bg-white shadow-2xl flex flex-col animate-slide-in">
+        <!-- Header -->
+        <div class="flex items-center justify-between px-4 py-3 border-b border-gray-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+          <div class="flex items-center gap-2">
+            <svg class="w-5 h-5 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            <h3 class="text-base font-bold text-navy">ประกาศจากบริษัท</h3>
+          </div>
+          <button @click="showAnnouncements = false" class="p-1.5 hover:bg-white/80 rounded-lg transition-colors">
+            <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <!-- Content -->
+        <div class="flex-1 overflow-y-auto p-4 space-y-3">
+          <div v-if="publicAnnLoading" class="text-center py-12 text-gray-400 text-sm">กำลังโหลด...</div>
+
+          <div v-else-if="publicAnnouncements.length === 0" class="text-center py-12">
+            <svg class="w-16 h-16 mx-auto text-gray-300 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            <p class="text-gray-400 text-sm">ไม่มีประกาศในขณะนี้</p>
+          </div>
+
+          <div v-else v-for="ann in publicAnnouncements" :key="ann.id"
+            class="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden hover:shadow-md transition-shadow">
+            <div class="p-4">
+              <div class="flex items-center gap-2 mb-2">
+                <span :class="ann.priority === 'urgent' ? 'bg-red-100 text-red-700' : ann.priority === 'important' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'"
+                  class="text-[10px] font-bold px-2 py-0.5 rounded-full">
+                  {{ ann.priority === 'urgent' ? 'ด่วน' : ann.priority === 'important' ? 'สำคัญ' : 'ปกติ' }}
+                </span>
+              </div>
+              <h4 class="font-bold text-navy text-sm mb-1">{{ ann.title }}</h4>
+              <p class="text-gray-500 text-xs leading-relaxed whitespace-pre-line">{{ ann.body }}</p>
+              <div v-if="ann.attachments?.length" class="mt-2 space-y-2">
+                <a v-for="att in ann.attachments" :key="att.id" :href="att.url" target="_blank" rel="noopener"
+                  class="block rounded-lg overflow-hidden border border-gray-200 hover:shadow-md transition-shadow">
+                  <img v-if="att.kind === 'image'" :src="att.url" :alt="att.file_name"
+                    class="w-full max-h-64 object-contain bg-gray-50" loading="lazy" />
+                  <div v-else class="flex items-center gap-2 p-2 bg-gray-50">
+                    <span class="text-xl">📄</span>
+                    <span class="text-xs text-gray-600 truncate">{{ att.file_name }}</span>
+                  </div>
+                </a>
+              </div>
+              <p class="text-[10px] text-gray-400 mt-2">{{ formatDate(ann.created_at) }}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Confirm Re-register Modal -->
     <div v-if="showReregisterModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="background: rgba(0,0,0,0.5);">
       <div class="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl animate-fadeIn">
@@ -806,6 +879,10 @@ const showAdminLogin = ref(false)
 const adminLoading = ref(false)
 const adminError = ref('')
 const adminForm = ref({ username: '', password: '' })
+
+const showAnnouncements = ref(false)
+const publicAnnouncements = ref([])
+const publicAnnLoading = ref(false)
 
 async function fetchServerTime() {
   try {
@@ -947,6 +1024,18 @@ async function fetchCompanies() {
       { id: 3, name: 'ETECH', code_prefix: 'ETE' },
       { id: 1, name: 'NTC', code_prefix: 'NTC' }
     ]
+  }
+}
+
+async function loadPublicAnnouncements() {
+  publicAnnLoading.value = true
+  try {
+    const res = await api.get('/api/announcements/public')
+    publicAnnouncements.value = res.data.data || []
+  } catch {
+    publicAnnouncements.value = []
+  } finally {
+    publicAnnLoading.value = false
   }
 }
 
@@ -1574,5 +1663,12 @@ function reset() {
 .slide-down-leave-to {
   opacity: 0;
   transform: translateY(-8px);
+}
+@keyframes slide-in {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+.animate-slide-in {
+  animation: slide-in 0.3s ease-out;
 }
 </style>

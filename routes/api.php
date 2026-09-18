@@ -81,6 +81,8 @@ Route::get('/employee/auth/devices', [DeviceAuthController::class, 'listDevices'
 Route::delete('/employee/auth/device/{id}', [DeviceAuthController::class, 'removeDevice'])->middleware('throttle:10,1');
 Route::post('/face/verify', [FaceController::class, 'verify'])->middleware('throttle:30,1');
 
+Route::get('/announcements/public', [AnnouncementController::class, 'publicIndex'])->middleware('throttle:30,1');
+
 Route::post('/face/detect', function () {
     $request = request();
     $request->validate(['image' => 'required|string']);

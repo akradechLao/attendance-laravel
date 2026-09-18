@@ -74,6 +74,44 @@ class AnnouncementController extends Controller
         }
     }
 
+    public function publicIndex(): JsonResponse
+    {
+        try {
+            $announcements = Announcement::with('attachments')
+                ->where('is_active', true)
+                ->where(function ($q) {
+                    $q->whereNull('published_at')
+                        ->orWhere('published_at', '<=', now());
+                })
+                ->where(function ($q) {
+                    $q->whereNull('expires_at')
+                        ->orWhere('expires_at', '>', now());
+                })
+                ->orderByDesc('priority')
+                ->orderByDesc('created_at')
+                ->limit(10)
+                ->get()
+                ->map(fn($a) => [
+                    'id' => $a->id,
+                    'title' => $a->title,
+                    'body' => $a->body,
+                    'priority' => $a->priority,
+                    'created_at' => $a->created_at ? Carbon::parse($a->created_at)->setTimezone('Asia/Bangkok')->format('Y-m-d H:i') : null,
+                    'attachments' => $this->mapAttachments($a),
+                ]);
+
+            return response()->json([
+                'success' => true,
+                'data' => $announcements,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
     public function adminIndex(Request $request): JsonResponse
     {
         try {
