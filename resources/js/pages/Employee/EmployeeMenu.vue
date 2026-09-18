@@ -5,17 +5,17 @@
       <div class="max-w-4xl mx-auto px-4 py-4 flex items-center justify-between">
         <div class="flex items-center gap-3">
           <router-link
-            to="/employee/notifications"
+            to="/employee/announcements"
             class="relative p-2 hover:bg-gray-100 rounded-xl transition-colors"
           >
             <svg class="w-6 h-6 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
             </svg>
             <span
-              v-if="unreadCount > 0"
+              v-if="totalBellCount > 0"
               class="absolute -top-0.5 -right-0.5 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white"
             >
-              {{ unreadCount > 9 ? '9+' : unreadCount }}
+              {{ totalBellCount > 9 ? '9+' : totalBellCount }}
             </span>
           </router-link>
         </div>
@@ -281,22 +281,22 @@
           </div>
         </router-link>
 
-        <!-- การแจ้งเตือน -->
-        <router-link to="/employee/notifications" class="block group">
+        <!-- ประกาศ / การแจ้งเตือน -->
+        <router-link to="/employee/announcements" class="block group">
           <div class="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-center">
             <div class="relative w-12 h-12 sm:w-14 sm:h-14 mx-auto rounded-2xl bg-indigo-500 flex items-center justify-center mb-3 shadow-lg group-hover:scale-110 transition-transform">
               <svg class="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
               </svg>
               <span
-                v-if="unreadCount > 0"
+                v-if="totalBellCount > 0"
                 class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white"
               >
-                {{ unreadCount > 9 ? '9+' : unreadCount }}
+                {{ totalBellCount > 9 ? '9+' : totalBellCount }}
               </span>
             </div>
-            <h2 class="font-bold text-gray-800 text-sm sm:text-base">การแจ้งเตือน</h2>
-            <p class="text-gray-400 text-xs mt-1">ข้อความและประกาศ</p>
+            <h2 class="font-bold text-gray-800 text-sm sm:text-base">ประกาศ</h2>
+            <p class="text-gray-400 text-xs mt-1">ข่าวสารและการแจ้งเตือน</p>
           </div>
         </router-link>
 
@@ -339,11 +339,47 @@
         </div>
       </div>
     </main>
+
+    <!-- Auto-popup Announcement Modal -->
+    <div v-if="popupAnnouncement" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="background: rgba(0,0,0,0.5);">
+      <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-fadeIn">
+        <div class="p-5">
+          <div class="flex items-center gap-2 mb-3">
+            <span :class="popupAnnouncement.priority === 'urgent' ? 'bg-red-100 text-red-700' : popupAnnouncement.priority === 'important' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'"
+              class="text-[11px] font-bold px-2.5 py-0.5 rounded-full">
+              {{ popupAnnouncement.priority === 'urgent' ? 'ด่วน' : popupAnnouncement.priority === 'important' ? 'สำคัญ' : 'ประกาศ' }}
+            </span>
+          </div>
+          <h3 class="text-lg font-bold text-navy mb-2">{{ popupAnnouncement.title }}</h3>
+          <p class="text-gray-600 text-sm leading-relaxed whitespace-pre-line max-h-48 overflow-y-auto">{{ popupAnnouncement.body }}</p>
+          <div v-if="popupAnnouncement.attachments?.length" class="mt-3 space-y-2">
+            <a v-for="att in popupAnnouncement.attachments" :key="att.id" :href="att.url" target="_blank" rel="noopener"
+              class="block rounded-lg overflow-hidden border border-gray-200 hover:shadow-md transition-shadow">
+              <img v-if="att.kind === 'image'" :src="att.url" :alt="att.file_name"
+                class="w-full max-h-48 object-contain bg-gray-50" loading="lazy" />
+              <div v-else class="flex items-center gap-2 p-2 bg-gray-50">
+                <span class="text-lg">📄</span>
+                <span class="text-xs text-gray-600 truncate">{{ att.file_name }}</span>
+              </div>
+            </a>
+          </div>
+        </div>
+        <div class="flex border-t border-gray-200">
+          <button @click="dismissPopup" class="flex-1 py-3 text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors">
+            ปิด
+          </button>
+          <router-link to="/employee/announcements" @click="dismissPopup"
+            class="flex-1 py-3 text-sm font-bold text-blue-600 hover:bg-blue-50 transition-colors border-l border-gray-200 text-center">
+            ดูประกาศทั้งหมด
+          </router-link>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import store, { logout } from '../../store'
 import api from '../../services/api'
@@ -356,6 +392,10 @@ const announcements = ref([])
 const unreadCount = ref(0)
 const teamPendingCount = ref(0)
 const currentCompany = ref(null)
+const popupAnnouncement = ref(null)
+let pollInterval = null
+
+const totalBellCount = computed(() => unreadCount.value + announcements.value.length)
 
 // Assistant MD-and-above don't work fixed shifts, so OT / shift-swap /
 // shift-request never apply to them regardless of has_ot or assigned shifts.
@@ -409,5 +449,43 @@ onMounted(async () => {
   } catch (e) {
     // ignore
   }
+
+  checkPopupAnnouncements()
+  pollInterval = setInterval(pollAnnouncements, 60000)
 })
+
+onUnmounted(() => {
+  if (pollInterval) clearInterval(pollInterval)
+})
+
+async function pollAnnouncements() {
+  try {
+    const res = await api.get('/api/announcements')
+    if (res.data.success) {
+      announcements.value = res.data.data || []
+      checkPopupAnnouncements()
+    }
+  } catch { /* ignore */ }
+}
+
+function checkPopupAnnouncements() {
+  if (popupAnnouncement.value) return
+  const seen = JSON.parse(localStorage.getItem('seen_announcements') || '[]')
+  const unseen = announcements.value.filter(a => !seen.includes(a.id))
+  if (unseen.length > 0) {
+    const next = unseen.sort((a, b) => {
+      const p = { urgent: 0, important: 1, normal: 2 }
+      return (p[a.priority] ?? 2) - (p[b.priority] ?? 2)
+    })[0]
+    popupAnnouncement.value = next
+  }
+}
+
+function dismissPopup() {
+  if (!popupAnnouncement.value) return
+  const seen = JSON.parse(localStorage.getItem('seen_announcements') || '[]')
+  seen.push(popupAnnouncement.value.id)
+  localStorage.setItem('seen_announcements', JSON.stringify(seen.slice(-50)))
+  popupAnnouncement.value = null
+}
 </script>
