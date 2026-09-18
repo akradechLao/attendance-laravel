@@ -162,7 +162,7 @@ function onFilesSelected(e) {
   e.target.value = '' // allow re-picking the same file name later
 
   for (const file of files) {
-    if (totalAttachmentCount.value + pendingFiles.value.length >= MAX_ATTACHMENTS) {
+    if (totalAttachmentCount.value >= MAX_ATTACHMENTS) {
       alert(`แนบไฟล์ได้สูงสุด ${MAX_ATTACHMENTS} ไฟล์ต่อประกาศ`)
       break
     }
