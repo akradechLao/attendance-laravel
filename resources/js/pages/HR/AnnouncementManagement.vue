@@ -89,11 +89,16 @@ async function loadTrash(page = 1) {
   trashLoading.value = true
   try {
     const response = await api.get('/api/announcements/trash', { params: { page } })
-    trashList.value = response.data.data?.data || response.data.data || []
-    trashPage.value = response.data.data?.current_page || 1
-    trashLastPage.value = response.data.data?.last_page || 1
+    if (response.data.success === false) {
+      throw new Error(response.data.message)
+    }
+    const d = response.data.data
+    trashList.value = d?.data || d || []
+    trashPage.value = d?.current_page || 1
+    trashLastPage.value = d?.last_page || 1
   } catch (error) {
     console.error('Failed to load trash:', error)
+    trashList.value = []
   } finally {
     trashLoading.value = false
   }

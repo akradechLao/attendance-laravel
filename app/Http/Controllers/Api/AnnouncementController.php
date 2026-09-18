@@ -216,8 +216,13 @@ class AnnouncementController extends Controller
     {
         try {
             $user = $request->user();
-            $query = Announcement::with('attachments', 'creator:id,username')
+            $query = Announcement::with('attachments')
                 ->onlyTrashed();
+
+            try {
+                $query->with('creator:id,username');
+            } catch (\Exception $e) {
+            }
 
             if ($user->role !== 'super_admin' && $user->company_id) {
                 $query->where('company_id', $user->company_id);
