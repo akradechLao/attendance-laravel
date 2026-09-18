@@ -13,6 +13,10 @@ const routes = [
     meta: { requiresAuth: false }
   },
   {
+    path: '/kiosk',
+    redirect: '/employee'
+  },
+  {
     path: '/employee/history',
     name: 'EmployeeHistory',
     component: () => import('./pages/Employee/EmployeeHistory.vue'),
