@@ -871,9 +871,29 @@ onMounted(async () => {
         setCurrentUser(data.employee)
         selectedEmployee.value = data.employee
         deviceLoginActive.value = true
-        // Go directly to action menu (skip company/employee selection)
+
+        // Check if employee has face data registered
+        try {
+          const faceRes = await api.get(`/api/employees/${data.employee.id}/face-count`)
+          const faceCount = faceRes.data.data?.count || 0
+          if (faceCount < 5) {
+            // No face data - go to registration
+            step.value = 2.7
+            return
+          }
+        } catch {
+          // If face check fails, still try to proceed
+        }
+
+        // Skip company/employee selection, go to face scan directly
         scanType.value = 'office_scan'
-        step.value = 3.5
+        scanMode.value = 'verify_only'
+        step.value = 3
+        await fetchOfficeLocation(data.employee.id)
+        await nextTick()
+        initMap()
+        getCurrentPosition()
+        startGpsWatch()
         return
       }
     } catch {
