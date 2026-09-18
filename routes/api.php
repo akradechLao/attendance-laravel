@@ -470,10 +470,13 @@ Route::middleware(['auth:sanctum', 'role:admin,super_admin'])->group(function ()
 
     // Announcements (manage)
     Route::get('/announcements/admin', [AnnouncementController::class, 'adminIndex']);
+    Route::get('/announcements/trash', [AnnouncementController::class, 'trash']);
     Route::post('/announcements', [AnnouncementController::class, 'store']);
     Route::put('/announcements/{announcement}', [AnnouncementController::class, 'update']);
     Route::delete('/announcements/{announcement}', [AnnouncementController::class, 'destroy']);
     Route::delete('/announcements/{announcement}/attachments/{attachment}', [AnnouncementController::class, 'deleteAttachment']);
+    Route::post('/announcements/{id}/restore', [AnnouncementController::class, 'restore']);
+    Route::delete('/announcements/{id}/force-delete', [AnnouncementController::class, 'forceDelete']);
 
     // System Config
     Route::get('/system-config', [SystemConfigController::class, 'index']);

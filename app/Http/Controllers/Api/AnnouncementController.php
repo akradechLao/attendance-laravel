@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Announcement;
 use App\Models\AnnouncementAttachment;
 use App\Models\AnnouncementDismissal;
+use App\Services\AuditLogService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -201,15 +202,86 @@ class AnnouncementController extends Controller
             return response()->json(['success' => false, 'message' => 'ไม่มีสิทธิ์ลบประกาศนี้'], 403);
         }
 
-        foreach ($announcement->attachments as $attachment) {
-            \Storage::disk('public')->delete($attachment->file_path);
-        }
-
+        $oldValues = $announcement->toArray();
         $announcement->delete();
+        AuditLogService::deleted($announcement, $oldValues, $request);
 
         return response()->json([
             'success' => true,
             'message' => 'ลบประกาศเรียบร้อย',
+        ]);
+    }
+
+    public function trash(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+            $query = Announcement::with('attachments', 'creator:id,username')
+                ->onlyTrashed();
+
+            if ($user->role !== 'super_admin' && $user->company_id) {
+                $query->where('company_id', $user->company_id);
+            }
+
+            if ($request->company_id) {
+                $query->where('company_id', $request->company_id);
+            }
+
+            $announcements = $query->orderByDesc('deleted_at')->paginate(20)
+                ->through(fn($a) => array_merge($a->toArray(), [
+                    'attachments' => $this->mapAttachments($a),
+                ]));
+
+            return response()->json([
+                'success' => true,
+                'data' => $announcements,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'เกิดข้อผิดพลาด: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
+
+    public function restore(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+        $announcement = Announcement::onlyTrashed()->findOrFail($id);
+
+        if ($user->role !== 'super_admin' && $announcement->company_id !== $user->company_id) {
+            return response()->json(['success' => false, 'message' => 'ไม่มีสิทธิ์กู้คืนประกาศนี้'], 403);
+        }
+
+        $announcement->restore();
+        AuditLogService::action('restore', $announcement, 'กู้คืนประกาศ: ' . $announcement->title, $request);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'กู้คืนประกาศเรียบร้อย',
+        ]);
+    }
+
+    public function forceDelete(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+        $announcement = Announcement::onlyTrashed()->findOrFail($id);
+
+        if ($user->role !== 'super_admin' && $announcement->company_id !== $user->company_id) {
+            return response()->json(['success' => false, 'message' => 'ไม่มีสิทธิ์ลบประกาศนี้'], 403);
+        }
+
+        foreach ($announcement->attachments as $attachment) {
+            \Storage::disk('public')->delete($attachment->file_path);
+        }
+
+        $oldValues = $announcement->toArray();
+        $announcement->forceDelete();
+        AuditLogService::action('force_delete', (new Announcement), 'ลบถาวรประกาศ: ' . $oldValues['title'] ?? '', $request);
+
+        return response()->json([
+            'success' => true,
+            'message' => 'ลบประกาศถาวรเรียบร้อย',
         ]);
     }
 

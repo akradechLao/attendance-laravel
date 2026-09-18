@@ -11,6 +11,11 @@ const editingId = ref(null)
 const currentPage = ref(1)
 const lastPage = ref(1)
 const saving = ref(false)
+const activeTab = ref('list')
+const trashList = ref([])
+const trashPage = ref(1)
+const trashLastPage = ref(1)
+const trashLoading = ref(false)
 
 const form = ref({
   title: '',
@@ -77,6 +82,47 @@ async function loadCompanies() {
     companies.value = response.data.data?.data || response.data.data || []
   } catch (error) {
     console.error('Failed to load companies:', error)
+  }
+}
+
+async function loadTrash(page = 1) {
+  trashLoading.value = true
+  try {
+    const response = await api.get('/api/announcements/trash', { params: { page } })
+    trashList.value = response.data.data?.data || response.data.data || []
+    trashPage.value = response.data.data?.current_page || 1
+    trashLastPage.value = response.data.data?.last_page || 1
+  } catch (error) {
+    console.error('Failed to load trash:', error)
+  } finally {
+    trashLoading.value = false
+  }
+}
+
+function switchTab(tab) {
+  activeTab.value = tab
+  if (tab === 'trash') loadTrash()
+}
+
+async function restoreAnnouncement(ann) {
+  if (!confirm(`ต้องการกู้คืนประกาศ "${ann.title}" ใช่หรือไม่?`)) return
+  try {
+    await api.post(`/api/announcements/${ann.id}/restore`)
+    alert('กู้คืนประกาศเรียบร้อย')
+    loadTrash(trashPage.value)
+  } catch (err) {
+    alert(err.response?.data?.message || 'เกิดข้อผิดพลาด')
+  }
+}
+
+async function forceDeleteAnnouncement(ann) {
+  if (!confirm(`ต้องการลบถาวรประกาศ "${ann.title}" ใช่หรือไม่?\n\nการกระทำนี้ไม่สามารถย้อนกลับได้`)) return
+  try {
+    await api.delete(`/api/announcements/${ann.id}/force-delete`)
+    alert('ลบถาวรเรียบร้อย')
+    loadTrash(trashPage.value)
+  } catch (err) {
+    alert(err.response?.data?.message || 'เกิดข้อผิดพลาด')
   }
 }
 
@@ -223,6 +269,22 @@ function attachmentIcon(kind) {
         </button>
       </div>
 
+      <!-- Tabs -->
+      <div class="flex gap-1 border-b border-gray-200">
+        <button @click="switchTab('list')"
+          :class="activeTab === 'list' ? 'border-navy text-navy' : 'border-transparent text-gray-500 hover:text-gray-700'"
+          class="px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors">
+          ประกาศทั้งหมด
+        </button>
+        <button @click="switchTab('trash')"
+          :class="activeTab === 'trash' ? 'border-navy text-navy' : 'border-transparent text-gray-500 hover:text-gray-700'"
+          class="px-4 py-2.5 text-sm font-medium border-b-2 -mb-px transition-colors">
+          ถังขยะ
+        </button>
+      </div>
+
+      <!-- List Tab -->
+      <template v-if="activeTab === 'list'">
       <div v-if="loading" class="text-center py-8 text-gray-500">กำลังโหลด...</div>
 
       <div v-else-if="announcements.length === 0" class="text-center py-12 text-gray-400">
@@ -275,6 +337,50 @@ function attachmentIcon(kind) {
           :class="p === currentPage ? 'bg-navy text-white' : 'bg-white text-gray-600 hover:bg-gray-50'"
           class="px-3 py-1.5 rounded-lg text-sm border">{{ p }}</button>
       </div>
+      </template>
+
+      <!-- Trash Tab -->
+      <template v-if="activeTab === 'trash'">
+      <div v-if="trashLoading" class="text-center py-8 text-gray-500">กำลังโหลด...</div>
+
+      <div v-else-if="trashList.length === 0" class="text-center py-12 text-gray-400">
+        ไม่มีประกาศในถังขยะ
+      </div>
+
+      <div v-else class="space-y-3">
+        <div v-for="ann in trashList" :key="ann.id"
+          class="bg-white rounded-xl shadow-sm border overflow-hidden opacity-75">
+          <div class="p-4">
+            <div class="flex items-start justify-between gap-3">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1 flex-wrap">
+                  <span :class="getPriorityInfo(ann.priority).color" class="text-[10px] font-bold px-2 py-0.5 rounded-full">
+                    {{ getPriorityInfo(ann.priority).label }}
+                  </span>
+                  <span class="text-[10px] font-bold bg-red-100 text-red-600 px-2 py-0.5 rounded-full">ถังขยะ</span>
+                  <h3 class="font-bold text-navy text-sm">{{ ann.title }}</h3>
+                </div>
+                <p class="text-gray-500 text-xs mt-1 line-clamp-2">{{ ann.body }}</p>
+                <div class="flex items-center gap-4 mt-2 text-xs text-gray-400">
+                  <span>ลบเมื่อ: {{ formatDate(ann.deleted_at) }}</span>
+                  <span>สร้าง: {{ formatDate(ann.created_at) }}</span>
+                </div>
+              </div>
+              <div class="flex items-center gap-1 shrink-0">
+                <button @click="restoreAnnouncement(ann)" class="px-3 py-1.5 text-green-600 hover:text-green-700 rounded-lg hover:bg-green-50 text-xs font-medium border border-green-200">กู้คืน</button>
+                <button @click="forceDeleteAnnouncement(ann)" class="px-3 py-1.5 text-red-600 hover:text-red-700 rounded-lg hover:bg-red-50 text-xs font-medium border border-red-200">ลบถาวร</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="trashLastPage > 1" class="flex justify-center gap-2">
+        <button v-for="p in trashLastPage" :key="p" @click="loadTrash(p)"
+          :class="p === trashPage ? 'bg-navy text-white' : 'bg-white text-gray-600 hover:bg-gray-50'"
+          class="px-3 py-1.5 rounded-lg text-sm border">{{ p }}</button>
+      </div>
+      </template>
 
       <!-- Form Modal -->
       <div v-if="showForm" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
