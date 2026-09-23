@@ -42,8 +42,7 @@
               <input v-model="form.end_time" type="time" class="input-field" required />
             </div>
           </div>
-          <p class="text-xs text-gray-400 mt-1">ช่วงเวลางานปกติ (เว้นเวลาพัก 11:45-12:45) จะไม่นับเป็นโอที</p>
-        </div>
+          </div>
 
         <div class="card">
           <label class="block text-sm font-semibold text-navy mb-2">เหตุผล</label>

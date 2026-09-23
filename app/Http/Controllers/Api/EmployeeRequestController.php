@@ -206,34 +206,7 @@ class EmployeeRequestController extends Controller
                 ], 422);
             }
 
-            $workStart = \App\Models\CompanySetting::getValue($employee->company_id, 'work_start_time', '08:00');
-            $workEnd = \App\Models\CompanySetting::getValue($employee->company_id, 'work_end_time', '17:00');
-            $lunchStart = \App\Models\CompanySetting::getValue($employee->company_id, 'lunch_start_time', '11:45');
-            $lunchEnd = \App\Models\CompanySetting::getValue($employee->company_id, 'lunch_end_time', '12:45');
-            $workWindows = [[$workStart, $lunchStart], [$lunchEnd, $workEnd]];
-
-            $overlapMinutes = 0;
-            $startDate = Carbon\Carbon::parse($startDateTime)->startOfDay();
-            $endDate = Carbon\Carbon::parse($endDateTime)->startOfDay();
-            $currentDate = clone $startDate;
-            while ($currentDate <= $endDate) {
-                $dayStartOt = max($currentDate->copy(), $startDateTime);
-                $dayEndOt = min($endDateTime, $currentDate->copy()->endOfDay());
-                if ($dayStartOt < $dayEndOt) {
-                    foreach ($workWindows as [$wStart, $wEnd]) {
-                        $wStartDt = $currentDate->copy()->setTimeFromTimeString($wStart);
-                        $wEndDt = $currentDate->copy()->setTimeFromTimeString($wEnd);
-                        $overlapStart = max($dayStartOt, $wStartDt);
-                        $overlapEnd = min($dayEndOt, $wEndDt);
-                        if ($overlapStart < $overlapEnd) {
-                            $overlapMinutes += $overlapStart->diffInMinutes($overlapEnd);
-                        }
-                    }
-                }
-                $currentDate->addDay();
-            }
-
-            $totalOtMinutes = $startDateTime->diffInMinutes($endDateTime) - $overlapMinutes;
+            $totalOtMinutes = $startDateTime->diffInMinutes($endDateTime);
             $totalHours = $totalOtMinutes > 0 ? round($totalOtMinutes / 60, 2) : 0;
 
             $hasOverlap = OtRequest::where('emp_id', $employee->id)
