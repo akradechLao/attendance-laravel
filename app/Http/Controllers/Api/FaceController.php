@@ -89,13 +89,13 @@ class FaceController extends Controller
             $now = Carbon::now('Asia/Bangkok');
 
             // ─── verify_only: ยืนยันตัวตนอย่างเดียว ไม่บันทึกเวลา ───
-            // ออก verification token สำหรับ check_in/check_out (หมดอายุ 30 วินาที)
+            // ออก verification token สำหรับ check_in/check_out (หมดอายุ 3 นาที)
             if ($request->type === 'verify_only') {
                 $token = Str::random(64);
                 Cache::put("face_verify:{$token}", [
                     'employee_id' => $employee->id,
                     'created_at' => now()->timestamp,
-                ], 30);
+                ], 180);
 
                 return response()->json([
                     'success' => true,

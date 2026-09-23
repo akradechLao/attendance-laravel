@@ -1275,12 +1275,7 @@ async function selectEmployee(employee) {
     const registeredToday = faceRes.data.data?.registered_today || false
 
     if (faceCount < 5) {
-      if (registeredToday) {
-        scanningError.value = 'ลงทะเบียนใบหน้าวันนี้แล้ว กรุณากลับมาลงทะเบียนใหม่วันถัดไป'
-        step.value = 2
-        return
-      }
-
+      // ค้างลงทะเบียนไม่ครบ — ให้ทำต่อจนครบ 5 รูป (ไม่บล็อกด้วย "วันนี้แล้ว")
       faceRegPhotos.value = []
       faceRegResults.value = []
       faceRegDetecting.value = false
@@ -1289,6 +1284,11 @@ async function selectEmployee(employee) {
       faceRegEncodings.value = []
       faceRegCurrentPosition.value = 0
       step.value = 2.7
+      return
+    }
+    if (registeredToday && faceCount >= 5) {
+      scanningError.value = 'ลงทะเบียนใบหน้าวันนี้แล้ว หากต้องการลงทะเบียนใหม่ให้ติดต่อแอดมิน'
+      step.value = 2
       return
     }
   } catch (e) {
@@ -1538,9 +1538,9 @@ function handleVerified(data) {
   step.value = 4
 }
 
-function handleFailed() {
+function handleFailed(message) {
   triggerScan.value = false
-  scanningError.value = 'ไม่สามารถยืนยันตัวตนได้ กรุณาลองใหม่'
+  scanningError.value = message || 'ไม่สามารถยืนยันตัวตนได้ กรุณาลองใหม่'
 }
 
 function handleError(message) {

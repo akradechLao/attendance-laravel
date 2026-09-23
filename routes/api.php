@@ -113,26 +113,24 @@ Route::post('/employees/{id}/face', function ($id) {
         return response()->json(['success' => false, 'message' => 'Employee not found.'], 404);
     }
 
-    // ─── ต้องมี verification_token ───
-    $token = request()->input('verification_token');
-    if (!$token) {
-        return response()->json(['success' => false, 'message' => 'กรุณายืนยันตัวตนด้วยการสแกนใบหน้าก่อน'], 400);
-    }
-    $tokenData = \Illuminate\Support\Facades\Cache::get("face_verify:{$token}");
-    if (!$tokenData || $tokenData['employee_id'] != $id) {
-        return response()->json(['success' => false, 'message' => 'การยืนยันตัวตนไม่ถูกต้องหรือหมดเวลา'], 403);
-    }
-
-    $todayCount = \App\Models\EmployeeFaceData::where('employee_id', $id)
-        ->whereDate('created_at', now()->toDateString())
-        ->count();
-    if ($todayCount > 0) {
-        return response()->json(['success' => false, 'message' => 'ลงทะเบียนใบหน้าวันนี้แล้ว กรุณากลับมาลงทะเบียนใหม่วันถัดไป'], 400);
-    }
-
     $faceCount = \App\Models\EmployeeFaceData::where('employee_id', $id)->count();
+
+    // รอบแรก (ยังไม่มี face data) — ไม่ต้องใช้ verification_token
+    // (token ออกตอน verify สำเร็จ ซึ่งต้องมี face data อยู่แล้ว = วนลูปตาย)
+    // กรณีมี face data บางส่วน/ครบแล้ว — ต้องยืนยันตัวตนก่อน (กันแอบแทนที่)
+    if ($faceCount > 0) {
+        $token = request()->input('verification_token');
+        $tokenData = $token ? \Illuminate\Support\Facades\Cache::get("face_verify:{$token}") : null;
+        $isAdmin = auth('sanctum')->check();
+        if (!$tokenData || ($tokenData['employee_id'] ?? null) != $id) {
+            if (!$isAdmin) {
+                return response()->json(['success' => false, 'message' => 'กรุณายืนยันตัวตนด้วยการสแกนใบหน้าก่อน'], 400);
+            }
+        }
+    }
+
     if ($faceCount >= 5) {
-        return response()->json(['success' => false, 'message' => 'Employee already has face data registered.'], 400);
+        return response()->json(['success' => false, 'message' => 'ลงทะเบียนใบหน้าครบแล้ว หากต้องการลงทะเบียนใหม่ให้ลบข้อมูลเดิมก่อน'], 400);
     }
     $request = request();
     $request->merge(['employee_id' => $id]);
