@@ -653,8 +653,15 @@ class ManualEntryController extends Controller
     {
         $request->validate([
             'file' => 'required|file|max:5120',
-            'company_id' => 'required|exists:companies,id',
+            'company_id' => 'sometimes|exists:companies,id',
         ]);
+
+        $user = $request->user();
+        if (($user->role ?? '') !== 'super_admin') {
+            $companyId = $user->company_id;
+        } else {
+            $companyId = (int) ($request->input('company_id') ?: 1);
+        }
 
         $file = $request->file('file');
         $rows = array_map('str_getcsv', file($file->getRealPath()));
@@ -694,7 +701,7 @@ class ManualEntryController extends Controller
 
             $employee = Employee::where(function ($q) use ($empCode) {
                 $q->where('employee_code', $empCode)->orWhere('id', $empCode);
-            })->where('company_id', $request->company_id)->first();
+            })->where('company_id', $companyId)->first();
 
             if (!$employee) {
                 $skipped++;
@@ -705,7 +712,7 @@ class ManualEntryController extends Controller
             ShiftSchedule::updateOrCreate(
                 ['emp_id' => $employee->id, 'work_date' => $workDate],
                 [
-                    'company_id' => $request->company_id,
+                    'company_id' => $companyId,
                     'shift_code' => $shiftCode,
                     'day_type' => $dayType,
                 ]

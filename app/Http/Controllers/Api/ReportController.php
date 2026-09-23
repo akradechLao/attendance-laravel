@@ -20,7 +20,13 @@ class ReportController extends Controller
 {
     private function applyCommonFilters($query, Request $request): void
     {
-        if ($request->filled('company_id')) {
+        $user = $request->user();
+        $isSuperAdmin = ($user->role ?? '') === 'super_admin';
+
+        // Non-super_admin admins are always limited to their own company.
+        if (!$isSuperAdmin && !empty($user->company_id)) {
+            $query->where('company_id', $user->company_id);
+        } elseif ($request->filled('company_id')) {
             $query->where('company_id', $request->company_id);
         }
         if ($request->filled('division')) {

@@ -1,11 +1,14 @@
 <?php
 namespace App\Models;
 
+use App\Models\Concerns\HasCompanyScope;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class RemoteAssignment extends Model
 {
+    use HasCompanyScope;
+
     protected $fillable = [
         'emp_id',
         'company_id',

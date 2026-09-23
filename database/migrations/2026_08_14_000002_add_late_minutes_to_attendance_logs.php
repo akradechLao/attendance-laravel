@@ -9,14 +9,16 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('attendance_logs', function (Blueprint $table) {
-            $table->integer('late_minutes')->nullable()->after('final_status');
+            if (!Schema::hasColumn('attendance_logs', 'late_minutes')) {
+                $table->integer('late_minutes')->nullable();
+            }
         });
     }
 
     public function down(): void
     {
-        Schema::table('attendance_logs', function (Blueprint $table) {
-            $table->dropColumn('late_minutes');
-        });
+        if (Schema::hasColumn('attendance_logs', 'late_minutes')) {
+            Schema::table('attendance_logs', fn(Blueprint $t) => $t->dropColumn('late_minutes'));
+        }
     }
 };

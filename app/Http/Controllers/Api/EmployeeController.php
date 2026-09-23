@@ -119,7 +119,7 @@ class EmployeeController extends Controller
     {
         try {
             $validated = $request->validate([
-                'company_id' => 'required|exists:companies,id',
+                'company_id' => 'sometimes|exists:companies,id',
                 'employee_code' => 'required|string|max:50|unique:employees,employee_code',
                 'name' => 'required|string|max:255',
                 'position' => 'nullable|string|max:255',
@@ -131,6 +131,13 @@ class EmployeeController extends Controller
                 'social_security' => 'nullable|string|max:20',
                 'education' => 'nullable|string|max:255',
             ]);
+
+            $user = $request->user();
+            if (($user->role ?? '') !== 'super_admin') {
+                $validated['company_id'] = $user->company_id;
+            } else {
+                $validated['company_id'] = $validated['company_id'] ?? 1;
+            }
 
             $validated['has_ot'] = $validated['has_ot'] ?? false;
             $validated['is_active'] = $validated['is_active'] ?? true;
@@ -176,6 +183,11 @@ class EmployeeController extends Controller
                 'social_security' => 'nullable|string|max:20',
                 'education' => 'nullable|string|max:255',
             ]);
+
+            $user = $request->user();
+            if (($user->role ?? '') !== 'super_admin') {
+                unset($validated['company_id']);
+            }
 
             $employee->update($validated);
 

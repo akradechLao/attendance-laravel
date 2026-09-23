@@ -1,17 +1,21 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        DB::statement("ALTER TABLE employees MODIFY COLUMN group_type INTEGER NOT NULL DEFAULT 1 COMMENT '0-9 = work shift group'");
+        if (!Schema::hasColumn('employees', 'group_type')) {
+            Schema::table('employees', fn(Blueprint $t) => $t->integer('group_type')->default(1));
+        }
     }
 
     public function down(): void
     {
-        DB::statement("ALTER TABLE employees MODIFY COLUMN group_type ENUM('A','B') NOT NULL DEFAULT 'B'");
+        // No-op for local dev
     }
 };

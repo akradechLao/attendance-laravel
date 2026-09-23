@@ -25,7 +25,12 @@ class DashboardController extends Controller
     public function stats(Request $request): JsonResponse
     {
         try {
-            $companyId = $request->get('company_id');
+            $user = $request->user();
+            $isSuperAdmin = ($user->role ?? '') === 'super_admin';
+            // Prefer explicit request filter only for super_admin; otherwise use auth user's company.
+            $companyId = $isSuperAdmin
+                ? $request->get('company_id')
+                : ($user->company_id ?? $request->get('company_id'));
             $today = Carbon::now('Asia/Bangkok')->today()->toDateString();
             $yesterday = Carbon::now('Asia/Bangkok')->yesterday()->toDateString();
 
@@ -106,7 +111,9 @@ class DashboardController extends Controller
             }
             $monthlyOtHours = $otQuery->sum('total_hours');
 
-            $companies = Company::all();
+            $companies = $isSuperAdmin
+                ? Company::all()
+                : Company::where('id', $user->company_id ?? 0)->get();
             $companyStats = [];
             foreach ($companies as $company) {
                 $totalQ = Employee::where('company_id', $company->id)->where('is_active', true);
@@ -184,7 +191,11 @@ class DashboardController extends Controller
     public function analytics(Request $request): JsonResponse
     {
         try {
-            $companyId = $request->get('company_id');
+            $user = $request->user();
+            $isSuperAdmin = ($user->role ?? '') === 'super_admin';
+            $companyId = $isSuperAdmin
+                ? $request->get('company_id')
+                : ($user->company_id ?? $request->get('company_id'));
             $months = max(1, min(12, (int) $request->get('months', 6)));
 
             $rangeStart = Carbon::now('Asia/Bangkok')->startOfMonth()->subMonths($months - 1);
@@ -371,7 +382,11 @@ class DashboardController extends Controller
         try {
             $today = Carbon::today()->toDateString();
             $yesterday = Carbon::yesterday()->toDateString();
-            $companyId = $request->get('company_id');
+            $user = $request->user();
+            $isSuperAdmin = ($user->role ?? '') === 'super_admin';
+            $companyId = $isSuperAdmin
+                ? $request->get('company_id')
+                : ($user->company_id ?? $request->get('company_id'));
 
             // ดึงข้อมูลวันนี้
             $query = AttendanceLog::where('date', $today)

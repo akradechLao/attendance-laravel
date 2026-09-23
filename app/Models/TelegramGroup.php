@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasCompanyScope;
 use Illuminate\Database\Eloquent\Model;
 
 class TelegramGroup extends Model
 {
+    use HasCompanyScope;
+
     protected $fillable = [
         "company_id",
         "group_name",

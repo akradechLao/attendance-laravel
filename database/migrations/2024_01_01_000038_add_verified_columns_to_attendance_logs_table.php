@@ -1,52 +1,35 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        $hasIsVerified = DB::select("SHOW COLUMNS FROM attendance_logs LIKE 'is_verified'");
-        if (empty($hasIsVerified)) {
-            $position = '';
-            $hasAdjustmentNote = DB::select("SHOW COLUMNS FROM attendance_logs LIKE 'adjustment_note'");
-            if (!empty($hasAdjustmentNote)) {
-                $position = ' AFTER adjustment_note';
+        Schema::table('attendance_logs', function (Blueprint $table) {
+            if (!Schema::hasColumn('attendance_logs', 'is_verified')) {
+                $table->boolean('is_verified')->default(false);
             }
-            DB::statement("ALTER TABLE attendance_logs ADD COLUMN is_verified TINYINT(1) DEFAULT 0$position");
-        }
-
-        $hasVerifiedBy = DB::select("SHOW COLUMNS FROM attendance_logs LIKE 'verified_by'");
-        if (empty($hasVerifiedBy)) {
-            DB::statement("ALTER TABLE attendance_logs ADD COLUMN verified_by BIGINT UNSIGNED NULL AFTER is_verified");
-        }
-
-        $hasVerifiedAt = DB::select("SHOW COLUMNS FROM attendance_logs LIKE 'verified_at'");
-        if (empty($hasVerifiedAt)) {
-            DB::statement("ALTER TABLE attendance_logs ADD COLUMN verified_at TIMESTAMP NULL AFTER verified_by");
-        }
-
-        // Index สำหรับค้นหา is_verified
-        $hasIndex = DB::select("SHOW INDEX FROM attendance_logs WHERE Key_name = 'attendance_logs_is_verified_index'");
-        if (empty($hasIndex)) {
-            DB::statement('ALTER TABLE attendance_logs ADD INDEX attendance_logs_is_verified_index (is_verified)');
-        }
+            if (!Schema::hasColumn('attendance_logs', 'verified_by')) {
+                $table->unsignedBigInteger('verified_by')->nullable();
+            }
+            if (!Schema::hasColumn('attendance_logs', 'verified_at')) {
+                $table->timestamp('verified_at')->nullable();
+            }
+        });
     }
 
     public function down(): void
     {
-        $hasIndex = DB::select("SHOW INDEX FROM attendance_logs WHERE Key_name = 'attendance_logs_is_verified_index'");
-        if (!empty($hasIndex)) {
-            DB::statement('ALTER TABLE attendance_logs DROP INDEX attendance_logs_is_verified_index');
-        }
-
-        $columns = ['verified_at', 'verified_by', 'is_verified'];
-        foreach ($columns as $col) {
-            $has = DB::select("SHOW COLUMNS FROM attendance_logs LIKE '$col'");
-            if (!empty($has)) {
-                DB::statement("ALTER TABLE attendance_logs DROP COLUMN $col");
+        Schema::table('attendance_logs', function (Blueprint $table) {
+            $cols = ['verified_at', 'verified_by', 'is_verified'];
+            foreach ($cols as $col) {
+                if (Schema::hasColumn('attendance_logs', $col)) {
+                    $table->dropColumn($col);
+                }
             }
-        }
+        });
     }
 };

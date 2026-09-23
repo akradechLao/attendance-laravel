@@ -1,6 +1,7 @@
 <?php
 namespace App\Models;
 
+use App\Models\Concerns\HasCompanyScope;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -8,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class OfficeLocation extends Model
 {
+    use HasCompanyScope;
+
     protected $table = 'office_locations';
 
     protected $fillable = [

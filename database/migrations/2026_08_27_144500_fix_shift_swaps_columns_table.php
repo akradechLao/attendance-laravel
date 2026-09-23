@@ -9,31 +9,38 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('shift_swaps', function (Blueprint $table) {
-            if (Schema::hasColumn('shift_swaps', 'requester_shift_id')) {
+        if (DB::getDriverName() !== 'sqlite') {
+            if (Schema::hasColumn('shift_swaps', 'requester_shift_id') && !Schema::hasColumn('shift_swaps', 'requester_shift')) {
                 DB::statement('ALTER TABLE shift_swaps CHANGE COLUMN requester_shift_id requester_shift VARCHAR(50) NOT NULL');
             }
-            if (Schema::hasColumn('shift_swaps', 'target_shift_id')) {
+            if (Schema::hasColumn('shift_swaps', 'target_shift_id') && !Schema::hasColumn('shift_swaps', 'target_shift')) {
                 DB::statement('ALTER TABLE shift_swaps CHANGE COLUMN target_shift_id target_shift VARCHAR(50) NOT NULL');
             }
-            if (!Schema::hasColumn('shift_swaps', 'reason')) {
-                $table->text('reason')->nullable()->after('target_shift');
+        } else {
+            if (Schema::hasColumn('shift_swaps', 'requester_shift_id') && !Schema::hasColumn('shift_swaps', 'requester_shift')) {
+                Schema::table('shift_swaps', fn(Blueprint $t) => $t->renameColumn('requester_shift_id', 'requester_shift'));
             }
-        });
+            if (Schema::hasColumn('shift_swaps', 'target_shift_id') && !Schema::hasColumn('shift_swaps', 'target_shift')) {
+                Schema::table('shift_swaps', fn(Blueprint $t) => $t->renameColumn('target_shift_id', 'target_shift'));
+            }
+        }
+        if (!Schema::hasColumn('shift_swaps', 'reason')) {
+            Schema::table('shift_swaps', fn(Blueprint $t) => $t->text('reason')->nullable());
+        }
     }
 
     public function down(): void
     {
-        Schema::table('shift_swaps', function (Blueprint $table) {
+        if (DB::getDriverName() !== 'sqlite') {
             if (Schema::hasColumn('shift_swaps', 'requester_shift')) {
                 DB::statement('ALTER TABLE shift_swaps CHANGE COLUMN requester_shift requester_shift_id BIGINT UNSIGNED NOT NULL');
             }
             if (Schema::hasColumn('shift_swaps', 'target_shift')) {
                 DB::statement('ALTER TABLE shift_swaps CHANGE COLUMN target_shift target_shift_id BIGINT UNSIGNED NOT NULL');
             }
-            if (Schema::hasColumn('shift_swaps', 'reason')) {
-                $table->dropColumn('reason');
-            }
-        });
+        }
+        if (Schema::hasColumn('shift_swaps', 'reason')) {
+            Schema::table('shift_swaps', fn(Blueprint $t) => $t->dropColumn('reason'));
+        }
     }
 };

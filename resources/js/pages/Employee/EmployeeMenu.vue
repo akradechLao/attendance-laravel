@@ -245,13 +245,19 @@
         <!-- ประกาศ / กระดานข่าว -->
         <router-link to="/employee/announcements" class="block group">
           <div class="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-center">
-            <div class="w-12 h-12 sm:w-14 sm:h-14 mx-auto rounded-2xl bg-orange-500 flex items-center justify-center mb-3 shadow-lg group-hover:scale-110 transition-transform">
+            <div class="relative w-12 h-12 sm:w-14 sm:h-14 mx-auto rounded-2xl bg-orange-500 flex items-center justify-center mb-3 shadow-lg group-hover:scale-110 transition-transform">
               <svg class="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
               </svg>
+              <span
+                v-if="totalBellCount > 0"
+                class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white"
+              >
+                {{ totalBellCount > 9 ? '9+' : totalBellCount }}
+              </span>
             </div>
             <h2 class="font-bold text-gray-800 text-sm sm:text-base">ประกาศ</h2>
-            <p class="text-gray-400 text-xs mt-1">กระดานข่าวบริษัท</p>
+            <p class="text-gray-400 text-xs mt-1">ข่าวสารและการแจ้งเตือน</p>
           </div>
         </router-link>
 
@@ -278,25 +284,6 @@
             </div>
             <h2 class="font-bold text-gray-800 text-sm sm:text-base">สลิปเงินเดือน</h2>
             <p class="text-gray-400 text-xs mt-1">ดูสลิปเงินเดือน</p>
-          </div>
-        </router-link>
-
-        <!-- ประกาศ / การแจ้งเตือน -->
-        <router-link to="/employee/announcements" class="block group">
-          <div class="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-center">
-            <div class="relative w-12 h-12 sm:w-14 sm:h-14 mx-auto rounded-2xl bg-indigo-500 flex items-center justify-center mb-3 shadow-lg group-hover:scale-110 transition-transform">
-              <svg class="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-              </svg>
-              <span
-                v-if="totalBellCount > 0"
-                class="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-white"
-              >
-                {{ totalBellCount > 9 ? '9+' : totalBellCount }}
-              </span>
-            </div>
-            <h2 class="font-bold text-gray-800 text-sm sm:text-base">ประกาศ</h2>
-            <p class="text-gray-400 text-xs mt-1">ข่าวสารและการแจ้งเตือน</p>
           </div>
         </router-link>
 

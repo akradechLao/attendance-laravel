@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasCompanyScope;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class CompanySetting extends Model
 {
+    use HasCompanyScope;
+
     protected $fillable = [
         'company_id',
         'key',

@@ -9,11 +9,15 @@ return new class extends Migration
 {
     public function up(): void
     {
-        DB::statement("ALTER TABLE ot_requests MODIFY COLUMN status VARCHAR(50) DEFAULT 'pending'");
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE ot_requests MODIFY COLUMN status VARCHAR(50) DEFAULT 'pending'");
+        }
     }
 
     public function down(): void
     {
-        DB::statement("ALTER TABLE ot_requests MODIFY COLUMN status ENUM('pending','manager_approved','approved','rejected') DEFAULT 'pending'");
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE ot_requests MODIFY COLUMN status ENUM('pending','manager_approved','approved','rejected') DEFAULT 'pending'");
+        }
     }
 };

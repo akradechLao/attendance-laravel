@@ -2,11 +2,14 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\HasCompanyScope;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class SystemConfig extends Model
 {
+    use HasCompanyScope;
+
     protected $table = 'system_config';
 
     protected $fillable = [

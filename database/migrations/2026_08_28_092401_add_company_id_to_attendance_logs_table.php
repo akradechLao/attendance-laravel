@@ -9,25 +9,35 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('attendance_logs', function (Blueprint $table) {
-            $table->unsignedBigInteger('company_id')->nullable()->after('emp_id');
-            $table->index('company_id');
-        });
+        if (!Schema::hasColumn('attendance_logs', 'company_id')) {
+            Schema::table('attendance_logs', function (Blueprint $table) {
+                $table->unsignedBigInteger('company_id')->nullable();
+                $table->index('company_id');
+            });
+        }
 
-        // Backfill from employees table
-        DB::statement('
-            UPDATE attendance_logs al
-            JOIN employees e ON al.emp_id = e.id
-            SET al.company_id = e.company_id
-            WHERE al.company_id IS NULL
-        ');
+        DB::table('attendance_logs')
+            ->whereNull('company_id')
+            ->orderBy('id')
+            ->chunkById(500, function ($logs) {
+                $empIds = $logs->pluck('emp_id')->unique()->filter();
+                if ($empIds->isEmpty()) return;
+                $map = DB::table('employees')->whereIn('id', $empIds)->pluck('company_id', 'id');
+                foreach ($logs as $log) {
+                    if (isset($map[$log->emp_id])) {
+                        DB::table('attendance_logs')->where('id', $log->id)->update(['company_id' => $map[$log->emp_id]]);
+                    }
+                }
+            });
     }
 
     public function down(): void
     {
-        Schema::table('attendance_logs', function (Blueprint $table) {
-            $table->dropIndex(['company_id']);
-            $table->dropColumn('company_id');
-        });
+        if (Schema::hasColumn('attendance_logs', 'company_id')) {
+            Schema::table('attendance_logs', function (Blueprint $table) {
+                $table->dropIndex(['company_id']);
+                $table->dropColumn('company_id');
+            });
+        }
     }
 };

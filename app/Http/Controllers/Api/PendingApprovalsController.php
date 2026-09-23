@@ -141,6 +141,11 @@ class PendingApprovalsController extends Controller
         return in_array($user->role ?? '', ['admin', 'super_admin']);
     }
 
+    private function isSuperAdmin($user): bool
+    {
+        return ($user->role ?? '') === 'super_admin';
+    }
+
     private function getPendingLeaves($user, array $subordinateIds, bool $isAdmin, int $limit, int $offset): array
     {
         $query = LeaveRequest::with([
@@ -151,9 +156,8 @@ class PendingApprovalsController extends Controller
 
         if ($isAdmin) {
             // Admin sees all pending in their company (or all if super_admin)
-            if (!$this->isAdminOrSuperAdmin($user) || empty($user->company_id)) {
-                // super_admin sees all
-            } else {
+            // Global CompanyScope already filters non-super_admin admins.
+            if (!$this->isSuperAdmin($user)) {
                 $query->whereHas('employee', fn($q) => $q->where('company_id', $user->company_id));
             }
         } elseif (!empty($subordinateIds)) {
@@ -189,9 +193,7 @@ class PendingApprovalsController extends Controller
         ])->whereIn('status', ['pending_manager', 'pending_hr']);
 
         if ($isAdmin) {
-            if (empty($user->company_id)) {
-                // super_admin sees all
-            } else {
+            if (!$this->isSuperAdmin($user)) {
                 $query->whereHas('employee', fn($q) => $q->where('company_id', $user->company_id));
             }
         } elseif (!empty($subordinateIds)) {
@@ -226,9 +228,7 @@ class PendingApprovalsController extends Controller
         ])->where('status', 'pending');
 
         if ($isAdmin) {
-            if (empty($user->company_id)) {
-                // super_admin sees all
-            } else {
+            if (!$this->isSuperAdmin($user)) {
                 $query->whereHas('employee', fn($q) => $q->where('company_id', $user->company_id));
             }
         } elseif (!empty($subordinateIds)) {
@@ -262,9 +262,7 @@ class PendingApprovalsController extends Controller
         ])->where('status', 'pending');
 
         if ($isAdmin) {
-            if (empty($user->company_id)) {
-                // super_admin sees all
-            } else {
+            if (!$this->isSuperAdmin($user)) {
                 $query->where('company_id', $user->company_id);
             }
         } elseif (!empty($subordinateIds)) {
@@ -300,9 +298,7 @@ class PendingApprovalsController extends Controller
         ])->where('status', 'pending');
 
         if ($isAdmin) {
-            if (empty($user->company_id)) {
-                // super_admin sees all
-            } else {
+            if (!$this->isSuperAdmin($user)) {
                 $query->whereHas('requester', fn($q) => $q->where('company_id', $user->company_id));
             }
         } elseif (!empty($subordinateIds)) {
@@ -340,9 +336,7 @@ class PendingApprovalsController extends Controller
         ])->where('status', 'pending');
 
         if ($isAdmin) {
-            if (empty($user->company_id)) {
-                // super_admin sees all
-            } else {
+            if (!$this->isSuperAdmin($user)) {
                 $query->whereHas('employee', fn($q) => $q->where('company_id', $user->company_id));
             }
         } elseif (!empty($subordinateIds)) {
@@ -381,9 +375,7 @@ class PendingApprovalsController extends Controller
         ])->where('is_estimated', true)
           ->whereNull('estimated_approved_by');
 
-        if (empty($user->company_id)) {
-            // super_admin sees all
-        } else {
+        if (!$this->isSuperAdmin($user)) {
             $query->where('company_id', $user->company_id);
         }
 

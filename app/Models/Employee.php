@@ -3,6 +3,7 @@ namespace App\Models;
 
 use App\Constants\PositionConstants;
 use App\Constants\RoleConstants;
+use App\Models\Concerns\HasCompanyScope;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -14,7 +15,7 @@ use Laravel\Sanctum\HasApiTokens;
 
 class Employee extends Authenticatable
 {
-    use HasApiTokens, HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, Notifiable, HasCompanyScope;
 
     protected $fillable = [
         'company_id',

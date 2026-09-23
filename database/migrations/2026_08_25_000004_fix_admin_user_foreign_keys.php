@@ -9,7 +9,8 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Fix shift_swaps: supervisor_id FK employees -> admin_users
+        if (DB::getDriverName() === 'sqlite') return;
+
         if (Schema::hasColumn('shift_swaps', 'supervisor_id')) {
             $hasFk = DB::select("SELECT COUNT(*) as cnt FROM information_schema.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'shift_swaps' AND CONSTRAINT_TYPE = 'FOREIGN KEY' AND CONSTRAINT_NAME LIKE '%supervisor%'");
             if (!empty($hasFk) && $hasFk[0]->cnt > 0) {
@@ -20,7 +21,6 @@ return new class extends Migration
             }
         }
 
-        // Fix auto_ot_records: approved_by FK employees -> admin_users
         if (Schema::hasColumn('auto_ot_records', 'approved_by')) {
             $hasFk = DB::select("SELECT COUNT(*) as cnt FROM information_schema.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'auto_ot_records' AND CONSTRAINT_TYPE = 'FOREIGN KEY' AND CONSTRAINT_NAME LIKE '%approved%'");
             if (!empty($hasFk) && $hasFk[0]->cnt > 0) {
@@ -31,7 +31,6 @@ return new class extends Migration
             }
         }
 
-        // Fix late_forced_leaves: approved_by FK employees -> admin_users
         if (Schema::hasColumn('late_forced_leaves', 'approved_by')) {
             $hasFk = DB::select("SELECT COUNT(*) as cnt FROM information_schema.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'late_forced_leaves' AND CONSTRAINT_TYPE = 'FOREIGN KEY' AND CONSTRAINT_NAME LIKE '%approved%'");
             if (!empty($hasFk) && $hasFk[0]->cnt > 0) {
@@ -42,7 +41,6 @@ return new class extends Migration
             }
         }
 
-        // Fix remote_assignments: approved_by FK employees -> admin_users
         if (Schema::hasColumn('remote_assignments', 'approved_by')) {
             $hasFk = DB::select("SELECT COUNT(*) as cnt FROM information_schema.TABLE_CONSTRAINTS WHERE CONSTRAINT_SCHEMA = DATABASE() AND TABLE_NAME = 'remote_assignments' AND CONSTRAINT_TYPE = 'FOREIGN KEY' AND CONSTRAINT_NAME LIKE '%approved%'");
             if (!empty($hasFk) && $hasFk[0]->cnt > 0) {
@@ -56,7 +54,7 @@ return new class extends Migration
 
     public function down(): void
     {
-        // Reverse FK changes
+        if (DB::getDriverName() === 'sqlite') return;
         Schema::table('shift_swaps', function (Blueprint $table) {
             $table->dropForeign(['supervisor_id']);
             $table->foreign('supervisor_id')->references('id')->on('employees')->nullOnDelete();

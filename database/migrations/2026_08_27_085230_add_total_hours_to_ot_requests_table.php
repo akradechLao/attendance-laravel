@@ -9,17 +9,19 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('ot_requests', function (Blueprint $table) {
-            $table->decimal('total_hours', 5, 2)->nullable()->after('end_time');
-        });
+        if (!Schema::hasColumn('ot_requests', 'total_hours')) {
+            Schema::table('ot_requests', fn(Blueprint $t) => $t->decimal('total_hours', 5, 2)->nullable());
+        }
 
-        DB::statement('UPDATE ot_requests SET total_hours = TIMESTAMPDIFF(MINUTE, CONCAT(date, " ", start_time), CONCAT(date, " ", end_time)) / 60.0');
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement('UPDATE ot_requests SET total_hours = TIMESTAMPDIFF(MINUTE, CONCAT(date, " ", start_time), CONCAT(date, " ", end_time)) / 60.0');
+        }
     }
 
     public function down(): void
     {
-        Schema::table('ot_requests', function (Blueprint $table) {
-            $table->dropColumn('total_hours');
-        });
+        if (Schema::hasColumn('ot_requests', 'total_hours')) {
+            Schema::table('ot_requests', fn(Blueprint $t) => $t->dropColumn('total_hours'));
+        }
     }
 };

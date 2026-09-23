@@ -165,7 +165,9 @@ class AnnouncementController extends Controller
 
         $user = $request->user();
 
-        if (empty($validated['company_id']) && $user->company_id) {
+        if (($user->role ?? '') !== 'super_admin') {
+            $validated['company_id'] = $user->company_id;
+        } elseif (empty($validated['company_id']) && $user->company_id) {
             $validated['company_id'] = $user->company_id;
         }
 
