@@ -97,23 +97,24 @@ class OtRequestController extends Controller
             ];
 
             $overlapMinutes = 0;
-            $current = clone $startDateTime;
-            while ($current < $endDateTime) {
-                $dayStart = $current->copy()->startOfDay();
-                $dayEnd = $current->copy()->endOfDay();
-                $dayStartOt = max($current, $startDateTime);
-                $dayEndOt = min($endDateTime, $dayEnd);
-
-                foreach ($workWindows as [$wStart, $wEnd]) {
-                    $wStartDt = $current->copy()->setTimeFromTimeString($wStart);
-                    $wEndDt = $current->copy()->setTimeFromTimeString($wEnd);
-                    $overlapStart = max($dayStartOt, $wStartDt);
-                    $overlapEnd = min($dayEndOt, $wEndDt);
-                    if ($overlapStart < $overlapEnd) {
-                        $overlapMinutes += $overlapStart->diffInMinutes($overlapEnd);
+            $startDate = Carbon\Carbon::parse($startDateTime)->startOfDay();
+            $endDate = Carbon\Carbon::parse($endDateTime)->startOfDay();
+            $currentDate = clone $startDate;
+            while ($currentDate <= $endDate) {
+                $dayStartOt = max($currentDate->copy(), $startDateTime);
+                $dayEndOt = min($endDateTime, $currentDate->copy()->endOfDay());
+                if ($dayStartOt < $dayEndOt) {
+                    foreach ($workWindows as [$wStart, $wEnd]) {
+                        $wStartDt = $currentDate->copy()->setTimeFromTimeString($wStart);
+                        $wEndDt = $currentDate->copy()->setTimeFromTimeString($wEnd);
+                        $overlapStart = max($dayStartOt, $wStartDt);
+                        $overlapEnd = min($dayEndOt, $wEndDt);
+                        if ($overlapStart < $overlapEnd) {
+                            $overlapMinutes += $overlapStart->diffInMinutes($overlapEnd);
+                        }
                     }
                 }
-                $current->addDay();
+                $currentDate->addDay();
             }
 
             $totalOtMinutes = $startDateTime->diffInMinutes($endDateTime) - $overlapMinutes;

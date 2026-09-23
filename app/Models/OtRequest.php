@@ -92,31 +92,28 @@ class OtRequest extends Model
         ];
 
         $totalMinutes = 0;
-        $current = clone $start;
+        $startDate = Carbon::parse($start)->startOfDay();
+        $endDate = Carbon::parse($end)->startOfDay();
+        $currentDate = clone $startDate;
 
-        while ($current < $end) {
-            $dayStart = $current->copy()->startOfDay();
-            $dayEnd = $current->copy()->endOfDay();
+        while ($currentDate <= $endDate) {
+            $dayStartOt = max($currentDate->copy(), $start);
+            $dayEndOt = min($end, $currentDate->copy()->endOfDay());
 
-            $dayStartOt = max($current, $start);
-            $dayEndOt = min($end, $dayEnd);
-
-            $dayMinutes = $dayStartOt->diffInMinutes($dayEndOt);
-
-            foreach ($workWindows as [$wStart, $wEnd]) {
-                $windowStartDt = $current->copy()->setTimeFromTimeString($wStart);
-                $windowEndDt = $current->copy()->setTimeFromTimeString($wEnd);
-
-                $overlapStart = max($dayStartOt, $windowStartDt);
-                $overlapEnd = min($dayEndOt, $windowEndDt);
-
-                if ($overlapStart < $overlapEnd) {
-                    $dayMinutes -= $overlapStart->diffInMinutes($overlapEnd);
+            if ($dayStartOt < $dayEndOt) {
+                $dayMinutes = $dayStartOt->diffInMinutes($dayEndOt);
+                foreach ($workWindows as [$wStart, $wEnd]) {
+                    $wStartDt = $currentDate->copy()->setTimeFromTimeString($wStart);
+                    $wEndDt = $currentDate->copy()->setTimeFromTimeString($wEnd);
+                    $overlapStart = max($dayStartOt, $wStartDt);
+                    $overlapEnd = min($dayEndOt, $wEndDt);
+                    if ($overlapStart < $overlapEnd) {
+                        $dayMinutes -= $overlapStart->diffInMinutes($overlapEnd);
+                    }
                 }
+                $totalMinutes += max(0, $dayMinutes);
             }
-
-            $totalMinutes += max(0, $dayMinutes);
-            $current->addDay();
+            $currentDate->addDay();
         }
 
         return round($totalMinutes / 60, 2);
