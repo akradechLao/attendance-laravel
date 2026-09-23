@@ -631,83 +631,96 @@
 
       <!-- Step 4: Result -->
       <div v-if="step === 4" class="animate-fadeIn">
-        <div class="card p-4 sm:p-6 text-center py-8 sm:py-12">
+        <div class="card overflow-hidden p-0 text-center">
+          <!-- Header banner -->
           <div
             :class="[
-              'w-20 h-20 sm:w-24 sm:h-24 mx-auto mb-4 sm:mb-6 rounded-full flex items-center justify-center shadow-lg',
-              result.success ? 'bg-gradient-to-br from-green-500 to-green-700 shadow-green-600/40' : 'bg-gradient-to-br from-red-400 to-rose-600 shadow-red-500/30'
+              'px-5 pt-7 pb-6',
+              result.success
+                ? 'bg-gradient-to-br from-green-500 via-emerald-500 to-teal-500'
+                : 'bg-gradient-to-br from-red-400 via-rose-500 to-pink-500'
             ]"
           >
-            <svg
-              v-if="result.success"
-              class="w-10 h-10 sm:w-12 sm:h-12 text-white"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              stroke-width="3"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-            </svg>
-            <svg
-              v-else
-              class="w-10 h-10 sm:w-12 sm:h-12 text-red-500"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
+            <div class="w-16 h-16 sm:w-20 sm:h-20 mx-auto mb-3 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center shadow-lg">
+              <svg v-if="result.success" class="w-9 h-9 sm:w-11 sm:h-11 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              <svg v-else class="w-9 h-9 sm:w-11 sm:h-11 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="3">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </div>
+            <h2 class="text-xl sm:text-2xl font-bold text-white mb-1 whitespace-pre-line">{{ result.message }}</h2>
+            <p class="text-white/85 text-sm">{{ selectedEmployee?.name }} · {{ selectedEmployee?.employee_code }}</p>
+            <p class="text-white/70 text-xs mt-0.5">{{ result.time }} น.</p>
           </div>
 
-          <h2
-            :class="[
-              'text-xl sm:text-2xl font-bold mb-2 whitespace-pre-line',
-              result.success ? 'text-green-700' : 'text-red-600'
-            ]"
-          >
-            {{ result.message }}
-          </h2>
+          <!-- Summary receipt card -->
+          <div v-if="result.success && result.summary" class="px-4 sm:px-6 -mt-3 pb-2">
+            <div class="bg-white rounded-2xl border border-gray-100 shadow-md shadow-green-500/10 p-4 sm:p-5 text-left max-w-sm mx-auto">
+              <div class="flex items-center justify-between mb-3">
+                <p class="text-[11px] font-bold text-gray-400 uppercase tracking-wider">สรุปการทำงานวันนี้</p>
+                <span class="text-[10px] font-semibold bg-green-50 text-green-600 px-2 py-0.5 rounded-full">วันนี้</span>
+              </div>
 
-          <p class="text-gray-500 mb-2 text-sm sm:text-base">{{ selectedEmployee?.name }}</p>
-          <p class="text-gray-400 text-sm mb-2">{{ result.time }}</p>
+              <!-- Date -->
+              <div class="flex items-center gap-2 mb-3 pb-3 border-b border-dashed border-gray-200">
+                <span class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-base">📅</span>
+                <span class="text-sm font-semibold text-navy">{{ formatSummaryDate(result.summary.date) }}</span>
+              </div>
 
-          <!-- Checkout summary: สรุปวันนี้ -->
-          <div v-if="result.success && result.summary" class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-5 mb-4 text-left max-w-sm mx-auto">
-            <p class="text-center text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">สรุปการทำงานวันนี้</p>
-            <div class="space-y-2 text-sm">
-              <div class="flex justify-between gap-3">
-                <span class="text-gray-500">📅 วันที่</span>
-                <span class="font-semibold text-navy text-right">{{ formatSummaryDate(result.summary.date) }}</span>
+              <!-- In / Out -->
+              <div class="grid grid-cols-2 gap-3 mb-3">
+                <div class="bg-blue-50/70 rounded-xl p-3 text-center">
+                  <p class="text-[10px] font-bold text-blue-400 uppercase tracking-wide mb-0.5">เข้างาน</p>
+                  <p class="text-lg font-bold text-navy tabular-nums">{{ result.summary.check_in || '-' }}</p>
+                  <p class="text-[10px] text-gray-400">น.</p>
+                </div>
+                <div class="bg-orange-50/70 rounded-xl p-3 text-center">
+                  <p class="text-[10px] font-bold text-orange-400 uppercase tracking-wide mb-0.5">ออกงาน</p>
+                  <p class="text-lg font-bold text-navy tabular-nums">{{ result.summary.check_out || '-' }}</p>
+                  <p class="text-[10px] text-gray-400">น.</p>
+                </div>
               </div>
-              <div class="flex justify-between gap-3">
-                <span class="text-gray-500">🕐 เข้างาน</span>
-                <span class="font-semibold text-navy">{{ result.summary.check_in || '-' }} น.</span>
+
+              <!-- Worked hours -->
+              <div class="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-3 mb-2 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="w-8 h-8 rounded-lg bg-green-100 flex items-center justify-center text-base">⏱</span>
+                  <span class="text-sm font-semibold text-gray-600">ทำงานรวม</span>
+                </div>
+                <span class="text-base font-bold text-green-700 tabular-nums">{{ formatWorkedHours(result.summary.worked_hours) }}</span>
               </div>
-              <div class="flex justify-between gap-3">
-                <span class="text-gray-500">🕔 ออกงาน</span>
-                <span class="font-semibold text-navy">{{ result.summary.check_out || '-' }} น.</span>
-              </div>
-              <div class="border-t border-dashed border-gray-200 pt-2 flex justify-between gap-3">
-                <span class="text-gray-500">⏱ ทำงานรวม</span>
-                <span class="font-bold text-green-700">{{ formatWorkedHours(result.summary.worked_hours) }}</span>
-              </div>
-              <div class="flex justify-between gap-3">
-                <span class="text-gray-500">⚡ โอที</span>
-                <span v-if="result.summary.has_ot" class="font-bold text-orange-600">{{ formatWorkedHours(result.summary.ot_hours) }}</span>
-                <span v-else class="text-gray-400">ไม่มี</span>
+
+              <!-- OT -->
+              <div
+                :class="[
+                  'rounded-xl p-3 flex items-center justify-between',
+                  result.summary.has_ot ? 'bg-gradient-to-r from-orange-50 to-amber-50' : 'bg-gray-50'
+                ]"
+              >
+                <div class="flex items-center gap-2">
+                  <span class="w-8 h-8 rounded-lg flex items-center justify-center text-base" :class="result.summary.has_ot ? 'bg-orange-100' : 'bg-gray-100'">⚡</span>
+                  <span class="text-sm font-semibold text-gray-600">โอที</span>
+                </div>
+                <span v-if="result.summary.has_ot" class="text-base font-bold text-orange-600 tabular-nums">{{ formatWorkedHours(result.summary.ot_hours) }}</span>
+                <span v-else class="text-sm text-gray-400">ไม่มี</span>
               </div>
             </div>
           </div>
 
-          <p v-if="result.location" class="text-blue-500 text-sm mb-6 sm:mb-8">📍 {{ result.location }}</p>
-          <p v-else class="text-gray-400 text-sm mb-6 sm:mb-8">🏢 ออฟฟิศ</p>
+          <!-- Location -->
+          <p v-if="result.location" class="text-blue-500 text-sm mt-4 mb-1">📍 {{ result.location }}</p>
+          <p v-else class="text-gray-400 text-sm mt-4 mb-1">🏢 ออฟฟิศ</p>
 
-          <button
-            @click="reset"
-            class="btn-primary text-base sm:text-lg px-6 sm:px-8 py-3 touch-target"
-          >
-            เริ่มใหม่
-          </button>
+          <!-- Reset button -->
+          <div class="px-4 sm:px-6 pb-6 pt-3">
+            <button
+              @click="reset"
+              class="btn-primary text-base sm:text-lg px-6 sm:px-8 py-3 touch-target w-full sm:w-auto"
+            >
+              เริ่มใหม่
+            </button>
+          </div>
         </div>
       </div>
     </div>
