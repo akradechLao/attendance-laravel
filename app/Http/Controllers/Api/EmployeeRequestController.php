@@ -56,10 +56,6 @@ class EmployeeRequestController extends Controller
             $employee = $request->user();
 
             $request->validate([
-                'leave_type_id' => [
-                    'required',
-                    \Illuminate\Validation\Rule::exists('leave_types', 'id')->where('company_id', $employee->company_id),
-                ],
                 'start_date' => 'required|date|after_or_equal:-30 days',
                 'end_date' => 'required|date|after_or_equal:start_date',
                 'reason' => 'nullable|string',
@@ -68,6 +64,14 @@ class EmployeeRequestController extends Controller
             $start = Carbon::parse($request->start_date)->setTimezone('Asia/Bangkok');
             $end = Carbon::parse($request->end_date)->setTimezone('Asia/Bangkok');
             $totalDays = $start->diffInDays($end) + 1;
+
+            $leaveType = LeaveType::find($request->leave_type_id);
+            if ($leaveType->code === 'maternity' && $leaveType->max_days > 0 && $totalDays > $leaveType->max_days) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "ลาแบบคลอดได้สูงสุด {$leaveType->max_days} วันเท่านั้น",
+                ], 400);
+            }
 
             $hasOverlap = LeaveRequest::where('emp_id', $employee->id)
                 ->whereIn('status', ['pending', 'approved'])
@@ -170,18 +174,15 @@ class EmployeeRequestController extends Controller
     {
         try {
             $request->validate([
-                'date' => 'required|date|after_or_equal:-30 days',
-                'start_time' => 'required',
-                'end_time' => 'required|after:start_time',
+                'start_date' => 'required|date|after_or_equal:-30 days',
+                'end_date' => 'required|date|after_or_equal:start_date',
+                'start_time' => 'required|date_format:H:i',
+                'end_time' => 'required|date_format:H:i',
                 'reason' => 'nullable|string',
             ]);
 
             $employee = $request->user();
 
-            // Only employees explicitly granted OT rights may request it, and
-            // assistant_md-and-above never do OT (they don't work fixed shifts) -
-            // the frontend already hides this page for both cases, but the API
-            // must not rely on that alone.
             if (!$employee->has_ot) {
                 return response()->json(['success' => false, 'message' => 'พนักงานไม่มีสิทธิ์ทำโอที'], 403);
             }
@@ -189,11 +190,55 @@ class EmployeeRequestController extends Controller
                 return response()->json(['success' => false, 'message' => 'ตำแหน่งนี้ไม่มีสิทธิ์ขอโอที'], 403);
             }
 
+            $startDateTime = Carbon::parse($request->start_date)->setTime(
+                Carbon::parse($request->start_time)->hour,
+                Carbon::parse($request->start_time)->minute
+            );
+            $endDateTime = Carbon::parse($request->end_date)->setTime(
+                Carbon::parse($request->end_time)->hour,
+                Carbon::parse($request->end_time)->minute
+            );
+
+            if ($startDateTime >= $endDateTime) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'เวลาสิ้นสุดต้องหลังกว่าเวลาเริ่มต้น',
+                ], 422);
+            }
+
+            $workStart = \App\Models\CompanySetting::getValue($employee->company_id, 'work_start_time', '08:00');
+            $workEnd = \App\Models\CompanySetting::getValue($employee->company_id, 'work_end_time', '17:00');
+            $lunchStart = \App\Models\CompanySetting::getValue($employee->company_id, 'lunch_start_time', '11:45');
+            $lunchEnd = \App\Models\CompanySetting::getValue($employee->company_id, 'lunch_end_time', '12:45');
+            $workWindows = [[$workStart, $lunchStart], [$lunchEnd, $workEnd]];
+
+            $overlapMinutes = 0;
+            $current = clone $startDateTime;
+            while ($current < $endDateTime) {
+                $dayStart = $current->copy()->startOfDay();
+                $dayEnd = $current->copy()->endOfDay();
+                $dayStartOt = max($current, $startDateTime);
+                $dayEndOt = min($endDateTime, $dayEnd);
+
+                foreach ($workWindows as [$wStart, $wEnd]) {
+                    $wStartDt = $current->copy()->setTimeFromTimeString($wStart);
+                    $wEndDt = $current->copy()->setTimeFromTimeString($wEnd);
+                    $overlapStart = max($dayStartOt, $wStartDt);
+                    $overlapEnd = min($dayEndOt, $wEndDt);
+                    if ($overlapStart < $overlapEnd) {
+                        $overlapMinutes += $overlapStart->diffInMinutes($overlapEnd);
+                    }
+                }
+                $current->addDay();
+            }
+
+            $totalOtMinutes = $startDateTime->diffInMinutes($endDateTime) - $overlapMinutes;
+            $totalHours = $totalOtMinutes > 0 ? round($totalOtMinutes / 60, 2) : 0;
+
             $hasOverlap = OtRequest::where('emp_id', $employee->id)
-                ->where('date', $request->date)
+                ->where('date', '<=', $request->end_date)
+                ->where('end_date', '>=', $request->start_date)
                 ->where('status', '!=', 'rejected')
-                ->where('start_time', '<', $request->end_time)
-                ->where('end_time', '>', $request->start_time)
                 ->exists();
 
             if ($hasOverlap) {
@@ -206,12 +251,23 @@ class EmployeeRequestController extends Controller
             $ot = OtRequest::create([
                 'company_id' => $employee->company_id,
                 'emp_id' => $employee->id,
-                'date' => $request->date,
+                'date' => $request->start_date,
+                'end_date' => $request->end_date,
                 'start_time' => $request->start_time,
                 'end_time' => $request->end_time,
+                'total_hours' => $totalHours,
                 'reason' => $request->reason,
                 'status' => 'pending_manager',
             ]);
+
+            $notifyStart = Carbon::parse($request->start_date)->setTime(
+                Carbon::parse($request->start_time)->hour,
+                Carbon::parse($request->start_time)->minute
+            );
+            $notifyEnd = Carbon::parse($request->end_date)->setTime(
+                Carbon::parse($request->end_time)->hour,
+                Carbon::parse($request->end_time)->minute
+            );
 
             // Notify supervisor(s) of new OT request
             $supervisorIds = $employee->getSupervisorIds();
@@ -220,7 +276,7 @@ class EmployeeRequestController extends Controller
                     $supervisorIds,
                     'ot_request',
                     'มีคำขอโอทีใหม่',
-                    "{$employee->name} ({$employee->employee_code}) ขอโอทีวันที่ {$request->date} เวลา {$request->start_time}-{$request->end_time}" . ($request->reason ? " เหตุผล: {$request->reason}" : ''),
+                    "{$employee->name} ({$employee->employee_code}) ขอโอที ตั้งแต่ {$request->start_date} {$request->start_time} ถึง {$request->end_date} {$request->end_time}" . ($request->reason ? " เหตุผล: {$request->reason}" : ''),
                     $ot->id,
                     'OtRequest'
                 );
@@ -232,8 +288,10 @@ class EmployeeRequestController extends Controller
                     'id' => $ot->id,
                     'emp_id' => $ot->emp_id,
                     'date' => Carbon::parse($ot->date)->format('Y-m-d'),
+                    'end_date' => Carbon::parse($ot->end_date)->format('Y-m-d'),
                     'start_time' => $ot->start_time,
                     'end_time' => $ot->end_time,
+                    'total_hours' => $ot->total_hours,
                     'reason' => $ot->reason,
                     'status' => $ot->status,
                     'created_at' => $ot->created_at ? Carbon::parse($ot->created_at)->setTimezone('Asia/Bangkok')->format('Y-m-d H:i') : null,

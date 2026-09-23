@@ -12,12 +12,12 @@ class LeaveTypeSeeder extends Seeder
         $companies = DB::table('companies')->pluck('id')->toArray();
 
         $leaveTypes = [
-            ['name' => 'ลาป่วย', 'code' => 'sick', 'max_days_per_year' => 30, 'accrual' => 0, 'carry_forward' => 0],
-            ['name' => 'ลากิจ', 'code' => 'personal', 'max_days_per_year' => 6, 'accrual' => 0, 'carry_forward' => 0],
-            ['name' => 'ลาพักร้อน', 'code' => 'annual', 'max_days_per_year' => 6, 'accrual' => 1, 'carry_forward' => 1],
-            ['name' => 'ลาคลอด', 'code' => 'maternity', 'max_days_per_year' => 90, 'accrual' => 0, 'carry_forward' => 0],
-            ['name' => 'ลากิจไม่รับค่าจ้าง', 'code' => 'unpaid', 'max_days_per_year' => 0, 'accrual' => 0, 'carry_forward' => 0],
-            ['name' => 'ลาบวช', 'code' => 'ordination', 'max_days_per_year' => 15, 'accrual' => 0, 'carry_forward' => 0],
+            ['name' => 'ลาป่วย', 'code' => 'sick', 'max_days' => 30, 'accrual' => 0, 'carry_forward' => 0],
+            ['name' => 'ลากิจ', 'code' => 'personal', 'max_days' => 6, 'accrual' => 0, 'carry_forward' => 0],
+            ['name' => 'ลาพักร้อน', 'code' => 'annual', 'max_days' => 6, 'accrual' => 1, 'carry_forward' => 1],
+            ['name' => 'ลาคลอด', 'code' => 'maternity', 'max_days' => 120, 'accrual' => 0, 'carry_forward' => 0],
+            ['name' => 'ลากิจไม่รับค่าจ้าง', 'code' => 'unpaid', 'max_days' => 0, 'accrual' => 0, 'carry_forward' => 0],
+            ['name' => 'ลาบวช', 'code' => 'ordination', 'max_days' => 15, 'accrual' => 0, 'carry_forward' => 0],
         ];
 
         foreach ($companies as $companyId) {

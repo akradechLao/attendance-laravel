@@ -62,9 +62,9 @@
                   รออนุมัติผู้จัดการ
                 </span>
                 <p class="text-sm text-gray-500 mt-1">
-                  {{ formatDate(ot.date) }} | {{ ot.start_time }} - {{ ot.end_time }}
-                </p>
-                <p class="text-sm text-gray-500">{{ ot.hours }} ชั่วโมง</p>
+{{ formatDate(ot.date) }}{{ ot.end_date && ot.end_date !== ot.date ? ' - ' + formatDate(ot.end_date) : '' }} | {{ ot.start_time }} - {{ ot.end_time }}
+                 </p>
+                 <p class="text-sm text-gray-500">{{ ot.total_hours }} ชั่วโมง</p>
               </div>
             </div>
 
@@ -117,9 +117,9 @@
                   รออนุมัติ HR
                 </span>
                 <p class="text-sm text-gray-500 mt-1">
-                  {{ formatDate(ot.date) }} | {{ ot.start_time }} - {{ ot.end_time }}
-                </p>
-                <p class="text-sm text-gray-500">{{ ot.hours }} ชั่วโมง</p>
+{{ formatDate(ot.date) }}{{ ot.end_date && ot.end_date !== ot.date ? ' - ' + formatDate(ot.end_date) : '' }} | {{ ot.start_time }} - {{ ot.end_time }}
+                 </p>
+                 <p class="text-sm text-gray-500">{{ ot.total_hours }} ชั่วโมง</p>
               </div>
             </div>
 
@@ -174,7 +174,7 @@
                   อนุมัติแล้ว
                 </span>
                 <p class="text-sm text-gray-500 mt-1">
-                  {{ formatDate(ot.date) }} | {{ ot.hours }} ชั่วโมง
+                  {{ formatDate(ot.date) }}{{ ot.end_date && ot.end_date !== ot.date ? ' - ' + formatDate(ot.end_date) : '' }} | {{ ot.total_hours }} ชั่วโมง
                 </p>
               </div>
             </div>
@@ -209,7 +209,7 @@
                   ปฏิเสธ
                 </span>
                 <p class="text-sm text-gray-500 mt-1">
-                  {{ formatDate(ot.date) }} | {{ ot.hours }} ชั่วโมง
+                  {{ formatDate(ot.date) }}{{ ot.end_date && ot.end_date !== ot.date ? ' - ' + formatDate(ot.end_date) : '' }} | {{ ot.total_hours }} ชั่วโมง
                 </p>
                 <p v-if="ot.rejection_reason" class="text-sm text-red-500 mt-1">เหตุผล: {{ ot.rejection_reason }}</p>
               </div>

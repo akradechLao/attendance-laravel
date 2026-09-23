@@ -74,13 +74,13 @@ const rejectOt = async (id) => {
         <tbody class="divide-y divide-gray-200">
           <tr v-for="request in otRequests" :key="request.id">
             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ request.employee?.name }}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ request.date }}</td>
-            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ request.start_time }} - {{ request.end_time }}</td>
-            <td class="px-6 py-4 text-sm text-gray-900">{{ request.reason }}</td>
-            <td class="px-6 py-4 whitespace-nowrap">
-              <button @click="approveOt(request.id)" class="text-green-600 hover:text-green-800 mr-3">อนุมัติ</button>
-              <button @click="rejectOt(request.id)" class="text-red-600 hover:text-red-800">ไม่อนุมัติ</button>
-            </td>
+<td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ request.date }}{{ request.end_date && request.end_date !== request.date ? ' - ' + request.end_date : '' }}</td>
+             <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ request.start_time }} - {{ request.end_time }}</td>
+             <td class="px-6 py-4 text-sm text-gray-900">{{ request.reason }}</td>
+             <td class="px-6 py-4 whitespace-nowrap">
+               <button @click="approveOt(request.id)" class="text-green-600 hover:text-green-800 mr-3">อนุมัติ</button>
+               <button @click="rejectOt(request.id)" class="text-red-600 hover:text-red-800">ไม่อนุมัติ</button>
+             </td>
           </tr>
         </tbody>
       </table>

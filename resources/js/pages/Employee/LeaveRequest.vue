@@ -62,9 +62,15 @@
         <div v-if="totalDays > 0" class="text-sm text-blue-600">
           จำนวนวันลา: {{ totalDays }} วัน
         </div>
-        <div v-if="selectedBalance && totalDays > 0" class="text-sm" :class="totalDays <= selectedBalance.remaining ? 'text-green-600' : 'text-red-600'">
-          เหลือหลังลา: {{ Math.max(0, selectedBalance.remaining - totalDays) }} วัน
-        </div>
+<div v-if="selectedBalance && totalDays > 0" class="text-sm" :class="totalDays <= selectedBalance.remaining ? 'text-green-600' : 'text-red-600'">
+           เหลือหลังลา: {{ Math.max(0, selectedBalance.remaining - totalDays) }} วัน
+         </div>
+         <div v-if="selectedBalance && selectedBalance.code === 'maternity' && totalDays > 0" class="text-sm" :class="totalDays <= (maxDaysPerType['maternity'] || 999) ? 'text-green-600' : 'text-red-600'">
+           สูงสุดลาแบบคลอด: {{ maxDaysPerType['maternity'] }} วัน
+         </div>
+         <div v-if="selectedBalance && selectedBalance.code === 'maternity' && totalDays > (maxDaysPerType['maternity'] || 999)" class="text-sm text-red-600 bg-red-50 p-2 rounded-lg">
+           ⚠️ ลาแบบคลอดได้สูงสุด {{ maxDaysPerType['maternity'] }} วันเท่านั้น (คุณต้องการ {{ totalDays }} วัน)
+         </div>
         <div v-if="selectedBalance && totalDays > selectedBalance.remaining && selectedBalance.code !== 'unpaid'" class="text-sm text-red-600 bg-red-50 p-2 rounded-lg">
           ⚠️ วันลาประเภทนี้เหลือ {{ selectedBalance.remaining }} วัน แต่คุณต้องการลา {{ totalDays }} วัน (เกิน {{ totalDays - selectedBalance.remaining }} วัน)
         </div>
@@ -195,7 +201,7 @@ function leaveCalNextMonth() {
   if (leaveCalMonth.value > 12) { leaveCalMonth.value = 1; leaveCalYear.value++ }
 }
 
-const form = ref({ leave_type_id: '', start_date: '', end_date: '', reason: '' })
+const maxDaysPerType = { maternity: 120, sick: 30, personal: 6, annual: 6, ordination: 15, unpaid: 0 }
 
 const minDate = computed(() => {
   const d = new Date()

@@ -30,6 +30,8 @@ const form = ref({
   website: '',
   work_start_time: '08:30',
   work_end_time: '17:30',
+  lunch_start_time: '11:45',
+  lunch_end_time: '12:45',
   late_threshold: 30,
   location_radius: 200,
   enable_face_recognition: true,
@@ -74,6 +76,8 @@ function loadCompanyForm() {
     website: company.website || '',
     work_start_time: '08:30',
     work_end_time: '17:30',
+    lunch_start_time: '11:45',
+    lunch_end_time: '12:45',
     late_threshold: 30,
     location_radius: 200,
     enable_face_recognition: true,
@@ -82,14 +86,14 @@ function loadCompanyForm() {
 
   // Load settings from company_settings
   if (company.settings && Array.isArray(company.settings)) {
-    company.settings.forEach(s => {
-      if (s.key in form.value) {
-        if (s.value === '1') form.value[s.key] = true
-        else if (s.value === '0') form.value[s.key] = false
-        else if (!isNaN(s.value) && s.key !== 'work_start_time' && s.key !== 'work_end_time') form.value[s.key] = Number(s.value)
-        else form.value[s.key] = s.value
-      }
-    })
+company.settings.forEach(s => {
+       if (s.key in form.value) {
+         if (s.value === '1') form.value[s.key] = true
+         else if (s.value === '0') form.value[s.key] = false
+         else if (!isNaN(s.value) && s.key !== 'work_start_time' && s.key !== 'work_end_time' && s.key !== 'lunch_start_time' && s.key !== 'lunch_end_time') form.value[s.key] = Number(s.value)
+         else form.value[s.key] = s.value
+       }
+     })
   }
 }
 
@@ -265,24 +269,34 @@ async function removeLogo() {
         <!-- Work Settings -->
         <div class="bg-white rounded-xl shadow-sm border p-6">
           <h2 class="text-lg font-semibold text-navy mb-4">ตั้งค่าเวลาทำงาน</h2>
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">เวลาเข้างาน</label>
-              <input v-model="form.work_start_time" type="time" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">เวลาเลิกงาน</label>
-              <input v-model="form.work_end_time" type="time" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">กำหนดสาย (นาที)</label>
-              <input v-model.number="form.late_threshold" type="number" min="0" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm" />
-            </div>
-            <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">รัศมี GPS (เมตร)</label>
-              <input v-model.number="form.location_radius" type="number" min="50" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm" />
-            </div>
-          </div>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+             <div>
+               <label class="block text-sm font-medium text-gray-700 mb-1">เวลาเข้างาน</label>
+               <input v-model="form.work_start_time" type="time" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm" />
+             </div>
+             <div>
+               <label class="block text-sm font-medium text-gray-700 mb-1">เวลาเลิกงาน</label>
+               <input v-model="form.work_end_time" type="time" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm" />
+             </div>
+             <div>
+               <label class="block text-sm font-medium text-gray-700 mb-1">กำหนดสาย (นาที)</label>
+               <input v-model.number="form.late_threshold" type="number" min="0" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm" />
+             </div>
+             <div>
+               <label class="block text-sm font-medium text-gray-700 mb-1">รัศมี GPS (เมตร)</label>
+               <input v-model.number="form.location_radius" type="number" min="50" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm" />
+             </div>
+           </div>
+           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+             <div>
+               <label class="block text-sm font-medium text-gray-700 mb-1">เริ่มพักกลางวัน</label>
+               <input v-model="form.lunch_start_time" type="time" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm" />
+             </div>
+             <div>
+               <label class="block text-sm font-medium text-gray-700 mb-1">เลิกพักกลางวัน</label>
+               <input v-model="form.lunch_end_time" type="time" class="w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 text-sm" />
+             </div>
+           </div>
         </div>
 
         <!-- Feature Toggles -->

@@ -71,6 +71,13 @@ class LeaveRequestController extends Controller
         $validated['total_days'] = $totalDays;
         $validated['status'] = 'pending';
 
+        if ($leaveType->code === 'maternity' && $leaveType->max_days > 0 && $totalDays > $leaveType->max_days) {
+            return response()->json([
+                'success' => false,
+                'message' => "ลาแบบคลอดได้สูงสุด {$leaveType->max_days} วันเท่านั้น",
+            ], 400);
+        }
+
         $leave = LeaveRequest::create($validated);
 
         $leave->load(['employee', 'leaveType']);

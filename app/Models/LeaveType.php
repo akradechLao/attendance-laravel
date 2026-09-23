@@ -19,6 +19,7 @@ class LeaveType extends Model
         'quota_monthly',
         'quota_daily',
         'quota_contract',
+        'max_days',
         'is_active',
     ];
 
@@ -27,6 +28,7 @@ class LeaveType extends Model
         'quota_monthly' => 'integer',
         'quota_daily' => 'integer',
         'quota_contract' => 'integer',
+        'max_days' => 'integer',
         'is_active' => 'boolean',
     ];
 

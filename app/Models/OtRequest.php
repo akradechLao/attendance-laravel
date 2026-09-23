@@ -5,6 +5,7 @@ use App\Models\Concerns\HasCompanyScope;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Carbon\Carbon;
+use App\Models\CompanySetting;
 
 class OtRequest extends Model
 {
@@ -16,6 +17,7 @@ class OtRequest extends Model
         'company_id',
         'emp_id',
         'date',
+        'end_date',
         'start_time',
         'end_time',
         'total_hours',
@@ -34,6 +36,7 @@ class OtRequest extends Model
 
     protected $casts = [
         'date' => 'date',
+        'end_date' => 'date',
         'approved_at' => 'datetime',
         'manager_approved_at' => 'datetime',
         'hr_approved_at' => 'datetime',
@@ -43,22 +46,80 @@ class OtRequest extends Model
     protected static function booted(): void
     {
         static::creating(function (OtRequest $ot) {
-            if (!$ot->total_hours && $ot->start_time && $ot->end_time) {
-                $start = Carbon::parse($ot->start_time);
-                $end = Carbon::parse($ot->end_time);
-                $minutes = $start->diffInMinutes($end);
-                $ot->total_hours = $minutes > 0 ? round($minutes / 60, 2) : 0;
+            if (!$ot->total_hours && $ot->start_time && $ot->end_time && $ot->date) {
+                $ot->total_hours = $ot->calculateOtHours();
             }
         });
 
         static::updating(function (OtRequest $ot) {
-            if ($ot->isDirty(['start_time', 'end_time']) && $ot->start_time && $ot->end_time) {
-                $start = Carbon::parse($ot->start_time);
-                $end = Carbon::parse($ot->end_time);
-                $minutes = $start->diffInMinutes($end);
-                $ot->total_hours = $minutes > 0 ? round($minutes / 60, 2) : 0;
+            if ($ot->isDirty(['start_time', 'end_time', 'date', 'end_date']) && $ot->start_time && $ot->end_time && $ot->date) {
+                $ot->total_hours = $ot->calculateOtHours();
             }
         });
+    }
+
+    public function calculateOtHours(): float
+    {
+        $startDate = Carbon::parse($this->date)->setTimezone('Asia/Bangkok');
+        $startTime = Carbon::parse($this->start_time);
+        $start = $startDate->copy()->setTime($startTime->hour, $startTime->minute);
+
+        if ($this->end_date) {
+            $endDate = Carbon::parse($this->end_date)->setTimezone('Asia/Bangkok');
+        } else {
+            $endDate = Carbon::parse($this->date)->setTimezone('Asia/Bangkok');
+        }
+        $endTime = Carbon::parse($this->end_time);
+        $end = $endDate->copy()->setTime($endTime->hour, $endTime->minute);
+
+        if ($start >= $end) {
+            return 0;
+        }
+
+        return $this->calculateHoursExcludingWorkWindows($start, $end, $this->company_id);
+    }
+
+    private function calculateHoursExcludingWorkWindows(Carbon $start, Carbon $end, int $companyId): float
+    {
+        $workStart = CompanySetting::getValue($companyId, 'work_start_time', '08:00');
+        $workEnd = CompanySetting::getValue($companyId, 'work_end_time', '17:00');
+        $lunchStart = CompanySetting::getValue($companyId, 'lunch_start_time', '11:45');
+        $lunchEnd = CompanySetting::getValue($companyId, 'lunch_end_time', '12:45');
+
+        $workWindows = [
+            [$workStart, $lunchStart],
+            [$lunchEnd, $workEnd],
+        ];
+
+        $totalMinutes = 0;
+        $current = clone $start;
+
+        while ($current < $end) {
+            $dayStart = $current->copy()->startOfDay();
+            $dayEnd = $current->copy()->endOfDay();
+
+            $dayStartOt = max($current, $start);
+            $dayEndOt = min($end, $dayEnd);
+
+            $dayMinutes = $dayStartOt->diffInMinutes($dayEndOt);
+
+            foreach ($workWindows as [$wStart, $wEnd]) {
+                $windowStartDt = $current->copy()->setTimeFromTimeString($wStart);
+                $windowEndDt = $current->copy()->setTimeFromTimeString($wEnd);
+
+                $overlapStart = max($dayStartOt, $windowStartDt);
+                $overlapEnd = min($dayEndOt, $windowEndDt);
+
+                if ($overlapStart < $overlapEnd) {
+                    $dayMinutes -= $overlapStart->diffInMinutes($overlapEnd);
+                }
+            }
+
+            $totalMinutes += max(0, $dayMinutes);
+            $current->addDay();
+        }
+
+        return round($totalMinutes / 60, 2);
     }
 
     public function employee(): BelongsTo

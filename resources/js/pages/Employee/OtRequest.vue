@@ -22,8 +22,13 @@
 
       <form v-else @submit.prevent="handleSubmit" class="space-y-4">
         <div class="card">
-          <label class="block text-sm font-semibold text-navy mb-2">วันที่ต้องการโอที</label>
-          <input v-model="form.date" type="date" :min="minDate" class="input-field" required />
+          <label class="block text-sm font-semibold text-navy mb-2">วันที่เริ่มต้น</label>
+          <input v-model="form.start_date" type="date" :min="minDate" class="input-field" required />
+        </div>
+
+        <div class="card">
+          <label class="block text-sm font-semibold text-navy mb-2">วันที่สิ้นสุด (ถ้าไม่ข้ามวัน ให้เท่ากับวันเริ่มต้น)</label>
+          <input v-model="form.end_date" type="date" :min="form.start_date || minDate" class="input-field" required />
         </div>
 
         <div class="card">
@@ -37,6 +42,7 @@
               <input v-model="form.end_time" type="time" class="input-field" required />
             </div>
           </div>
+          <p class="text-xs text-gray-400 mt-1">ช่วงเวลางานปกติ (เว้นเวลาพัก 11:45-12:45) จะไม่นับเป็นโอที</p>
         </div>
 
         <div class="card">
@@ -64,7 +70,8 @@
                 {{ statusBadge(ot.status).text }}
               </span>
             </div>
-            <p class="text-gray-500 text-sm">{{ ot.start_time }} - {{ ot.end_time }} ({{ ot.hours || '-' }} ชม.)</p>
+            <p class="text-gray-500 text-sm">{{ ot.start_time }} - {{ ot.end_time }} ({{ ot.hours || ot.total_hours || '-' }} ชม.)</p>
+              <p v-if="ot.start_date !== ot.end_date && ot.end_date" class="text-gray-400 text-xs mt-1">{{ formatDate(ot.start_date) }} - {{ formatDate(ot.end_date) }}</p>
             <p v-if="ot.reason" class="text-gray-400 text-xs mt-1">{{ ot.reason }}</p>
             <p v-if="ot.rejection_reason" class="text-red-500 text-xs mt-1">เหตุผลปฏิเสธ: {{ ot.rejection_reason }}</p>
           </div>
@@ -95,7 +102,8 @@ const minDate = computed(() => {
 })
 
 const form = reactive({
-  date: '',
+  start_date: '',
+  end_date: '',
   start_time: '',
   end_time: '',
   reason: ''
@@ -107,6 +115,18 @@ function formatDate(dateStr) {
   const day = d.getDate()
   const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.']
   return `${day} ${months[d.getMonth()]} ${d.getFullYear() + 543}`
+}
+
+function formatDateRange(startDate, endDate, startTime, endTime) {
+  if (!startDate) return ''
+  const s = new Date(startDate)
+  const e = endDate ? new Date(endDate) : s
+  const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.']
+  const fmt = (d) => `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear() + 543}`
+  if (startDate === endDate || !endDate) {
+    return `${fmt(s)} ${startTime} - ${endTime}`
+  }
+  return `${fmt(s)} - ${fmt(e)}`
 }
 
 function statusBadge(status) {
