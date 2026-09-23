@@ -232,9 +232,12 @@ class AttendanceController extends Controller
 
             $log->update($updateData);
 
+            $summary = AttendanceHelper::buildCheckoutSummary($employee->id, $today);
+
             return response()->json([
                 'success' => true,
                 'data' => $log->fresh(),
+                'summary' => $summary,
                 'message' => 'Check-out successful.',
             ]);
         } catch (\Illuminate\Validation\ValidationException $e) {

@@ -670,6 +670,35 @@
 
           <p class="text-gray-500 mb-2 text-sm sm:text-base">{{ selectedEmployee?.name }}</p>
           <p class="text-gray-400 text-sm mb-2">{{ result.time }}</p>
+
+          <!-- Checkout summary: สรุปวันนี้ -->
+          <div v-if="result.success && result.summary" class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 sm:p-5 mb-4 text-left max-w-sm mx-auto">
+            <p class="text-center text-xs font-bold text-gray-400 uppercase tracking-wide mb-3">สรุปการทำงานวันนี้</p>
+            <div class="space-y-2 text-sm">
+              <div class="flex justify-between gap-3">
+                <span class="text-gray-500">📅 วันที่</span>
+                <span class="font-semibold text-navy text-right">{{ formatSummaryDate(result.summary.date) }}</span>
+              </div>
+              <div class="flex justify-between gap-3">
+                <span class="text-gray-500">🕐 เข้างาน</span>
+                <span class="font-semibold text-navy">{{ result.summary.check_in || '-' }} น.</span>
+              </div>
+              <div class="flex justify-between gap-3">
+                <span class="text-gray-500">🕔 ออกงาน</span>
+                <span class="font-semibold text-navy">{{ result.summary.check_out || '-' }} น.</span>
+              </div>
+              <div class="border-t border-dashed border-gray-200 pt-2 flex justify-between gap-3">
+                <span class="text-gray-500">⏱ ทำงานรวม</span>
+                <span class="font-bold text-green-700">{{ formatWorkedHours(result.summary.worked_hours) }}</span>
+              </div>
+              <div class="flex justify-between gap-3">
+                <span class="text-gray-500">⚡ โอที</span>
+                <span v-if="result.summary.has_ot" class="font-bold text-orange-600">{{ formatWorkedHours(result.summary.ot_hours) }}</span>
+                <span v-else class="text-gray-400">ไม่มี</span>
+              </div>
+            </div>
+          </div>
+
           <p v-if="result.location" class="text-blue-500 text-sm mb-6 sm:mb-8">📍 {{ result.location }}</p>
           <p v-else class="text-gray-400 text-sm mb-6 sm:mb-8">🏢 ออฟฟิศ</p>
 
@@ -807,7 +836,7 @@ const employees = ref([])
 const companies = ref([])
 const loading = ref(false)
 const scanningError = ref('')
-const result = ref({ success: false, message: '', time: '', location: '' })
+const result = ref({ success: false, message: '', time: '', location: '', summary: null })
 const scanType = ref('office_scan')
 const customLocationName = ref('')
 const triggerScan = ref(false)
@@ -1533,7 +1562,8 @@ function handleVerified(data) {
     success: true,
     message: data.message || (scanMode.value === 'check_in' ? '✓ เช็คอินสำเร็จ' : '✓ เช็คเอาท์สำเร็จ'),
     time: timeStr,
-    location: scanType.value === 'remote_scan' ? customLocationName.value : null
+    location: scanType.value === 'remote_scan' ? customLocationName.value : null,
+    summary: data.data?.summary || null,
   }
   step.value = 4
 }
@@ -1588,6 +1618,7 @@ async function handleActionSelect(type) {
         message: response.data.message || actionLabels[type] || 'สำเร็จ',
         time: timeStr,
         location: scanType.value === 'remote_scan' ? customLocationName.value : null,
+        summary: response.data.data?.summary || response.data.summary || null,
       }
       step.value = 4
 
@@ -1615,6 +1646,27 @@ function retryScan() {
   step.value = 3
 }
 
+function formatSummaryDate(dateStr) {
+  if (!dateStr) return '-'
+  try {
+    return new Date(dateStr + 'T00:00:00').toLocaleDateString('th-TH', {
+      weekday: 'short', year: 'numeric', month: 'short', day: 'numeric',
+    })
+  } catch {
+    return dateStr
+  }
+}
+
+function formatWorkedHours(hours) {
+  if (hours == null) return '-'
+  const totalMin = Math.round(Number(hours) * 60)
+  const h = Math.floor(totalMin / 60)
+  const m = totalMin % 60
+  if (h <= 0) return `${m} นาที`
+  if (m <= 0) return `${h} ชม.`
+  return `${h} ชม. ${m} นาที`
+}
+
 function reset() {
   step.value = 1
   selectedCompany.value = null
@@ -1622,7 +1674,7 @@ function reset() {
   searchQuery.value = ''
   employees.value = []
   scanningError.value = ''
-  result.value = { success: false, message: '', time: '', location: '' }
+  result.value = { success: false, message: '', time: '', location: '', summary: null }
   scanType.value = 'office_scan'
   scanMode.value = 'verify_only'
   capturedImage.value = null

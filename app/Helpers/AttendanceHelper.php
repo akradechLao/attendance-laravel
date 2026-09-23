@@ -3,6 +3,7 @@
 namespace App\Helpers;
 
 use App\Models\AttendanceLog;
+use App\Models\AutoOtRecord;
 use App\Models\Employee;
 use App\Services\ShiftResolver;
 use Carbon\Carbon;
@@ -132,5 +133,34 @@ class AttendanceHelper
             ->first();
 
         return $log?->check_out;
+    }
+
+    /**
+     * สรุปผลเช็คเอาท์สำหรับแสดงหลังกดออกงาน:
+     * วันที่, เวลาเข้า-ออก, ชั่วโมงที่ทำงาน (หักพักแล้ว), มีโอทีไหมกี่ชั่วโมง
+     */
+    public static function buildCheckoutSummary(int $empId, string $date): array
+    {
+        $firstIn = self::getFirstCheckIn($empId, $date);
+        $lastOut = self::getLastCheckOut($empId, $date);
+        $workedHours = self::calculateWorkedHours($empId, $date);
+
+        $otMinutes = (int) AutoOtRecord::where('emp_id', $empId)
+            ->where('date', $date)
+            ->sum('ot_minutes');
+
+        return [
+            'date' => $date,
+            'check_in' => $firstIn
+                ? Carbon::parse($firstIn)->format('H:i')
+                : null,
+            'check_out' => $lastOut
+                ? Carbon::parse($lastOut)->format('H:i')
+                : null,
+            'worked_hours' => $workedHours,
+            'ot_minutes' => $otMinutes,
+            'ot_hours' => $otMinutes > 0 ? round($otMinutes / 60, 2) : 0,
+            'has_ot' => $otMinutes > 0,
+        ];
     }
 }

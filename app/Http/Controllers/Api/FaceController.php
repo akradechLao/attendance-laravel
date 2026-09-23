@@ -15,6 +15,7 @@ use App\Models\LeaveRequest;
 use App\Models\LeaveType;
 use App\Services\SystemConfigService;
 use App\Helpers\AttendanceCalculator;
+use App\Helpers\AttendanceHelper;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -448,11 +449,14 @@ class FaceController extends Controller
 
                 $roundLabel = $log->round_no > 1 ? ' (รอบที่ ' . $log->round_no . ')' : '';
 
+                $summary = AttendanceHelper::buildCheckoutSummary($employee->id, $logDate);
+
                 return response()->json([
                     'success' => true,
                     'data' => [
                         'attendance_log' => $log->fresh(),
                         'face_match' => $result,
+                        'summary' => $summary,
                     ],
                     'message' => 'เช็คเอาท์สำเร็จ' . $roundLabel . ($wasEstimated ? ' (แก้ไขจากระบบ auto-checkout)' : ''),
                 ]);
