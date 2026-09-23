@@ -25,9 +25,12 @@ class PermissionController extends Controller
     {
         $request->validate(['role' => 'required|in:' . implode(',', RoleConstants::ALL)]);
 
-        $employee = Employee::findOrFail($id);
+        $user = $request->user();
+        $employee = Employee::where('id', $id)
+            ->where('company_id', $user->company_id)
+            ->firstOrFail();
 
-        if ($employee->id === $request->user()->id) {
+        if ($employee->id === $user->id) {
             return response()->json(['message' => 'ไม่สามารถเปลี่ยนสิทธิ์ตัวเองได้'], 400);
         }
 
@@ -40,7 +43,11 @@ class PermissionController extends Controller
     {
         $request->validate(['is_active' => 'required|boolean']);
 
-        $employee = Employee::findOrFail($id);
+        $user = $request->user();
+        $employee = Employee::where('id', $id)
+            ->where('company_id', $user->company_id)
+            ->firstOrFail();
+
         $employee->update(['is_active' => $request->is_active]);
 
         return response()->json(['message' => 'อัพเดทสถานะสำเร็จ', 'employee' => $employee]);
@@ -48,8 +55,16 @@ class PermissionController extends Controller
 
     public function resetPassword(Request $request, $id)
     {
-        $employee = Employee::findOrFail($id);
-        $employee->update(['password' => Hash::make('1234')]);
+        $user = $request->user();
+        $employee = Employee::where('id', $id)
+            ->where('company_id', $user->company_id)
+            ->firstOrFail();
+
+        $request->validate([
+            'password' => 'required|string|min:8',
+        ]);
+
+        $employee->update(['password' => Hash::make($request->password)]);
 
         return response()->json(['message' => 'รีเซ็ตรหัสผ่านสำเร็จ']);
     }

@@ -5,8 +5,10 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Employee;
 use App\Models\EmployeeFaceData;
+use App\Constants\RoleConstants;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class EmployeeController extends Controller
 {
@@ -359,13 +361,16 @@ class EmployeeController extends Controller
     public function resetPassword(Request $request, $id): JsonResponse
     {
         try {
-            $employee = Employee::findOrFail($id);
+            $user = $request->user();
+            $employee = Employee::where('id', $id)
+                ->where('company_id', $user->company_id)
+                ->firstOrFail();
 
             $request->validate([
-                'password' => 'required|string|min:4',
+                'password' => 'required|string|min:8',
             ]);
 
-            $employee->password = $request->password;
+            $employee->password = Hash::make($request->password);
             $employee->save();
 
             return response()->json([
