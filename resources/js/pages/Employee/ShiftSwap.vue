@@ -2,7 +2,7 @@
   <div class="min-h-screen bg-gray-50">
     <header class="bg-white border-b border-gray-200 shadow-sm">
       <div class="max-w-4xl mx-auto px-4 py-3 flex items-center gap-3">
-        <router-link to="/employee/menu" class="text-blue-500 active:text-blue-600">
+        <router-link to="/employee/time" class="text-blue-500 active:text-blue-600">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
           </svg>

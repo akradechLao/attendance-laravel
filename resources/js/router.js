@@ -54,6 +54,12 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/employee/time',
+    name: 'EmployeeTimeMenu',
+    component: () => import('./pages/Employee/TimeMenu.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/employee/ot',
     name: 'EmployeeOtRequest',
     component: () => import('./pages/Employee/OtRequest.vue'),

@@ -160,19 +160,19 @@
           </div>
         </router-link>
 
-        <!-- ขอโอที -->
-        <router-link v-if="hasOt" to="/employee/ot" class="block group">
+        <!-- ขอเพิ่มเวลา -->
+        <router-link to="/employee/time" class="block group">
           <div class="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-center">
             <div class="w-12 h-12 sm:w-14 sm:h-14 mx-auto rounded-2xl bg-amber-500 flex items-center justify-center mb-3 shadow-lg group-hover:scale-110 transition-transform">
               <svg class="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <h2 class="font-bold text-gray-800 text-sm sm:text-base">ขอโอที</h2>
-            <p class="text-gray-400 text-xs mt-1">ทำโอทีนอกเวลา</p>
+            <h2 class="font-bold text-gray-800 text-sm sm:text-base">ขอเพิ่มเวลา</h2>
+            <p class="text-gray-400 text-xs mt-1">เข้า/ออก โอที เปลี่ยน/ย้ายกะ</p>
             <div v-if="pendingCounts.ot > 0" class="mt-2 inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 text-amber-600 rounded-full text-[10px] font-medium border border-amber-200">
               <span class="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse"></span>
-              รออนุมัติ {{ pendingCounts.ot }}
+              โอทีค้าง {{ pendingCounts.ot }}
             </div>
           </div>
         </router-link>
@@ -191,32 +191,6 @@
               <span class="w-1.5 h-1.5 bg-amber-400 rounded-full animate-pulse"></span>
               รออนุมัติ {{ pendingCounts.wfh }}
             </div>
-          </div>
-        </router-link>
-
-        <!-- ขอย้ายเวร -->
-        <router-link v-if="hasShifts" to="/employee/shift-swap" class="block group">
-          <div class="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-center">
-            <div class="w-12 h-12 sm:w-14 sm:h-14 mx-auto rounded-2xl bg-pink-500 flex items-center justify-center mb-3 shadow-lg group-hover:scale-110 transition-transform">
-              <svg class="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-              </svg>
-            </div>
-            <h2 class="font-bold text-gray-800 text-sm sm:text-base">ขอย้ายเวร</h2>
-            <p class="text-gray-400 text-xs mt-1">สลับเวรกับเพื่อน</p>
-          </div>
-        </router-link>
-
-        <!-- ร้องขอเข้ากะ -->
-        <router-link v-if="hasShifts" to="/employee/shift-request" class="block group">
-          <div class="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-center">
-            <div class="w-12 h-12 sm:w-14 sm:h-14 mx-auto rounded-2xl bg-indigo-500 flex items-center justify-center mb-3 shadow-lg group-hover:scale-110 transition-transform">
-              <svg class="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <h2 class="font-bold text-gray-800 text-sm sm:text-base">ร้องขอเข้ากะ</h2>
-            <p class="text-gray-400 text-xs mt-1">ขอ/แก้/ลบกะ</p>
           </div>
         </router-link>
 
