@@ -28,10 +28,11 @@
             <div v-if="r.reason" class="col-span-2">เหตุผล: {{ r.reason }}</div>
           </div>
 
-          <div class="flex gap-2">
+          <div v-if="canAct" class="flex gap-2">
             <button @click="approve(r.id)" class="flex-1 py-2 bg-emerald-500 text-white rounded-xl text-sm font-medium hover:bg-emerald-600 transition-colors">อนุมัติ</button>
             <button @click="showRejectModal(r)" class="flex-1 py-2 bg-red-500 text-white rounded-xl text-sm font-medium hover:bg-red-600 transition-colors">ปฏิเสธ</button>
           </div>
+          <div v-else class="text-xs text-gray-400">คุณไม่มีสิทธิ์อนุมัติรายการนี้ — รออนุมัติโดยหัวหน้า</div>
         </div>
       </div>
 
@@ -59,8 +60,15 @@ const loading = ref(true)
 const requests = ref([])
 const rejectModal = ref(null)
 const rejectNote = ref('')
+const canAct = ref(false)
 
-onMounted(() => loadRequests())
+onMounted(async () => {
+  try {
+    const capRes = await api.get('/api/auth/approval-capabilities')
+    if (capRes.data.success) canAct.value = !!capRes.data.data?.shift_request
+  } catch { /* ignore */ }
+  await loadRequests()
+})
 
 async function loadRequests() {
   loading.value = true

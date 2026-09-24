@@ -70,6 +70,22 @@ class ShiftSwapController extends Controller
 
         $swap = ShiftSwap::create($validated);
 
+        // Notify chain + delegated supervisors (in-app) - same pattern as leave/ot/wfh
+        $supervisorIds = method_exists($employee, 'getApproverIdsToNotify')
+            ? $employee->getApproverIdsToNotify('shift_swap')
+            : $employee->getSupervisorIds();
+        if (!empty($supervisorIds)) {
+            \App\Models\EmployeeNotification::notifyMultiple(
+                $supervisorIds,
+                'shift_swap_request',
+                'มีคำขอสลับเวรใหม่',
+                "{$employee->name} ({$employee->employee_code}) ขอสลับเวร {$validated['requester_shift']} ⇄ {$validated['target_shift']} วันที่ {$validated['swap_date']}"
+                    . (!empty($validated['reason']) ? " เหตุผล: {$validated['reason']}" : ''),
+                $swap->id,
+                'ShiftSwap'
+            );
+        }
+
         return response()->json([
             'success' => true,
             'data' => $swap->load(['requester:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id', 'target:id,employee_code,name,nickname,photo,company_id,position,department,division,has_ot,is_active,reports_to,supervisor_name,office_location_id']),
@@ -85,7 +101,8 @@ class ShiftSwapController extends Controller
             return response()->json(['success' => false, 'message' => 'รายการนี้ดำเนินการแล้ว'], 400);
         }
 
-        // Authorization: must be subordinate / delegated approver / HR admin
+        // Authorization: หัวหน้าตามสิทธิ์เท่านั้น (chain + delegated) + super_admin
+        // HR/admin (AdminUser role=admin) ดูได้แต่ไม่อนุมัติ - ต้องใช้ approval_rights / chain
         $user = $request->user();
         if (method_exists($user, 'canApproveRequest')) {
             if (!$user->canApproveRequest($swap->requester_id, 'shift_swap')
@@ -94,12 +111,14 @@ class ShiftSwapController extends Controller
             }
         } else {
             $userRole = $user->role ?? 'employee';
-            if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
-                if (!$user->isSubordinateOf($swap->requester_id) && !$user->isSubordinateOf($swap->target_id)) {
-                    return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
+            if ($userRole === RoleConstants::SUPER_ADMIN) {
+                if ($swap->requester?->company_id !== $user->company_id) {
+                    return response()->json(['success' => false, 'message' => 'Forbidden: cross-company access denied'], 403);
                 }
-            } elseif ($swap->requester?->company_id !== $user->company_id) {
-                return response()->json(['success' => false, 'message' => 'Forbidden: cross-company access denied'], 403);
+            } elseif ($userRole === RoleConstants::ADMIN) {
+                return response()->json(['success' => false, 'message' => 'Forbidden: HR ดูได้แต่อนุมัติสลับเวรไม่ได้'], 403);
+            } else {
+                return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
             }
         }
 
@@ -125,13 +144,33 @@ class ShiftSwapController extends Controller
         }
 
         $swap->update([
-            // shift_swaps.supervisor_id is FK'd to admin_users - derive it from
-            // the authenticated approver instead of trusting a client-supplied
-            // value, and only store it when the approver really is an AdminUser.
-            'supervisor_id' => $user instanceof \App\Models\AdminUser ? $user->id : null,
+            // supervisor_id is FK -> employees: only store when the approver is an Employee
+            // (AdminUser super_admin break-glass has no employees row).
+            'supervisor_id' => $user instanceof Employee ? $user->id : null,
             'supervisor_note' => $request->get('supervisor_note', ''),
             'status' => 'approved',
         ]);
+
+        // Notify requester (+ target) of approval
+        $approverText = $user instanceof Employee
+            ? "คุณ {$user->name}"
+            : (($user->role ?? '') === 'super_admin' ? 'ผู้ดูแลระบบ' : 'ผู้อนุมัติ');
+        \App\Models\EmployeeNotification::notify(
+            $swap->requester_id,
+            'shift_swap_approved',
+            '✅ อนุมัติสลับเวร',
+            "คำขอสลับเวรวันที่ {$swap->swap_date} ได้รับการอนุมัติโดย {$approverText}",
+            $swap->id,
+            'ShiftSwap'
+        );
+        \App\Models\EmployeeNotification::notify(
+            $swap->target_id,
+            'shift_swap_approved',
+            '✅ อนุมัติสลับเวร',
+            "คำขอสลับเวรวันที่ {$swap->swap_date} ได้รับการอนุมัติโดย {$approverText}",
+            $swap->id,
+            'ShiftSwap'
+        );
 
         // Create replacement day off leave request if requested
         if ($swap->request_replacement_day) {
@@ -173,7 +212,7 @@ class ShiftSwapController extends Controller
     {
         $swap = ShiftSwap::findOrFail($id);
 
-        // Authorization: must be subordinate / delegated approver / HR admin
+        // Authorization: same as approve() - หัวหน้าตามสิทธิ์ + super_admin only
         $user = $request->user();
         if (method_exists($user, 'canApproveRequest')) {
             if (!$user->canApproveRequest($swap->requester_id, 'shift_swap')
@@ -182,21 +221,44 @@ class ShiftSwapController extends Controller
             }
         } else {
             $userRole = $user->role ?? 'employee';
-            if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
-                if (!$user->isSubordinateOf($swap->requester_id) && !$user->isSubordinateOf($swap->target_id)) {
-                    return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
+            if ($userRole === RoleConstants::SUPER_ADMIN) {
+                if ($swap->requester?->company_id !== $user->company_id) {
+                    return response()->json(['success' => false, 'message' => 'Forbidden: cross-company access denied'], 403);
                 }
-            } elseif ($swap->requester?->company_id !== $user->company_id) {
-                return response()->json(['success' => false, 'message' => 'Forbidden: cross-company access denied'], 403);
+            } elseif ($userRole === RoleConstants::ADMIN) {
+                return response()->json(['success' => false, 'message' => 'Forbidden: HR ดูได้แต่อนุมัติสลับเวรไม่ได้'], 403);
+            } else {
+                return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
             }
         }
 
         $swap->update([
-            // see approve() - same reasoning for deriving this from $user
-            'supervisor_id' => $user instanceof \App\Models\AdminUser ? $user->id : null,
+            // see approve() - supervisor_id FK -> employees, Employee only
+            'supervisor_id' => $user instanceof Employee ? $user->id : null,
             'supervisor_note' => $request->get('supervisor_note', ''),
             'status' => 'rejected',
         ]);
+
+        $approverText = $user instanceof Employee
+            ? "คุณ {$user->name}"
+            : (($user->role ?? '') === 'super_admin' ? 'ผู้ดูแลระบบ' : 'ผู้อนุมัติ');
+        \App\Models\EmployeeNotification::notify(
+            $swap->requester_id,
+            'shift_swap_rejected',
+            '❌ ปฏิเสธสลับเวร',
+            "คำขอสลับเวรวันที่ {$swap->swap_date} ถูกปฏิเสธโดย {$approverText}"
+                . ($swap->supervisor_note ? " เหตุผล: {$swap->supervisor_note}" : ''),
+            $swap->id,
+            'ShiftSwap'
+        );
+        \App\Models\EmployeeNotification::notify(
+            $swap->target_id,
+            'shift_swap_rejected',
+            '❌ ปฏิเสธสลับเวร',
+            "คำขอสลับเวรวันที่ {$swap->swap_date} ถูกปฏิเสธโดย {$approverText}",
+            $swap->id,
+            'ShiftSwap'
+        );
 
         return response()->json([
             'success' => true,

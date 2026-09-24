@@ -98,4 +98,55 @@ class LoginController extends Controller
             ], 500);
         }
     }
+
+    /**
+     * Which approval types this user may act on (for menu / button visibility).
+     * Must stay in sync with approve/reject permission checks:
+     * - shift_swap/shift_request: super_admin or Employee chain/delegated rights only
+     * - other types: admin/super_admin role, or Employee with chain/delegated rights
+     */
+    public function approvalCapabilities(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+            $types = ['leave', 'ot', 'wfh', 'shift_swap', 'shift_request'];
+            $caps = [];
+
+            $isAdminUser = $user instanceof AdminUser;
+            $userRole = $user->role ?? 'employee';
+
+            foreach ($types as $type) {
+                if ($isAdminUser) {
+                    if ($userRole === 'super_admin') {
+                        $caps[$type] = true;
+                    } elseif ($userRole === 'admin') {
+                        $isShiftType = in_array($type, ['shift_swap', 'shift_request'], true);
+                        $caps[$type] = !$isShiftType;
+                    } else {
+                        $caps[$type] = false;
+                    }
+                } elseif (method_exists($user, 'canApproveTypeGlobally')) {
+                    $caps[$type] = $user->canApproveTypeGlobally($type);
+                } else {
+                    $caps[$type] = false;
+                }
+            }
+
+            // estimated_checkout is admin-role only today (PendingApprovals scope)
+            $caps['estimated_checkout'] = $isAdminUser
+                ? in_array($userRole, ['admin', 'super_admin'], true)
+                : false;
+
+            return response()->json([
+                'success' => true,
+                'data' => $caps,
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'Failed to load approval capabilities: ' . $e->getMessage(),
+            ], 500);
+        }
+    }
 }

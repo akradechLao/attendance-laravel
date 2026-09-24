@@ -13,10 +13,11 @@
           <div class="text-sm text-gray-500">วันที่: {{ formatDate(swap.swap_date) }}</div>
           <div class="text-sm text-gray-500">กะ: {{ swap.requester_shift }} → {{ swap.target_shift }}</div>
           <div v-if="swap.reason" class="text-sm text-gray-500">เหตุผล: {{ swap.reason }}</div>
-          <div class="mt-3 flex gap-2">
+          <div v-if="canAct" class="mt-3 flex gap-2">
             <button @click="approve(swap)" class="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700">อนุมัติ</button>
             <button @click="reject(swap)" class="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700">ปฏิเสธ</button>
           </div>
+          <div v-else class="mt-3 text-xs text-gray-400">คุณไม่มีสิทธิ์อนุมัติรายการนี้ — รออนุมัติโดยหัวหน้า</div>
         </div>
       </div>
     </div>
@@ -55,11 +56,16 @@ import AppLayout from '@/layouts/AppLayout.vue'
 
 const swaps = ref([])
 const toast = ref(null)
+const canAct = ref(false)
 const supervisorId = computed(() => state.user?.id)
 const pending = computed(() => swaps.value.filter(s => s.status === 'pending'))
 const processed = computed(() => swaps.value.filter(s => s.status !== 'pending'))
 
 const loadData = async () => {
+  try {
+    const capRes = await api.get('/api/auth/approval-capabilities')
+    if (capRes.data.success) canAct.value = !!capRes.data.data?.shift_swap
+  } catch { /* ignore */ }
   try {
     const res = await api.get('/api/shift-swaps/team-swaps', { params: { supervisor_id: supervisorId.value } })
     swaps.value = res.data.data || []

@@ -187,6 +187,9 @@ watch(sidebarCollapsed, (val) => {
   localStorage.setItem('sidebar_collapsed', val ? '1' : '0')
 })
 const pendingCount = ref(0)
+// สิทธิ์อนุมัติรายประเภทจาก backend — ใช้ซ่อน deep-link ที่ user จริงอนุมัติไม่ได้
+// (shift_swap/shift_request: เฉพาะหัวหน้า chain/delegated + super_admin)
+const approvalCaps = ref(null)
 
 const fetchPendingCount = async () => {
   try {
@@ -196,7 +199,17 @@ const fetchPendingCount = async () => {
   } catch (e) { /* silent */ }
 }
 
-onMounted(() => { fetchPendingCount() })
+const fetchApprovalCaps = async () => {
+  try {
+    const res = await api.get('/api/auth/approval-capabilities')
+    if (res.data.success) approvalCaps.value = res.data.data
+  } catch (e) { /* silent - fail closed for restricted menus */ }
+}
+
+onMounted(() => {
+  fetchPendingCount()
+  fetchApprovalCaps()
+})
 
 const userRole = computed(() => store.user?.role || 'employee')
 const isAdmin = computed(() => ['admin', 'super_admin'].includes(userRole.value))
@@ -238,11 +251,12 @@ const navItems = [
   { path: '/ot-summary', label: 'สรุป OT', icon: '📊', minRole: 'admin' },
   { section: 'อนุมัติ (หัวหน้างาน)', minRole: 'employee' },
   { path: '/supervisor/leave-approval', label: 'อนุมัติลางาน', icon: '✅', minRole: 'employee' },
+  // deep-link สลับเวร/เข้ากะ: หัวหน้าที่มีสิทธิ์จริง (chain/delegated/super_admin) เท่านั้น
+  { path: '/shift-swap-approval', label: 'อนุมัติสลับเวร', icon: '✅', minRole: 'employee', requireCap: 'shift_swap' },
+  { path: '/shift-request-approval', label: 'อนุมัติร้องขอเข้ากะ', icon: '⏰', minRole: 'employee', requireCap: 'shift_request' },
   { section: 'อนุมัติ (HR/Admin)', minRole: 'admin' },
   { path: '/leave-approval', label: 'อนุมัติลางาน', icon: '✅', minRole: 'admin' },
   { path: '/wfh-approval', label: 'อนุมัติ WFH', icon: '✅', minRole: 'admin' },
-  { path: '/shift-swap-approval', label: 'อนุมัติสลับเวร', icon: '✅', minRole: 'admin' },
-  { path: '/shift-request-approval', label: 'อนุมัติร้องขอเข้ากะ', icon: '⏰', minRole: 'admin' },
   { section: 'ปฏิบัติงานนอกสถานที่', minRole: 'admin' },
   { path: '/remote-assignments', label: 'มอบหมายงานนอกสถานที่', icon: '📍', minRole: 'admin' },
   { path: '/location-history', label: 'ประวัติ Location', icon: '🗺', minRole: 'admin' },
@@ -269,6 +283,10 @@ const roleHierarchy = { employee: 0, admin: 1, super_admin: 2 }
 
 const filteredNavItems = computed(() => {
   return navItems.filter(item => {
+    if (item.requireCap) {
+      // ซ่อนถ้ายังโหลดไม่เสร็จ หรือ backend บอกว่าไม่มีสิทธิ์จริง
+      if (!approvalCaps.value || !approvalCaps.value[item.requireCap]) return false
+    }
     if (!item.minRole) return true
     return (roleHierarchy[userRole.value] || 0) >= (roleHierarchy[item.minRole] || 0)
   })

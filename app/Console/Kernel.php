@@ -21,6 +21,12 @@ class Kernel extends ConsoleKernel
             ->dailyAt('17:30')
             ->timezone('Asia/Bangkok')
             ->withoutOverlapping();
+
+        // แจ้งหัวหน้าซ้ำเมื่อคำขอสลับเวร/เข้ากะค้างนานเกิน 24 ชม.
+        $schedule->command('approval:remind-stale', ['--hours' => 24])
+            ->hourlyAt(15)
+            ->timezone('Asia/Bangkok')
+            ->withoutOverlapping();
     }
 
     protected function commands(): void

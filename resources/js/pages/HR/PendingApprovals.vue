@@ -56,17 +56,21 @@
                   </div>
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
-                  <button @click="approve(item)"
-                          :disabled="processing"
-                          class="px-3 py-1.5 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600 disabled:opacity-50">
-                    อนุมัติ
-                  </button>
-                  <button v-if="item.reject_url"
-                          @click="reject(item)"
-                          :disabled="processing"
-                          class="px-3 py-1.5 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 disabled:opacity-50">
-                    ปฏิเสธ
-                  </button>
+                  <!-- ยังเห็นรายการได้เสมอ (HR ใช้ตามหัวหน้า) แต่ถ้าไม่มีสิทธิ์อนุมัติจริงจะไม่แสดงปุ่ม -->
+                  <template v-if="canAct(section.key)">
+                    <button @click="approve(item)"
+                            :disabled="processing"
+                            class="px-3 py-1.5 bg-green-500 text-white text-sm font-medium rounded-lg hover:bg-green-600 disabled:opacity-50">
+                      อนุมัติ
+                    </button>
+                    <button v-if="item.reject_url"
+                            @click="reject(item)"
+                            :disabled="processing"
+                            class="px-3 py-1.5 bg-red-500 text-white text-sm font-medium rounded-lg hover:bg-red-600 disabled:opacity-50">
+                      ปฏิเสธ
+                    </button>
+                  </template>
+                  <span v-else class="text-xs text-gray-400">รอดำเนินการโดยหัวหน้า</span>
                 </div>
               </div>
             </div>
@@ -154,6 +158,24 @@ const showRejectModal = ref(false)
 const rejectItem = ref(null)
 const rejectReason = ref('')
 const toast = ref(null)
+// สิทธิ์อนุมัติรายประเภท — HR เห็น shift_swap/shift_request ได้ แต่ปุ่มซ่อนถ้า backend ไม่ให้ acting
+const caps = ref(null)
+
+const canAct = (sectionKey) => {
+  const isShift = sectionKey === 'shift_swap' || sectionKey === 'shift_request'
+  // ยังโหลดไม่เสร็จ: ซ่อนเฉพาะ deep-link ที่ต้องสิทธิ์จริง; leave/ot ฯลฯ แสดงตามเดิม
+  if (!caps.value) return !isShift
+  // ประเภทที่ backend ไม่ได้ key มา (เช่น remote) = อนุญาตตาม behavior เดิม
+  if (!(sectionKey in caps.value)) return true
+  return !!caps.value[sectionKey]
+}
+
+const loadCaps = async () => {
+  try {
+    const res = await api.get('/api/auth/approval-capabilities')
+    if (res.data.success) caps.value = res.data.data
+  } catch { /* ignore */ }
+}
 
 // The API returns the first page of every section plus the true totals,
 // so `counts` stays accurate even when only some rows are loaded.
@@ -236,5 +258,7 @@ const showToast = (type, message) => {
   setTimeout(() => toast.value = null, 3000)
 }
 
-onMounted(loadData)
+onMounted(async () => {
+  await Promise.all([loadData(), loadCaps()])
+})
 </script>

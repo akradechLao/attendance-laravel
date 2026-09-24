@@ -76,6 +76,22 @@ class ShiftRequestController extends Controller
 
             $shiftReq->load('workShift');
 
+            // Notify chain + delegated supervisors (in-app)
+            $supervisorIds = method_exists($employee, 'getApproverIdsToNotify')
+                ? $employee->getApproverIdsToNotify('shift_request')
+                : $employee->getSupervisorIds();
+            if (!empty($supervisorIds)) {
+                \App\Models\EmployeeNotification::notifyMultiple(
+                    $supervisorIds,
+                    'shift_request_request',
+                    'มีคำขอร้องขอเข้ากะใหม่',
+                    "{$employee->name} ({$employee->employee_code}) ขอ{$validated['request_type']} กะ วันที่ {$validated['start_date']}"
+                        . (!empty($validated['reason']) ? " เหตุผล: {$validated['reason']}" : ''),
+                    $shiftReq->id,
+                    'ShiftRequest'
+                );
+            }
+
             return response()->json([
                 'success' => true,
                 'data' => [
@@ -259,10 +275,12 @@ class ShiftRequestController extends Controller
                 }
             } else {
                 $userRole = $user->role ?? 'employee';
-                if (!in_array($userRole, ['admin', 'super_admin'])) {
-                    if (!$user->isSubordinateOf($shiftReq->emp_id)) {
-                        return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
-                    }
+                if ($userRole === 'super_admin') {
+                    // break-glass OK (company scope via HasCompanyScope already applied)
+                } elseif ($userRole === 'admin') {
+                    return response()->json(['success' => false, 'message' => 'Forbidden: HR ดูได้แต่อนุมัติร้องขอเข้ากะไม่ได้'], 403);
+                } else {
+                    return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
                 }
             }
 
@@ -274,7 +292,8 @@ class ShiftRequestController extends Controller
 
             $shiftReq->update([
                 'status' => 'approved',
-                'supervisor_id' => $user->id,
+                // supervisor_id FK -> employees: only Employee approvers (super_admin AdminUser has no employees row)
+                'supervisor_id' => $user instanceof Employee ? $user->id : null,
                 'supervisor_note' => $validated['supervisor_note'] ?? null,
             ]);
 
@@ -314,6 +333,15 @@ class ShiftRequestController extends Controller
 
             DB::commit();
 
+            \App\Models\EmployeeNotification::notify(
+                $shiftReq->emp_id,
+                'shift_request_approved',
+                '✅ อนุมัติร้องขอเข้ากะ',
+                "คำขอ{$shiftReq->request_type} กะ วันที่ {$shiftReq->start_date} ได้รับการอนุมัติ",
+                $shiftReq->id,
+                'ShiftRequest'
+            );
+
             return response()->json([
                 'success' => true,
                 'message' => 'อนุมัติคำขอเรียบร้อย',
@@ -348,10 +376,12 @@ class ShiftRequestController extends Controller
                 }
             } else {
                 $userRole = $user->role ?? 'employee';
-                if (!in_array($userRole, ['admin', 'super_admin'])) {
-                    if (!$user->isSubordinateOf($shiftReq->emp_id)) {
-                        return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
-                    }
+                if ($userRole === 'super_admin') {
+                    // break-glass OK
+                } elseif ($userRole === 'admin') {
+                    return response()->json(['success' => false, 'message' => 'Forbidden: HR ดูได้แต่อนุมัติร้องขอเข้ากะไม่ได้'], 403);
+                } else {
+                    return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
                 }
             }
 
@@ -361,9 +391,18 @@ class ShiftRequestController extends Controller
 
             $shiftReq->update([
                 'status' => 'rejected',
-                'supervisor_id' => $user->id,
+                'supervisor_id' => $user instanceof Employee ? $user->id : null,
                 'supervisor_note' => $validated['supervisor_note'],
             ]);
+
+            \App\Models\EmployeeNotification::notify(
+                $shiftReq->emp_id,
+                'shift_request_rejected',
+                '❌ ปฏิเสธคำขอเข้ากะ',
+                "คำขอ{$shiftReq->request_type} กะ วันที่ {$shiftReq->start_date} ถูกปฏิเสธ เหตุผล: {$validated['supervisor_note']}",
+                $shiftReq->id,
+                'ShiftRequest'
+            );
 
             return response()->json([
                 'success' => true,

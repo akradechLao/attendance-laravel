@@ -181,6 +181,7 @@ Route::middleware('auth:sanctum')->group(function () {
     // Auth
     Route::post('/auth/logout', [LoginController::class, 'logout']);
     Route::get('/auth/me', [LoginController::class, 'me']);
+    Route::get('/auth/approval-capabilities', [LoginController::class, 'approvalCapabilities']);
     Route::get('/auth/profile', [App\Http\Controllers\Auth\AdminProfileController::class, 'show']);
     Route::put('/auth/profile', [App\Http\Controllers\Auth\AdminProfileController::class, 'update']);
 

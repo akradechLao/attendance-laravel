@@ -279,7 +279,11 @@ class Employee extends Authenticatable
             return true;
         }
 
-        if ($userRole === RoleConstants::ADMIN) {
+        // shift_swap / shift_request: หัวหน้าตามสิทธิ์เท่านั้น (chain + delegated)
+        // admin role ไม่ได้สิทธิ์ blanket เหมือน leave/ot/wfh - เว้นแต่ super_admin
+        $isShiftType = in_array($type, ['shift_swap', 'shift_request'], true);
+
+        if ($userRole === RoleConstants::ADMIN && !$isShiftType) {
             $requester = Employee::find($requesterId);
             return (bool) $requester
                 && $this->company_id !== null
@@ -291,6 +295,35 @@ class Employee extends Authenticatable
         }
 
         return ApprovalRight::canApprove($this->id, $requesterId, $type);
+    }
+
+    /**
+     * Whether this employee can act on ANY request of $type (menu capability).
+     * shift_swap/shift_request only via super_admin / chain / delegated rights.
+     */
+    public function canApproveTypeGlobally(string $type): bool
+    {
+        $userRole = $this->role ?? RoleConstants::EMPLOYEE;
+
+        if ($userRole === RoleConstants::SUPER_ADMIN) {
+            return true;
+        }
+
+        $isShiftType = in_array($type, ['shift_swap', 'shift_request'], true);
+
+        if ($userRole === RoleConstants::ADMIN && !$isShiftType && $this->company_id !== null) {
+            return true;
+        }
+
+        if (!empty($this->getAllSubordinateIds())) {
+            return true;
+        }
+
+        if (ApprovalRight::isDelegatableType($type)) {
+            return ApprovalRight::targetIdsFor($this->id, $type) !== [];
+        }
+
+        return false;
     }
 
     /**

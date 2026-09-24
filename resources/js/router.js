@@ -231,13 +231,15 @@ const routes = [
     path: '/shift-swap-approval',
     name: 'HrShiftSwapApproval',
     component: () => import('./pages/HR/ShiftSwapApproval.vue'),
-    meta: { requiresAuth: true, layout: 'app', requiresRole: 'admin' }
+    // minRole employee: หัวหน้าที่มี approval_rights/chain ต้องเข้าถึงได้
+    // (AdminUser admin ถูก backend deny ตอน approve อยู่ดี)
+    meta: { requiresAuth: true, layout: 'app', requiresRole: 'employee' }
   },
   {
     path: '/shift-request-approval',
     name: 'HrShiftRequestApproval',
     component: () => import('./pages/HR/ShiftRequestApproval.vue'),
-    meta: { requiresAuth: true, layout: 'app', requiresRole: 'admin' }
+    meta: { requiresAuth: true, layout: 'app', requiresRole: 'employee' }
   },
   {
     path: '/remote-assignments',

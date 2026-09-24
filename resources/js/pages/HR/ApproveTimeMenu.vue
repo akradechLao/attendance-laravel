@@ -50,8 +50,8 @@
         </div>
       </router-link>
 
-      <!-- Shift request (เปลี่ยนกะ) -->
-      <router-link v-if="isAdmin" to="/shift-request-approval" class="block group">
+      <!-- Shift request (เปลี่ยนกะ) — ซ่อนถ้าไม่มีสิทธิ์อนุมัติจริง (chain/delegated/super_admin) -->
+      <router-link v-if="caps?.shift_request" to="/shift-request-approval" class="block group">
         <div class="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
           <div class="flex items-center gap-4">
             <div class="w-12 h-12 rounded-xl bg-indigo-600 flex items-center justify-center shrink-0 shadow">
@@ -69,8 +69,8 @@
         </div>
       </router-link>
 
-      <!-- Shift swap (ย้ายกะ) -->
-      <router-link v-if="isAdmin" to="/shift-swap-approval" class="block group">
+      <!-- Shift swap (ย้ายกะ) — ซ่อนถ้าไม่มีสิทธิ์อนุมัติจริง -->
+      <router-link v-if="caps?.shift_swap" to="/shift-swap-approval" class="block group">
         <div class="bg-white rounded-2xl p-5 border border-gray-200 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all">
           <div class="flex items-center gap-4">
             <div class="w-12 h-12 rounded-xl bg-pink-500 flex items-center justify-center shrink-0 shadow">
@@ -107,6 +107,7 @@ import api from '../../services/api'
 const isAdmin = computed(() => ['admin', 'super_admin'].includes(store.user?.role))
 const isManager = computed(() => store.user?.role === 'manager' || store.user?.position_level === 'manager')
 const role = computed(() => store.user?.role || 'employee')
+const caps = ref(null)
 
 const counts = ref({
   ot: 0,
@@ -126,6 +127,10 @@ const totalCount = computed(() =>
 )
 
 onMounted(async () => {
+  try {
+    const capRes = await api.get('/api/auth/approval-capabilities')
+    if (capRes.data.success) caps.value = capRes.data.data
+  } catch { /* ignore */ }
   try {
     const res = await api.get('/api/pending-approvals', { params: { counts_only: 1 } })
     if (res.data.success) {
