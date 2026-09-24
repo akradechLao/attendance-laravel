@@ -155,6 +155,24 @@ class FaceController extends Controller
                 $isOvernight = $shiftInfo['is_overnight'];
                 $resolvedShift = $shiftInfo['resolved'];
 
+                // ─── ยังมีรอบโอทีค้างอยู่ (เช่น โอทีก่อนเข้างานยังไม่เช็คเอาท์) → บล็อก ───
+                $openManualOt = AutoOtRecord::where('emp_id', $employee->id)
+                    ->where('ot_type', 'manual')
+                    ->whereNull('session_ended_at')
+                    ->whereDate('date', '>=', Carbon::parse($shiftStartDate)->subDay()->toDateString())
+                    ->first();
+                if ($openManualOt) {
+                    $otStart = $openManualOt->session_started_at
+                        ? self::timeOnlyOt($openManualOt->session_started_at)
+                        : null;
+                    $otStartLabel = $otStart ? substr($otStart, 0, 5) : '-';
+                    return response()->json([
+                        'success' => false,
+                        'data' => null,
+                        'message' => 'คุณมีรอบโอทีที่ยังไม่ได้เช็คเอาท์ (เริ่ม ' . $otStartLabel . ' น.) กรุณาเช็คเอาท์โอทีก่อนเช็คอินเข้างาน',
+                    ], 400);
+                }
+
                 $isRemote = $employee->hasActiveRemoteAssignment();
                 $officeLocation = $employee->getAssignedOfficeLocation();
 
@@ -289,6 +307,13 @@ class FaceController extends Controller
                 $originalStatus = $log['original_status'];
                 $nextRound = $log['next_round'];
                 $log = $log['log'];
+
+                // ─── link โอทีก่อนเข้างาน (ที่ยังไม่มี attendance_log) กับ log นี้ ───
+                AutoOtRecord::where('emp_id', $employee->id)
+                    ->whereDate('date', $shiftStartDate)
+                    ->whereNull('attendance_log_id')
+                    ->where('ot_type', 'manual')
+                    ->update(['attendance_log_id' => $log->id]);
 
                 // ─── สายเกิน threshold → บังคับลากิจ ───
                 $lateThreshold = SystemConfigService::get('late_threshold_minutes', 30);
@@ -475,20 +500,12 @@ class FaceController extends Controller
                 $shiftInfo = $this->getEmployeeShiftInfo($employee, $now);
                 $shiftStartDate = $shiftInfo['shift_start_date'];
 
-                // ต้องมี attendance log ของวันนั้น (เช็คอินเข้างานแล้ว) อย่างน้อย 1 รอบ
+                // attendance log ของวันนั้น (เช็คอินเข้างานแล้ว) — ถ้ายังไม่มี อนุญาตให้เริ่มโอทีก่อนเข้างานได้
                 $log = AttendanceLog::where('emp_id', $employee->id)
                     ->whereDate('date', $shiftStartDate)
                     ->whereNotNull('check_in')
                     ->orderBy('round_no', 'asc')
                     ->first();
-
-                if (!$log) {
-                    return response()->json([
-                        'success' => false,
-                        'data' => null,
-                        'message' => 'กรุณาเช็คอินเข้างานก่อนเริ่มทำโอที',
-                    ], 400);
-                }
 
                 $openOt = AutoOtRecord::where('emp_id', $employee->id)
                     ->where('ot_type', 'manual')
@@ -511,29 +528,41 @@ class FaceController extends Controller
                     ], 400);
                 }
 
+                // ยังไม่เช็คอินเข้างาน → โอทีก่อนเข้างาน (attendance_log_id = null, จะ link เมื่อเช็คอิน)
+                // เช็คอินแล้ว → โอทีหลังเลิกงาน (ผูกกับ log แรกของวัน)
+                $isBeforeCheckIn = !$log;
+                $resolvedStart = $shiftInfo['resolved']['start_time'] ?? null;
+                $resolvedEnd = $shiftInfo['resolved']['end_time'] ?? null;
+
                 $otRecord = AutoOtRecord::create([
                     'emp_id' => $employee->id,
-                    'attendance_log_id' => $log->id,
+                    'attendance_log_id' => $log?->id,
                     'date' => $shiftStartDate,
                     'ot_type' => 'manual',
                     'actual_time' => $now->format('H:i:s'),
-                    'shift_time' => ($shiftInfo['resolved']['end_time'] ?? '00:00'),
+                    'shift_time' => ($isBeforeCheckIn
+                        ? ($resolvedStart ?? $resolvedEnd ?? '00:00')
+                        : ($resolvedEnd ?? '00:00')),
                     'ot_minutes' => 0,
                     'session_started_at' => $now->format('H:i:s'),
                     'session_ended_at' => null,
                     'status' => 'pending',
-                    'reason' => 'เช็คอินโอทีด้วยตนเอง',
+                    'reason' => $isBeforeCheckIn
+                        ? 'เช็คอินโอทีก่อนเข้างาน'
+                        : 'เช็คอินโอทีด้วยตนเอง',
                 ]);
 
                 return response()->json([
                     'success' => true,
                     'data' => [
-                        'attendance_log' => $log->fresh(),
+                        'attendance_log' => $log?->fresh(),
                         'ot_record' => $otRecord,
                         'face_match' => $result,
                         'summary' => null,
                     ],
-                    'message' => 'เช็คอินโอทีสำเร็จ (' . $now->format('H:i') . ' น.) — ระบบจะนับชั่วโมงโอทีตามจริงเมื่อเช็คเอาท์โอที',
+                    'message' => $isBeforeCheckIn
+                        ? 'เช็คอินโอทีก่อนเข้างานสำเร็จ (' . $now->format('H:i') . ' น.) — กรุณาเช็คเอาท์โอทีให้เรียบร้อยก่อนเช็คอินเข้างาน'
+                        : 'เช็คอินโอทีสำเร็จ (' . $now->format('H:i') . ' น.) — ระบบจะนับชั่วโมงโอทีตามจริงเมื่อเช็คเอาท์โอที',
                 ], 201);
             }
 
@@ -595,7 +624,9 @@ class FaceController extends Controller
                     ], 400);
                 }
 
-                $log = AttendanceLog::find($updated['ot']->attendance_log_id);
+                $log = $updated['ot']->attendance_log_id
+                    ? AttendanceLog::find($updated['ot']->attendance_log_id)
+                    : null;
                 $summaryDate = $log
                     ? ($log->date instanceof Carbon ? $log->date->toDateString() : (string) $log->date)
                     : $updated['start_date'];
