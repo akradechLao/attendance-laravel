@@ -40,6 +40,16 @@ class EmployeeController extends Controller
                 $query->where('department', $request->department);
             }
 
+            if ($request->has('gender') && $request->gender !== '') {
+                if ($request->gender === 'unknown') {
+                    $query->where(function ($q) {
+                        $q->whereNull('gender')->orWhere('gender', '');
+                    });
+                } else {
+                    $query->where('gender', $request->gender);
+                }
+            }
+
             if ($request->boolean('shift_only')) {
                 $query->whereIn('id', function ($q) {
                     $q->select('employee_id')->from('employee_shifts')->groupBy('employee_id');
@@ -132,6 +142,7 @@ class EmployeeController extends Controller
                 'id_card' => 'nullable|string|max:13',
                 'social_security' => 'nullable|string|max:20',
                 'education' => 'nullable|string|max:255',
+                'gender' => 'nullable|string|in:male,female',
             ]);
 
             $user = $request->user();
@@ -184,6 +195,7 @@ class EmployeeController extends Controller
                 'id_card' => 'nullable|string|max:13',
                 'social_security' => 'nullable|string|max:20',
                 'education' => 'nullable|string|max:255',
+                'gender' => 'nullable|string|in:male,female',
             ]);
 
             $user = $request->user();

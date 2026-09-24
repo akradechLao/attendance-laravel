@@ -46,7 +46,16 @@
             <option value="">ทุกแผนก</option>
             <option v-for="d in departments" :key="d" :value="d">{{ d }}</option>
           </select>
+          <select v-model="selectedGender" class="input-field w-auto min-w-[130px]" @change="onFilterChange">
+            <option value="">ทุกเพศ</option>
+            <option value="male">ชาย</option>
+            <option value="female">หญิง</option>
+            <option value="unknown">ไม่ทราบเพศ</option>
+          </select>
         </div>
+        <p v-if="selectedGender === 'unknown'" class="mt-2 text-sm text-amber-600 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+          แสดงเฉพาะพนักงานที่ยังไม่มีข้อมูลเพศ — กดแก้ไขรายละเพื่อบันทึก
+        </p>
       </div>
 
       <!-- Loading -->
@@ -66,6 +75,7 @@
                   <th class="text-left px-6 py-3 text-sm font-semibold text-gray-600">บริษัท</th>
                   <th class="text-left px-6 py-3 text-sm font-semibold text-gray-600">ตำแหน่ง</th>
                   <th class="text-left px-6 py-3 text-sm font-semibold text-gray-600">แผนก</th>
+                  <th class="text-left px-6 py-3 text-sm font-semibold text-gray-600">เพศ</th>
                   <th class="text-center px-6 py-3 text-sm font-semibold text-gray-600">ใบหน้า</th>
                   <th class="text-center px-6 py-3 text-sm font-semibold text-gray-600">การดำเนินการ</th>
                 </tr>
@@ -89,6 +99,11 @@
                     </span>
                   </td>
                   <td class="px-6 py-4 text-gray-600">{{ employee.department }}</td>
+                  <td class="px-6 py-4">
+                    <span v-if="employee.gender === 'male'" class="text-gray-700">ชาย</span>
+                    <span v-else-if="employee.gender === 'female'" class="text-gray-700">หญิง</span>
+                    <span v-else class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700">ไม่ทราบ</span>
+                  </td>
                   <td class="px-6 py-4 text-center">
                     <span
                       v-if="employee.face_data_count > 0"
@@ -208,12 +223,22 @@
             <label class="block text-sm font-medium text-gray-700 mb-1">ตำแหน่ง</label>
             <input v-model="form.position" type="text" class="input-field" placeholder="เช่น กรรมการผู้จัดการ" />
           </div>
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">ระดับตำแหน่ง (สำหรับระบบสิทธิ์/การอนุมัติ)</label>
-            <select v-model="form.position_level" class="input-field">
-              <option value="">- ไม่ระบุ (พนักงานทั่วไป) -</option>
-              <option v-for="opt in positionLevelOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-            </select>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">เพศ</label>
+              <select v-model="form.gender" class="input-field">
+                <option value="">- ไม่ระบุ -</option>
+                <option value="male">ชาย</option>
+                <option value="female">หญิง</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">ระดับตำแหน่ง (สำหรับระบบสิทธิ์/การอนุมัติ)</label>
+              <select v-model="form.position_level" class="input-field">
+                <option value="">- ไม่ระบุ (พนักงานทั่วไป) -</option>
+                <option v-for="opt in positionLevelOptions" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+              </select>
+            </div>
           </div>
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1">แผนก</label>
@@ -277,6 +302,7 @@ const searchQuery = ref('')
 const selectedCompany = ref('')
 const selectedDivision = ref('')
 const selectedDepartment = ref('')
+const selectedGender = ref('')
 const divisions = ref([])
 const departments = ref([])
 const employees = ref([])
@@ -297,7 +323,8 @@ const form = reactive({
   company_id: '',
   position: '',
   position_level: '',
-  department: ''
+  department: '',
+  gender: ''
 })
 
 const totalPages = computed(() => Math.ceil(totalItems.value / perPage.value))
@@ -340,6 +367,7 @@ async function fetchEmployees() {
       company_id: selectedCompany.value || undefined,
       division: selectedDivision.value || undefined,
       department: selectedDepartment.value || undefined,
+      gender: selectedGender.value || undefined,
     }
     const response = await api.get('/api/employees', { params })
     const paginated = response.data.data
@@ -374,7 +402,8 @@ function editEmployee(employee) {
     company_id: employee.company_id,
     position: employee.position,
     position_level: employee.position_level || '',
-    department: employee.department
+    department: employee.department,
+    gender: employee.gender || ''
   })
   showEditModal.value = true
 }
@@ -387,7 +416,7 @@ function confirmDelete(employee) {
 async function saveEmployee() {
   saving.value = true
   try {
-    const payload = { ...form, position_level: form.position_level || null }
+    const payload = { ...form, position_level: form.position_level || null, gender: form.gender || null }
     if (showEditModal.value) {
       await api.put(`/api/employees/${editId.value}`, payload)
     } else {
@@ -421,7 +450,7 @@ function closeModal() {
   showAddModal.value = false
   showEditModal.value = false
   editId.value = null
-  Object.assign(form, { name: '', employee_code: '', company_id: '', position: '', position_level: '', department: '', id_card: '', social_security: '', education: '' })
+  Object.assign(form, { name: '', employee_code: '', company_id: '', position: '', position_level: '', department: '', gender: '', id_card: '', social_security: '', education: '' })
 }
 
 async function resetPassword(employee) {
