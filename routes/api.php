@@ -48,6 +48,7 @@ use App\Http\Controllers\Api\LeaveTypeController;
 use App\Http\Controllers\Api\ManualEntryController;
 use App\Http\Controllers\Api\ShiftRequestController;
 use App\Http\Controllers\Api\SystemConfigController;
+use App\Http\Controllers\Api\ApprovalRightController;
 
 /*
 |--------------------------------------------------------------------------
@@ -485,6 +486,12 @@ Route::middleware(['auth:sanctum', 'role:admin,super_admin'])->group(function ()
     Route::get('/system-config/key/{key}', [SystemConfigController::class, 'get']);
     Route::put('/system-config', [SystemConfigController::class, 'update']);
     Route::delete('/system-config/reset', [SystemConfigController::class, 'reset']);
+
+    // Delegated approval rights (谁能额外 approve ใคร)
+    Route::get('/approval-rights', [ApprovalRightController::class, 'index']);
+    Route::get('/approval-rights/candidates', [ApprovalRightController::class, 'candidates']);
+    Route::put('/approval-rights', [ApprovalRightController::class, 'save']);
+    Route::delete('/approval-rights/{id}', [ApprovalRightController::class, 'destroy']);
 });
 
 // ============================================================

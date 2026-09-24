@@ -111,15 +111,19 @@ class LeaveRequestController extends Controller
             return response()->json(['success' => false, 'message' => 'รายการนี้ดำเนินการแล้ว'], 400);
         }
 
-        // Authorization: must be subordinate or HR admin of the same company
+        // Authorization: must be subordinate / delegated approver / HR admin
         $user = $request->user();
-        $userRole = $user->role ?? 'employee';
-        if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
-            if (!$user->isSubordinateOf($leave->emp_id)) {
+        if (method_exists($user, 'canApproveRequest')) {
+            if (!$user->canApproveRequest($leave->emp_id, 'leave')) {
                 return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
             }
-        } elseif ($leave->company_id !== $user->company_id) {
-            return response()->json(['success' => false, 'message' => 'Forbidden: cross-company access denied'], 403);
+        } else {
+            $userRole = $user->role ?? 'employee';
+            if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
+                return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
+            } elseif ($leave->company_id !== $user->company_id) {
+                return response()->json(['success' => false, 'message' => 'Forbidden: cross-company access denied'], 403);
+            }
         }
         $employee = Employee::find($leave->emp_id);
         $leaveType = LeaveType::find($leave->leave_type_id);
@@ -162,15 +166,19 @@ class LeaveRequestController extends Controller
     {
         $leave = LeaveRequest::findOrFail($id);
 
-        // Authorization: must be subordinate or HR admin of the same company
+        // Authorization: must be subordinate / delegated approver / HR admin
         $user = $request->user();
-        $userRole = $user->role ?? 'employee';
-        if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
-            if (!$user->isSubordinateOf($leave->emp_id)) {
+        if (method_exists($user, 'canApproveRequest')) {
+            if (!$user->canApproveRequest($leave->emp_id, 'leave')) {
                 return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
             }
-        } elseif ($leave->company_id !== $user->company_id) {
-            return response()->json(['success' => false, 'message' => 'Forbidden: cross-company access denied'], 403);
+        } else {
+            $userRole = $user->role ?? 'employee';
+            if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
+                return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
+            } elseif ($leave->company_id !== $user->company_id) {
+                return response()->json(['success' => false, 'message' => 'Forbidden: cross-company access denied'], 403);
+            }
         }
 
         $leave->update([
@@ -284,7 +292,9 @@ class LeaveRequestController extends Controller
             return response()->json(['success' => false, 'message' => 'User not found'], 404);
         }
 
-        if (method_exists($user, 'getAllSubordinateIds')) {
+        if (method_exists($user, 'getApprovableIds')) {
+            $employeeIds = $user->getApprovableIds('leave');
+        } elseif (method_exists($user, 'getAllSubordinateIds')) {
             $employeeIds = $user->getAllSubordinateIds();
         } else {
             $employeeIds = \App\Models\Employee::where('company_id', $user->company_id)->pluck('id')->toArray();

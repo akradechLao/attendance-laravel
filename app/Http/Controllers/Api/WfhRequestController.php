@@ -115,11 +115,15 @@ class WfhRequestController extends Controller
             ], 400);
         }
 
-        // Authorization: must be subordinate or HR admin
+        // Authorization: must be subordinate / delegated approver / HR admin
         $user = $request->user();
-        $userRole = $user->role ?? 'employee';
-        if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
-            if (!$user->isSubordinateOf($record->emp_id)) {
+        if (method_exists($user, 'canApproveRequest')) {
+            if (!$user->canApproveRequest($record->emp_id, 'wfh')) {
+                return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
+            }
+        } else {
+            $userRole = $user->role ?? 'employee';
+            if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
                 return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
             }
         }
@@ -216,11 +220,15 @@ class WfhRequestController extends Controller
             ], 400);
         }
 
-        // Authorization: must be subordinate or HR admin
+        // Authorization: must be subordinate / delegated approver / HR admin
         $user = $request->user();
-        $userRole = $user->role ?? 'employee';
-        if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
-            if (!$user->isSubordinateOf($record->emp_id)) {
+        if (method_exists($user, 'canApproveRequest')) {
+            if (!$user->canApproveRequest($record->emp_id, 'wfh')) {
+                return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
+            }
+        } else {
+            $userRole = $user->role ?? 'employee';
+            if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
                 return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
             }
         }
@@ -336,7 +344,9 @@ class WfhRequestController extends Controller
         }
 
         $month = $request->get('month', now()->setTimezone('Asia/Bangkok')->format('Y-m'));
-        if (method_exists($user, 'getAllSubordinateIds')) {
+        if (method_exists($user, 'getApprovableIds')) {
+            $employeeIds = $user->getApprovableIds('wfh');
+        } elseif (method_exists($user, 'getAllSubordinateIds')) {
             $employeeIds = $user->getAllSubordinateIds();
         } else {
             $employeeIds = \App\Models\Employee::where('company_id', $user->company_id)->pluck('id')->toArray();

@@ -131,7 +131,9 @@ class EmployeeRequestController extends Controller
                 );
             } else {
                 // Notify supervisor(s) of new leave request
-                $supervisorIds = $employee->getSupervisorIds();
+                $supervisorIds = method_exists($employee, 'getApproverIdsToNotify')
+                    ? $employee->getApproverIdsToNotify('leave')
+                    : $employee->getSupervisorIds();
                 if (!empty($supervisorIds)) {
                     EmployeeNotification::notifyMultiple(
                         $supervisorIds,
@@ -244,7 +246,9 @@ class EmployeeRequestController extends Controller
             );
 
             // Notify supervisor(s) of new OT request
-            $supervisorIds = $employee->getSupervisorIds();
+            $supervisorIds = method_exists($employee, 'getApproverIdsToNotify')
+                ? $employee->getApproverIdsToNotify('ot')
+                : $employee->getSupervisorIds();
             if (!empty($supervisorIds)) {
                 EmployeeNotification::notifyMultiple(
                     $supervisorIds,
@@ -353,7 +357,9 @@ class EmployeeRequestController extends Controller
                 );
             } else {
                 // Notify supervisor(s) of new WFH request
-                $supervisorIds = $employee->getSupervisorIds();
+                $supervisorIds = method_exists($employee, 'getApproverIdsToNotify')
+                    ? $employee->getApproverIdsToNotify('wfh')
+                    : $employee->getSupervisorIds();
                 if (!empty($supervisorIds)) {
                     EmployeeNotification::notifyMultiple(
                         $supervisorIds,

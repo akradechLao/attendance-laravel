@@ -109,7 +109,9 @@ class OtRequestController extends Controller
             $formattedStart = $notifyStart->format('Y-m-d H:i');
             $formattedEnd = $notifyEnd->format('Y-m-d H:i');
 
-            $supervisorIds = $user->getSupervisorIds();
+            $supervisorIds = method_exists($user, 'getApproverIdsToNotify')
+                ? $user->getApproverIdsToNotify('ot')
+                : $user->getSupervisorIds();
             if (!empty($supervisorIds)) {
                 EmployeeNotification::notifyMultiple(
                     $supervisorIds,
@@ -156,13 +158,19 @@ class OtRequestController extends Controller
             }
 
             $user = $request->user();
-            $userRole = $user->role ?? 'employee';
-            if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
-                if (!$user->isSubordinateOf($otRequest->emp_id)) {
+            if (method_exists($user, 'canApproveRequest')) {
+                if (!$user->canApproveRequest($otRequest->emp_id, 'ot')) {
                     return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
                 }
-            } elseif ($otRequest->company_id !== $user->company_id) {
-                return response()->json(['success' => false, 'message' => 'Forbidden: cross-company access denied'], 403);
+            } else {
+                $userRole = $user->role ?? 'employee';
+                if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
+                    if (!$user->isSubordinateOf($otRequest->emp_id)) {
+                        return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
+                    }
+                } elseif ($otRequest->company_id !== $user->company_id) {
+                    return response()->json(['success' => false, 'message' => 'Forbidden: cross-company access denied'], 403);
+                }
             }
 
             $otRequest->update([
@@ -285,13 +293,19 @@ class OtRequestController extends Controller
             }
 
             $user = $request->user();
-            $userRole = $user->role ?? 'employee';
-            if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
-                if (!$user->isSubordinateOf($otRequest->emp_id)) {
+            if (method_exists($user, 'canApproveRequest')) {
+                if (!$user->canApproveRequest($otRequest->emp_id, 'ot')) {
                     return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
                 }
-            } elseif ($otRequest->company_id !== $user->company_id) {
-                return response()->json(['success' => false, 'message' => 'Forbidden: cross-company access denied'], 403);
+            } else {
+                $userRole = $user->role ?? 'employee';
+                if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
+                    if (!$user->isSubordinateOf($otRequest->emp_id)) {
+                        return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
+                    }
+                } elseif ($otRequest->company_id !== $user->company_id) {
+                    return response()->json(['success' => false, 'message' => 'Forbidden: cross-company access denied'], 403);
+                }
             }
 
             $validated = $request->validate([

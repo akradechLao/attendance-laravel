@@ -247,6 +247,7 @@ const navItems = [
   { path: '/manager/team-report', label: 'รายงานทีม', icon: '📊', minRole: 'admin' },
   { section: 'ตั้งค่า' },
   { path: '/system-config', label: 'ตั้งค่านโยบายระบบ', icon: '⚙', minRole: 'admin' },
+  { path: '/approval-rights', label: 'สิทธิ์อนุมัติเสริม', icon: '🤝', minRole: 'admin' },
   { path: '/audit-log', label: 'ประวัติการแก้ไขข้อมูล', icon: '📜', minRole: 'admin' },
   { path: '/permission', label: 'จัดการสิทธิ์', icon: '🔑', minRole: 'super_admin' },
   { path: '/settings', label: 'ตั้งค่าพนักงาน', icon: '⚙', minRole: 'super_admin' },

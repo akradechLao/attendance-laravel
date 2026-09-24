@@ -85,15 +85,22 @@ class ShiftSwapController extends Controller
             return response()->json(['success' => false, 'message' => 'รายการนี้ดำเนินการแล้ว'], 400);
         }
 
-        // Authorization: must be subordinate or HR admin of the same company
+        // Authorization: must be subordinate / delegated approver / HR admin
         $user = $request->user();
-        $userRole = $user->role ?? 'employee';
-        if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
-            if (!$user->isSubordinateOf($swap->requester_id) && !$user->isSubordinateOf($swap->target_id)) {
+        if (method_exists($user, 'canApproveRequest')) {
+            if (!$user->canApproveRequest($swap->requester_id, 'shift_swap')
+                && !$user->canApproveRequest($swap->target_id, 'shift_swap')) {
                 return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
             }
-        } elseif ($swap->requester?->company_id !== $user->company_id) {
-            return response()->json(['success' => false, 'message' => 'Forbidden: cross-company access denied'], 403);
+        } else {
+            $userRole = $user->role ?? 'employee';
+            if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
+                if (!$user->isSubordinateOf($swap->requester_id) && !$user->isSubordinateOf($swap->target_id)) {
+                    return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
+                }
+            } elseif ($swap->requester?->company_id !== $user->company_id) {
+                return response()->json(['success' => false, 'message' => 'Forbidden: cross-company access denied'], 403);
+            }
         }
 
         // Actually swap the shift_schedules
@@ -166,15 +173,22 @@ class ShiftSwapController extends Controller
     {
         $swap = ShiftSwap::findOrFail($id);
 
-        // Authorization: must be subordinate or HR admin of the same company
+        // Authorization: must be subordinate / delegated approver / HR admin
         $user = $request->user();
-        $userRole = $user->role ?? 'employee';
-        if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
-            if (!$user->isSubordinateOf($swap->requester_id) && !$user->isSubordinateOf($swap->target_id)) {
+        if (method_exists($user, 'canApproveRequest')) {
+            if (!$user->canApproveRequest($swap->requester_id, 'shift_swap')
+                && !$user->canApproveRequest($swap->target_id, 'shift_swap')) {
                 return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
             }
-        } elseif ($swap->requester?->company_id !== $user->company_id) {
-            return response()->json(['success' => false, 'message' => 'Forbidden: cross-company access denied'], 403);
+        } else {
+            $userRole = $user->role ?? 'employee';
+            if (!in_array($userRole, [RoleConstants::ADMIN, RoleConstants::SUPER_ADMIN])) {
+                if (!$user->isSubordinateOf($swap->requester_id) && !$user->isSubordinateOf($swap->target_id)) {
+                    return response()->json(['success' => false, 'message' => 'Forbidden: not your subordinate'], 403);
+                }
+            } elseif ($swap->requester?->company_id !== $user->company_id) {
+                return response()->json(['success' => false, 'message' => 'Forbidden: cross-company access denied'], 403);
+            }
         }
 
         $swap->update([
@@ -215,7 +229,10 @@ class ShiftSwapController extends Controller
             return response()->json(['success' => false, 'message' => 'User not found'], 404);
         }
 
-        if (method_exists($user, 'getAllSubordinateIds')) {
+        if (method_exists($user, 'getApprovableIds')) {
+            $employeeIds = $user->getApprovableIds('shift_swap');
+            $employeeIds[] = $user->id;
+        } elseif (method_exists($user, 'getAllSubordinateIds')) {
             $employeeIds = $user->getAllSubordinateIds();
             $employeeIds[] = $user->id;
         } else {

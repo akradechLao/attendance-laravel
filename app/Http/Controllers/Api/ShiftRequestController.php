@@ -193,7 +193,9 @@ class ShiftRequestController extends Controller
     {
         try {
             $user = $request->user();
-            if (method_exists($user, 'getAllSubordinateIds')) {
+            if (method_exists($user, 'getApprovableIds')) {
+                $subordinateIds = $user->getApprovableIds('shift_request');
+            } elseif (method_exists($user, 'getAllSubordinateIds')) {
                 $subordinateIds = $user->getAllSubordinateIds();
             } else {
                 $subordinateIds = \App\Models\Employee::where('company_id', $user->company_id)->pluck('id')->toArray();
@@ -251,10 +253,16 @@ class ShiftRequestController extends Controller
             }
 
             $user = $request->user();
-            $userRole = $user->role ?? 'employee';
-            if (!in_array($userRole, ['admin', 'super_admin'])) {
-                if (!$user->isSubordinateOf($shiftReq->emp_id)) {
+            if (method_exists($user, 'canApproveRequest')) {
+                if (!$user->canApproveRequest($shiftReq->emp_id, 'shift_request')) {
                     return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
+                }
+            } else {
+                $userRole = $user->role ?? 'employee';
+                if (!in_array($userRole, ['admin', 'super_admin'])) {
+                    if (!$user->isSubordinateOf($shiftReq->emp_id)) {
+                        return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
+                    }
                 }
             }
 
@@ -334,10 +342,16 @@ class ShiftRequestController extends Controller
             }
 
             $user = $request->user();
-            $userRole = $user->role ?? 'employee';
-            if (!in_array($userRole, ['admin', 'super_admin'])) {
-                if (!$user->isSubordinateOf($shiftReq->emp_id)) {
+            if (method_exists($user, 'canApproveRequest')) {
+                if (!$user->canApproveRequest($shiftReq->emp_id, 'shift_request')) {
                     return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
+                }
+            } else {
+                $userRole = $user->role ?? 'employee';
+                if (!in_array($userRole, ['admin', 'super_admin'])) {
+                    if (!$user->isSubordinateOf($shiftReq->emp_id)) {
+                        return response()->json(['success' => false, 'message' => 'Forbidden'], 403);
+                    }
                 }
             }
 

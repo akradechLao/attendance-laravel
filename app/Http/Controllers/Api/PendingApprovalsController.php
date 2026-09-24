@@ -50,7 +50,6 @@ class PendingApprovalsController extends Controller
         $perPage = (int) ($validated['per_page'] ?? self::DEFAULT_PER_PAGE);
         $countsOnly = $request->boolean('counts_only');
 
-        $subordinateIds = $this->getSubordinateIds($user);
         $isAdmin = in_array($user->role ?? '', ['admin', 'super_admin']);
 
         // Every section is always counted (the badge must stay accurate), but rows
@@ -64,13 +63,23 @@ class PendingApprovalsController extends Controller
         };
         $offsetFor = fn(string $key): int => $only === $key ? ($page - 1) * $perPage : 0;
 
+        // Only these 5 types support delegated rights; others are chain-only.
+        $idsFor = function (string $type) use ($user): array {
+            if (!in_array($type, ['leave', 'ot', 'wfh', 'shift_swap', 'shift_request'], true)) {
+                return method_exists($user, 'getAllSubordinateIds')
+                    ? $user->getAllSubordinateIds()
+                    : [];
+            }
+            return $this->getSubordinateIds($user, $type);
+        };
+
         $pages = [
-            'leave' => $this->getPendingLeaves($user, $subordinateIds, $isAdmin, $limitFor('leave'), $offsetFor('leave')),
-            'ot' => $this->getPendingOts($user, $subordinateIds, $isAdmin, $limitFor('ot'), $offsetFor('ot')),
-            'wfh' => $this->getPendingWfh($user, $subordinateIds, $isAdmin, $limitFor('wfh'), $offsetFor('wfh')),
-            'remote' => $this->getPendingRemote($user, $subordinateIds, $isAdmin, $limitFor('remote'), $offsetFor('remote')),
-            'shift_swap' => $this->getPendingShiftSwaps($user, $subordinateIds, $isAdmin, $limitFor('shift_swap'), $offsetFor('shift_swap')),
-            'shift_request' => $this->getPendingShiftRequests($user, $subordinateIds, $isAdmin, $limitFor('shift_request'), $offsetFor('shift_request')),
+            'leave' => $this->getPendingLeaves($user, $idsFor('leave'), $isAdmin, $limitFor('leave'), $offsetFor('leave')),
+            'ot' => $this->getPendingOts($user, $idsFor('ot'), $isAdmin, $limitFor('ot'), $offsetFor('ot')),
+            'wfh' => $this->getPendingWfh($user, $idsFor('wfh'), $isAdmin, $limitFor('wfh'), $offsetFor('wfh')),
+            'remote' => $this->getPendingRemote($user, $idsFor('remote'), $isAdmin, $limitFor('remote'), $offsetFor('remote')),
+            'shift_swap' => $this->getPendingShiftSwaps($user, $idsFor('shift_swap'), $isAdmin, $limitFor('shift_swap'), $offsetFor('shift_swap')),
+            'shift_request' => $this->getPendingShiftRequests($user, $idsFor('shift_request'), $isAdmin, $limitFor('shift_request'), $offsetFor('shift_request')),
             'estimated_checkout' => $this->getPendingEstimatedCheckouts($user, $isAdmin, $limitFor('estimated_checkout'), $offsetFor('estimated_checkout')),
         ];
 
@@ -124,8 +133,12 @@ class PendingApprovalsController extends Controller
         return ['total' => 0, 'items' => collect()];
     }
 
-    private function getSubordinateIds($user): array
+    private function getSubordinateIds($user, ?string $type = null): array
     {
+        // Delegate rows only exist for Employee users (approval_rights FKs employees)
+        if (method_exists($user, 'getApprovableIds')) {
+            return $user->getApprovableIds($type);
+        }
         if (method_exists($user, 'getAllSubordinateIds')) {
             return $user->getAllSubordinateIds();
         }

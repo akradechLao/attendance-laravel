@@ -266,6 +266,61 @@ class Employee extends Authenticatable
         return $ids;
     }
 
+    /**
+     * Can this employee approve a request of $type from $requesterId?
+     * True when the requester is in the reports_to chain, OR an admin/super_admin
+     * of the same company, OR holds a delegated approval_rights row for that type.
+     */
+    public function canApproveRequest(int $requesterId, string $type): bool
+    {
+        $userRole = $this->role ?? RoleConstants::EMPLOYEE;
+
+        if ($userRole === RoleConstants::SUPER_ADMIN) {
+            return true;
+        }
+
+        if ($userRole === RoleConstants::ADMIN) {
+            $requester = Employee::find($requesterId);
+            return (bool) $requester
+                && $this->company_id !== null
+                && $requester->company_id === $this->company_id;
+        }
+
+        if ($this->isSubordinateOf($requesterId)) {
+            return true;
+        }
+
+        return ApprovalRight::canApprove($this->id, $requesterId, $type);
+    }
+
+    /**
+     * IDs this user may see in approval queues: chain subordinates merged with
+     * delegated approval_rights targets (optionally limited to one request type).
+     *
+     * @return array<int, int>
+     */
+    public function getApprovableIds(?string $type = null): array
+    {
+        $chain = $this->getAllSubordinateIds();
+        $delegated = ApprovalRight::targetIdsFor($this->id, $type);
+
+        return array_values(array_unique(array_merge($chain, $delegated)));
+    }
+
+    /**
+     * Supervisor IDs to notify when this employee files a request of $type:
+     * chain supervisors + delegated approvers with that right.
+     *
+     * @return array<int, int>
+     */
+    public function getApproverIdsToNotify(string $type): array
+    {
+        $chain = $this->getSupervisorIds();
+        $delegated = ApprovalRight::approverIdsFor($this->id, $type);
+
+        return array_values(array_unique(array_merge($chain, $delegated)));
+    }
+
     private function collectSubordinates(int $parentId, array &$ids, int $depth = 0): void
     {
         if ($depth > 10) {

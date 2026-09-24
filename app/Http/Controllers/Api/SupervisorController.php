@@ -18,7 +18,9 @@ class SupervisorController extends Controller
             return response()->json(['success' => false, 'message' => 'User not found'], 404);
         }
 
-        if (method_exists($user, 'getAllSubordinateIds')) {
+        if (method_exists($user, 'getApprovableIds')) {
+            $subordinateIds = $user->getApprovableIds('leave');
+        } elseif (method_exists($user, 'getAllSubordinateIds')) {
             $subordinateIds = $user->getAllSubordinateIds();
         } else {
             $subordinateIds = Employee::where('company_id', $user->company_id)->pluck('id')->toArray();
@@ -49,7 +51,9 @@ class SupervisorController extends Controller
             return response()->json(['success' => false, 'message' => 'User not found'], 404);
         }
 
-        if (method_exists($user, 'getAllSubordinateIds')) {
+        if (method_exists($user, 'getApprovableIds')) {
+            $subordinateIds = $user->getApprovableIds('ot');
+        } elseif (method_exists($user, 'getAllSubordinateIds')) {
             $subordinateIds = $user->getAllSubordinateIds();
         } else {
             $subordinateIds = Employee::where('company_id', $user->company_id)->pluck('id')->toArray();
