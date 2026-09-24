@@ -45,7 +45,11 @@ class AutoOtController extends Controller
                     'company_name' => $ot->employee->company->name ?? '-',
                     'date' => $ot->date,
                     'ot_type' => $ot->ot_type,
-                    'ot_type_label' => $ot->ot_type === 'before_shift' ? 'มาเร็ว' : 'กลับช้า',
+                    'ot_type_label' => match ($ot->ot_type) {
+                        'before_shift' => 'มาเร็ว',
+                        'manual' => 'โอที (Manual)',
+                        default => 'กลับช้า',
+                    },
                     'actual_time' => substr($ot->actual_time, 0, 5),
                     'shift_time' => substr($ot->shift_time, 0, 5),
                     'ot_minutes' => $ot->ot_minutes,

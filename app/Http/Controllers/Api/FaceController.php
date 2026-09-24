@@ -39,7 +39,7 @@ class FaceController extends Controller
             $request->validate([
                 'employee_id' => 'required|exists:employees,id',
                 'image' => 'required|string',
-                'type' => 'required|string|in:check_in,check_out,verify_only',
+                'type' => 'required|string|in:check_in,check_out,verify_only,ot_start,ot_end',
                 'latitude' => 'nullable|numeric',
                 'longitude' => 'nullable|numeric',
                 'accuracy' => 'nullable|numeric',
@@ -114,8 +114,8 @@ class FaceController extends Controller
                 ]);
             }
 
-            // ─── check_in / check_out: ต้องมี verification_token ───
-            if (in_array($request->type, ['check_in', 'check_out'])) {
+            // ─── check_in / check_out / ot_start / ot_end: ต้องมี verification_token ───
+            if (in_array($request->type, ['check_in', 'check_out', 'ot_start', 'ot_end'])) {
                 $token = $request->input('verification_token');
                 if (!$token) {
                     return response()->json([
@@ -462,10 +462,169 @@ class FaceController extends Controller
                 ]);
             }
 
+            // ─── ot_start: เช็คอินเริ่มทำโอที (แยกจากเช็คอินเข้างาน) ───
+            if ($request->type === 'ot_start') {
+                if (!$employee->has_ot) {
+                    return response()->json([
+                        'success' => false,
+                        'data' => null,
+                        'message' => 'พนักงานไม่ได้รับสิทธิ์ทำโอที',
+                    ], 403);
+                }
+
+                $shiftInfo = $this->getEmployeeShiftInfo($employee, $now);
+                $shiftStartDate = $shiftInfo['shift_start_date'];
+
+                // ต้องมี attendance log ของวันนั้น (เช็คอินเข้างานแล้ว) อย่างน้อย 1 รอบ
+                $log = AttendanceLog::where('emp_id', $employee->id)
+                    ->whereDate('date', $shiftStartDate)
+                    ->whereNotNull('check_in')
+                    ->orderBy('round_no', 'asc')
+                    ->first();
+
+                if (!$log) {
+                    return response()->json([
+                        'success' => false,
+                        'data' => null,
+                        'message' => 'กรุณาเช็คอินเข้างานก่อนเริ่มทำโอที',
+                    ], 400);
+                }
+
+                $openOt = AutoOtRecord::where('emp_id', $employee->id)
+                    ->where('ot_type', 'manual')
+                    ->whereNull('session_ended_at')
+                    ->whereDate('date', '>=', Carbon::parse($shiftStartDate)->subDay()->toDateString())
+                    ->first();
+
+                if ($openOt) {
+                    $openDate = $openOt->date instanceof Carbon
+                        ? $openOt->date->toDateString()
+                        : (string) $openOt->date;
+                    $started = $openOt->session_started_at
+                        ? Carbon::parse($openDate . ' ' . self::timeOnlyOt($openOt->session_started_at))
+                        : null;
+                    $startLabel = $started ? $started->format('H:i') : '-';
+                    return response()->json([
+                        'success' => false,
+                        'data' => null,
+                        'message' => 'คุณมีรอบโอทีที่ยังไม่ได้เช็คเอาท์ (เริ่ม ' . $startLabel . ' น.) กรุณาเช็คเอาท์โอทีก่อน',
+                    ], 400);
+                }
+
+                $otRecord = AutoOtRecord::create([
+                    'emp_id' => $employee->id,
+                    'attendance_log_id' => $log->id,
+                    'date' => $shiftStartDate,
+                    'ot_type' => 'manual',
+                    'actual_time' => $now->format('H:i:s'),
+                    'shift_time' => ($shiftInfo['resolved']['end_time'] ?? '00:00'),
+                    'ot_minutes' => 0,
+                    'session_started_at' => $now->format('H:i:s'),
+                    'session_ended_at' => null,
+                    'status' => 'pending',
+                    'reason' => 'เช็คอินโอทีด้วยตนเอง',
+                ]);
+
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'attendance_log' => $log->fresh(),
+                        'ot_record' => $otRecord,
+                        'face_match' => $result,
+                        'summary' => null,
+                    ],
+                    'message' => 'เช็คอินโอทีสำเร็จ (' . $now->format('H:i') . ' น.) — ระบบจะนับชั่วโมงโอทีตามจริงเมื่อเช็คเอาท์โอที',
+                ], 201);
+            }
+
+            // ─── ot_end: เช็คเอาท์จบรอบโอที — นับเวลาจริงเท่าที่ทำ (แล้วแต่พนักงาน, รองรับข้ามวัน) ───
+            if ($request->type === 'ot_end') {
+                $shiftInfo = $this->getEmployeeShiftInfo($employee, $now);
+                $shiftStartDate = $shiftInfo['shift_start_date'];
+
+                $updated = \DB::transaction(function () use ($employee, $now, $shiftStartDate) {
+                    $openOt = AutoOtRecord::where('emp_id', $employee->id)
+                        ->where('ot_type', 'manual')
+                        ->whereNull('session_ended_at')
+                        ->whereDate('date', '>=', Carbon::parse($shiftStartDate)->subDay()->toDateString())
+                        ->orderByDesc('date')
+                        ->orderByDesc('id')
+                        ->lockForUpdate()
+                        ->first();
+
+                    if (!$openOt) {
+                        return null;
+                    }
+
+                    $otDate = $openOt->date instanceof Carbon ? $openOt->date->toDateString() : (string) $openOt->date;
+                    $startStr = $openOt->session_started_at
+                        ? (string) $openOt->session_started_at
+                        : (string) $openOt->actual_time;
+                    $startCarbon = Carbon::parse($otDate . ' ' . substr($startStr, 0, 8));
+                    $endCarbon = $now->copy();
+
+                    // ข้ามวัน: ถ้าเวลาจบน้อยกว่าเวลาเริ่ม แสดงว่า OT ข้ามเที่ยงคืน
+                    if ($endCarbon->lt($startCarbon)) {
+                        $endCarbon->addDay();
+                    }
+
+                    $otMinutes = max(0, (int) $startCarbon->diffInMinutes($endCarbon));
+
+                    $openOt->update([
+                        'session_ended_at' => $now->format('H:i:s'),
+                        'actual_time' => $now->format('H:i:s'),
+                        'ot_minutes' => $otMinutes,
+                        'status' => 'pending',
+                        'reason' => trim(($openOt->reason ? $openOt->reason . ' → ' : '') . 'จบโอที ' . $otMinutes . ' นาที'),
+                    ]);
+
+                    return [
+                        'ot' => $openOt->fresh(),
+                        'ot_minutes' => $otMinutes,
+                        'start_date' => $otDate,
+                        'start_carbon' => $startCarbon,
+                        'end_carbon' => $endCarbon,
+                    ];
+                });
+
+                if (!$updated) {
+                    return response()->json([
+                        'success' => false,
+                        'data' => null,
+                        'message' => 'ไม่พบรอบโอทีที่กำลังทำอยู่ กรุณาเช็คอินโอทีก่อน',
+                    ], 400);
+                }
+
+                $log = AttendanceLog::find($updated['ot']->attendance_log_id);
+                $summaryDate = $log
+                    ? ($log->date instanceof Carbon ? $log->date->toDateString() : (string) $log->date)
+                    : $updated['start_date'];
+                $summary = AttendanceHelper::buildCheckoutSummary($employee->id, $summaryDate);
+
+                $otMinutes = $updated['ot_minutes'];
+                $hours = intdiv($otMinutes, 60);
+                $mins = $otMinutes % 60;
+                $durationLabel = ($hours > 0 ? $hours . ' ชม. ' : '') . $mins . ' นาที';
+                $crossDay = $updated['end_carbon']->toDateString() !== $updated['start_carbon']->toDateString();
+
+                return response()->json([
+                    'success' => true,
+                    'data' => [
+                        'attendance_log' => $log?->fresh(),
+                        'ot_record' => $updated['ot'],
+                        'face_match' => $result,
+                        'summary' => $summary,
+                        'ot_minutes' => $otMinutes,
+                    ],
+                    'message' => 'เช็คเอาท์โอทีสำเร็จ — ทำโอทีรวม ' . $durationLabel
+                        . ($crossDay ? ' [ข้ามวัน]' : ''),
+                ]);
+            }
+
             return response()->json([
                 'success' => false,
                 'data' => null,
-                'message' => 'Invalid type. Must be check_in or check_out.',
+                'message' => 'Invalid type. Must be check_in, check_out, ot_start, or ot_end.',
             ], 400);
         } catch (\Illuminate\Validation\ValidationException $e) {
             return response()->json([
@@ -883,6 +1042,19 @@ class FaceController extends Controller
                 ]);
             }
         }
+    }
+
+    private static function timeOnlyOt($value): string
+    {
+        if ($value instanceof Carbon) {
+            return $value->format('H:i:s');
+        }
+        $s = (string) $value;
+        // รองรับทั้ง "H:i:s" และ "Y-m-d H:i:s"
+        if (strlen($s) > 8) {
+            $s = substr($s, -8);
+        }
+        return $s;
     }
 
     private function calculateDistance($lat1, $lon1, $lat2, $lon2): float

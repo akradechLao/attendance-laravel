@@ -16,6 +16,8 @@ class AutoOtRecord extends Model
         'actual_time',
         'shift_time',
         'ot_minutes',
+        'session_started_at',
+        'session_ended_at',
         'status',
         'approved_by',
         'approved_at',

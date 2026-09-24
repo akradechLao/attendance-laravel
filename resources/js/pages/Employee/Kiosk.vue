@@ -606,7 +606,7 @@
                 border-yellow-200 bg-gradient-to-b from-yellow-50 to-white hover:from-yellow-100 hover:border-yellow-400 active:from-yellow-200"
             >
               <div class="text-3xl sm:text-4xl mb-2 sm:mb-3">⚡</div>
-              <p class="font-bold text-navy text-sm sm:text-base">ทำโอที</p>
+              <p class="font-bold text-navy text-sm sm:text-base">เช็คอินโอที</p>
               <p class="text-xs sm:text-sm text-yellow-600">Start OT</p>
             </button>
 
@@ -618,7 +618,7 @@
                 border-purple-200 bg-gradient-to-b from-purple-50 to-white hover:from-purple-100 hover:border-purple-400 active:from-purple-200"
             >
               <div class="text-3xl sm:text-4xl mb-2 sm:mb-3">🏁</div>
-              <p class="font-bold text-navy text-sm sm:text-base">ออกโอที</p>
+              <p class="font-bold text-navy text-sm sm:text-base">เช็คเอาท์โอที</p>
               <p class="text-xs sm:text-sm text-purple-600">End OT</p>
             </button>
           </div>
@@ -1622,8 +1622,8 @@ async function handleActionSelect(type) {
       const actionLabels = {
         check_in: '✓ เช็คอินสำเร็จ',
         check_out: '✓ เช็คเอาท์สำเร็จ',
-        ot_start: '✓ เริ่มทำโอทีสำเร็จ',
-        ot_end: '✓ ออกโอทีสำเร็จ',
+        ot_start: '✓ เช็คอินโอทีสำเร็จ',
+        ot_end: '✓ เช็คเอาท์โอทีสำเร็จ',
       }
 
       result.value = {
