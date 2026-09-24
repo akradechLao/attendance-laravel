@@ -128,8 +128,7 @@ const routes = [
   {
     path: '/employee/notifications',
     name: 'EmployeeNotifications',
-    component: () => import('./pages/Employee/NotificationList.vue'),
-    meta: { requiresAuth: true }
+    redirect: { path: '/employee/stats', query: { tab: 'notifications' } }
   },
   {
     path: '/employee/payslip',

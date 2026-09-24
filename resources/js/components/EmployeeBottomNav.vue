@@ -55,7 +55,7 @@ const scroller = ref(null)
 const allItems = [
   { path: '/employee/dashboard', label: 'สรุปวันนี้', short: 'หน้าแรก', icon: '🏠' },
   { path: '/employee/history', label: 'ประวัติเข้างาน', short: 'ประวัติ', icon: '🕑' },
-  { path: '/employee/stats', label: 'ประวัติการเตือน', short: 'เตือน', icon: '⚠️' },
+  { path: '/employee/stats', label: 'เตือน & แจ้งเตือน', short: 'เตือน', icon: '🔔', badgeCount: 'unread' },
   { path: '/employee/leave', label: 'ขอลางาน', short: 'ขอลางาน', icon: '📅', badgeKey: 'leave' },
   { path: '/employee/ot', label: 'ขอโอที', short: 'โอที', icon: '⏰', badgeKey: 'ot', requireOt: true },
   { path: '/employee/wfh', label: 'ขอ WFH', short: 'WFH', icon: '🏡', badgeKey: 'wfh' },
@@ -64,7 +64,6 @@ const allItems = [
   { path: '/employee/schedule', label: 'ตารางเวร', short: 'ตารางเวร', icon: '🗓️', requireShifts: true },
   { path: '/employee/holidays', label: 'ปฏิทินวันหยุด', short: 'วันหยุด', icon: '🎌' },
   { path: '/employee/announcements', label: 'ประกาศ', short: 'ประกาศ', icon: '📢', badgeCount: 'announcements' },
-  { path: '/employee/notifications', label: 'การแจ้งเตือน', short: 'แจ้งเตือน', icon: '🔔', badgeCount: 'unread' },
   { path: '/employee/profile', label: 'ข้อมูลส่วนตัว', short: 'โปรไฟล์', icon: '👤' },
   { path: '/employee/payslip', label: 'สลิปเงินเดือน', short: 'สลิป', icon: '💵' },
   { path: '/employee/change-password', label: 'เปลี่ยนรหัสผ่าน', short: 'รหัสผ่าน', icon: '🔒' },
