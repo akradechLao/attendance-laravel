@@ -1,15 +1,15 @@
 <template>
   <nav
     class="fixed bottom-0 left-0 right-0 z-40 sm:hidden bg-white border-t border-gray-200 shadow-[0_-4px_20px_rgba(15,23,42,0.08)]"
-    style="padding-bottom: env(safe-area-inset-bottom, 0)"
+    style="padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 0.5rem)"
     aria-label="เมนูพนักงาน"
   >
-    <div ref="scroller" class="flex overflow-x-auto no-scrollbar px-1 py-1.5 gap-0.5">
+    <div ref="scroller" class="flex overflow-x-auto no-scrollbar px-2 pt-2 pb-1 gap-0.5">
       <router-link
         v-for="item in visibleItems"
         :key="item.path"
         :to="item.path"
-        class="relative flex flex-col items-center justify-center shrink-0 min-w-[64px] max-w-[76px] px-1.5 py-1.5 rounded-xl transition-colors touch-target"
+        class="relative flex flex-col items-center justify-center shrink-0 min-w-[64px] max-w-[76px] px-1.5 py-2 rounded-xl transition-colors touch-target"
         :class="isActive(item.path)
           ? 'bg-blue-50 text-blue-600'
           : 'text-gray-500 active:bg-gray-50'"

@@ -44,7 +44,7 @@
     </header>
 
     <!-- Main Menu -->
-    <main class="max-w-4xl mx-auto px-4 py-8 pb-28 sm:pb-8">
+    <main class="max-w-4xl mx-auto px-4 py-8 pb-32 sm:pb-8">
       <!-- Greeting -->
       <div class="text-center mb-8">
         <h1 class="text-2xl sm:text-3xl font-bold text-navy mb-1">
