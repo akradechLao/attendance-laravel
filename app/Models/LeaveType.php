@@ -15,8 +15,12 @@ class LeaveType extends Model
     protected $fillable = [
         'company_id',
         'name',
+        'code',
         'advance_days',
         'quota_monthly',
+        'max_days_per_year',
+        'accrual',
+        'carry_forward',
         'quota_daily',
         'quota_contract',
         'max_days',
@@ -26,6 +30,9 @@ class LeaveType extends Model
     protected $casts = [
         'advance_days' => 'integer',
         'quota_monthly' => 'integer',
+        'max_days_per_year' => 'integer',
+        'accrual' => 'boolean',
+        'carry_forward' => 'boolean',
         'quota_daily' => 'integer',
         'quota_contract' => 'integer',
         'max_days' => 'integer',

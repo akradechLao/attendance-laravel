@@ -12,14 +12,15 @@ class LeaveService
     public function getEntitledDays(Employee $employee, LeaveType $leaveType, int $year): float
     {
         if (!$leaveType->accrual) {
-            return (float) $leaveType->max_days_per_year;
+            // Fallback: older leave_types rows only have max_days (not max_days_per_year)
+            return (float) ($leaveType->max_days_per_year ?: $leaveType->max_days);
         }
 
         $yearsOfService = $this->getYearsOfService($employee, $year);
 
         return match($leaveType->code) {
             'annual' => $this->getAnnualLeaveEntitlement($yearsOfService),
-            default => (float) $leaveType->max_days_per_year,
+            default => (float) ($leaveType->max_days_per_year ?: $leaveType->max_days),
         };
     }
     private function getYearsOfService(Employee $employee, int $year): int
@@ -60,6 +61,12 @@ class LeaveService
                 "vacation_accumulated" => 0,
                 "vacation_expiry_date" => null,
             ]);
+        } elseif ((float) $balance->entitled_days === 0.0 && (float) $balance->used_days === 0.0) {
+            // Repair balances created when max_days_per_year was still 0 (only max_days was seeded)
+            $entitled = $this->getEntitledDays($employee, $leaveType, $year);
+            if ($entitled > 0) {
+                $balance->update(["entitled_days" => $entitled]);
+            }
         }
 
         $vacationRemaining = 0;

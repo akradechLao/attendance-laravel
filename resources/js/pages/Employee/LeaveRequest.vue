@@ -158,6 +158,7 @@ const balances = ref([])
 const myLeaves = ref([])
 const submitting = ref(false)
 const toast = ref(null)
+const form = ref({ leave_type_id: '', start_date: '', end_date: '', reason: '' })
 
 // ─── Calendar view (ใช้ myLeaves ที่โหลดไว้แล้ว กรองตามเดือนฝั่ง client) ───
 const leaveViewMode = ref('list')
