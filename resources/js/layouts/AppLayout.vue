@@ -10,12 +10,12 @@
     <!-- Sidebar -->
     <aside
       :class="[
-        'fixed lg:sticky inset-y-0 lg:inset-y-auto lg:top-0 left-0 z-50 w-64 h-screen lg:self-start bg-white transition-all duration-300 lg:translate-x-0 overflow-hidden',
+        'fixed lg:sticky inset-y-0 lg:inset-y-auto lg:top-0 left-0 z-50 w-64 shrink-0 h-screen lg:self-start bg-white border-r border-gray-200 transition-[width] duration-300 ease-in-out lg:translate-x-0 overflow-hidden',
         sidebarOpen ? 'translate-x-0' : '-translate-x-full',
-        sidebarCollapsed ? 'lg:w-0 lg:border-0' : 'lg:w-64'
+        sidebarCollapsed ? 'lg:w-0 lg:border-r-0' : 'lg:w-64'
       ]"
     >
-      <div class="flex flex-col h-full w-64">
+      <div class="flex flex-col h-full w-64 min-w-64">
         <!-- Logo -->
         <div class="p-6 border-b border-gray-200 flex items-center justify-between gap-2">
           <h1 class="text-xl font-bold text-white flex items-center gap-2">
@@ -78,46 +78,53 @@
     </aside>
 
     <!-- Main Content -->
-    <div class="flex-1 flex flex-col min-h-screen lg:ml-0">
+    <div class="flex-1 min-w-0 flex flex-col min-h-screen lg:ml-0">
       <!-- Header -->
       <header class="bg-white shadow-sm sticky top-0 z-30">
-        <div class="flex items-center justify-between px-6 py-4">
-          <!-- Mobile menu button -->
-          <button
-            class="lg:hidden p-2 rounded-lg hover:bg-gray-100"
-            @click="sidebarOpen = true"
-          >
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
+        <div class="flex items-center justify-between px-4 sm:px-6 py-4 gap-2">
+          <div class="flex items-center gap-2 min-w-0">
+            <!-- Mobile menu button -->
+            <button
+              class="lg:hidden p-2 rounded-lg hover:bg-gray-100 shrink-0"
+              @click="sidebarOpen = true"
+              title="เปิดเมนู"
+            >
+              <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
 
-          <button
-            @click="goHome"
-            class="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-navy transition-colors"
-            title="กลับหน้าแดชบอร์ด"
-          >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10" />
-            </svg>
-          </button>
+            <!-- Desktop collapse / expand toggle (always visible) -->
+            <button
+              @click="sidebarCollapsed = !sidebarCollapsed"
+              class="hidden lg:inline-flex p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-navy transition-colors shrink-0"
+              :title="sidebarCollapsed ? 'ขยายเมนู' : 'ย่อเมนู'"
+            >
+              <svg v-if="!sidebarCollapsed" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <rect x="3" y="4" width="18" height="16" rx="2" stroke-width="2" />
+                <path stroke-linecap="round" d="M9 4v16" stroke-width="2" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l-2 2 2 2" />
+              </svg>
+              <svg v-else class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <rect x="3" y="4" width="18" height="16" rx="2" stroke-width="2" />
+                <path stroke-linecap="round" d="M9 4v16" stroke-width="2" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10l2 2-2 2" />
+              </svg>
+            </button>
 
-          <button
-            v-if="sidebarCollapsed"
-            @click="sidebarCollapsed = false"
-            class="hidden lg:inline-flex p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-navy transition-colors"
-            title="แสดงเมนู"
-          >
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <rect x="3" y="4" width="18" height="16" rx="2" stroke-width="2" />
-              <path stroke-linecap="round" d="M9 4v16" stroke-width="2" />
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10l2 2-2 2" />
-            </svg>
-          </button>
-          <div v-else class="hidden lg:block"></div>
+            <button
+              @click="goHome"
+              class="p-2 rounded-lg hover:bg-gray-100 text-gray-500 hover:text-navy transition-colors shrink-0"
+              title="กลับหน้าแดชบอร์ด"
+            >
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l9-9 9 9M5 10v10a1 1 0 001 1h4v-6h4v6h4a1 1 0 001-1V10" />
+              </svg>
+            </button>
+          </div>
 
           <!-- User info -->
-          <div class="flex items-center gap-4">
+          <div class="flex items-center gap-2 sm:gap-4">
             <div class="text-right">
               <p class="text-sm font-medium text-gray-700">{{ store.user?.name || 'Admin' }}</p>
               <p class="text-xs text-gray-500">{{ roleLabel }}</p>

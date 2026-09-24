@@ -44,7 +44,7 @@
     </header>
 
     <!-- Main Menu -->
-    <main class="max-w-4xl mx-auto px-4 py-8">
+    <main class="max-w-4xl mx-auto px-4 py-8 pb-28 sm:pb-8">
       <!-- Greeting -->
       <div class="text-center mb-8">
         <h1 class="text-2xl sm:text-3xl font-bold text-navy mb-1">
@@ -98,8 +98,8 @@
         </div>
       </router-link>
 
-      <!-- Primary Menu Grid -->
-      <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-8">
+      <!-- Primary Menu Grid (tablet/desktop) — mobile uses bottom nav instead -->
+      <div class="hidden sm:grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4 mb-8">
         <!-- สรุปวันนี้ -->
         <router-link to="/employee/dashboard" class="block group">
           <div class="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-center">
@@ -327,6 +327,13 @@
       </div>
     </main>
 
+    <!-- Bottom nav (mobile) -->
+    <EmployeeBottomNav
+      :pending-counts="pendingCounts"
+      :announcement-count="announcements.length"
+      :unread-count="unreadCount"
+    />
+
     <!-- Auto-popup Announcement Modal -->
     <div v-if="popupAnnouncement" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="background: rgba(0,0,0,0.5);">
       <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden animate-fadeIn">
@@ -371,6 +378,7 @@ import { useRouter } from 'vue-router'
 import store, { logout } from '../../store'
 import api from '../../services/api'
 import { isTopManagement } from '../../constants/position'
+import EmployeeBottomNav from '../../components/EmployeeBottomNav.vue'
 
 const router = useRouter()
 const pendingCounts = ref({ leave: 0, ot: 0, wfh: 0 })
