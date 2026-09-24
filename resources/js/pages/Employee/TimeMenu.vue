@@ -49,6 +49,32 @@
           </div>
         </router-link>
 
+        <!-- เช็คอินโอที -->
+        <router-link v-if="hasOt" to="/employee" class="block group">
+          <div class="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-center h-full">
+            <div class="w-12 h-12 sm:w-14 sm:h-14 mx-auto rounded-2xl bg-orange-500 flex items-center justify-center mb-3 shadow-lg group-hover:scale-110 transition-transform">
+              <svg class="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+              </svg>
+            </div>
+            <h2 class="font-bold text-gray-800 text-sm sm:text-base">เช็คอินโอที</h2>
+            <p class="text-gray-400 text-xs mt-1">สแกนหน้าเริ่มทำโอที</p>
+          </div>
+        </router-link>
+
+        <!-- เช็คเอาท์โอที -->
+        <router-link v-if="hasOt" to="/employee" class="block group">
+          <div class="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-center h-full">
+            <div class="w-12 h-12 sm:w-14 sm:h-14 mx-auto rounded-2xl bg-purple-500 flex items-center justify-center mb-3 shadow-lg group-hover:scale-110 transition-transform">
+              <svg class="w-6 h-6 sm:w-7 sm:h-7 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+              </svg>
+            </div>
+            <h2 class="font-bold text-gray-800 text-sm sm:text-base">เช็คเอาท์โอที</h2>
+            <p class="text-gray-400 text-xs mt-1">สแกนหน้าจบโอที</p>
+          </div>
+        </router-link>
+
         <!-- ขอเปลี่ยนกะ -->
         <router-link v-if="hasShifts" to="/employee/shift-request" class="block group">
           <div class="bg-white rounded-2xl p-4 sm:p-6 border border-gray-200 shadow-md hover:shadow-xl hover:-translate-y-1 transition-all duration-300 text-center h-full">
