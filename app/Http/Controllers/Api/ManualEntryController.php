@@ -410,6 +410,22 @@ class ManualEntryController extends Controller
         $end = Carbon::parse($validated['end_date']);
         $totalDays = $start->diffInDays($end) + 1;
 
+        $leaveType = \App\Models\LeaveType::find($validated['leave_type_id']);
+        if ($leaveType && $leaveType->code === 'maternity') {
+            if (!$employee->isFemale()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'ลาคลอดสงวนสิทธิ์สำหรับพนักงานเพศหญิงเท่านั้น',
+                ], 400);
+            }
+            if ($leaveType->max_days > 0 && $totalDays > $leaveType->max_days) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "ลาแบบคลอดได้สูงสุด {$leaveType->max_days} วันเท่านั้น",
+                ], 400);
+            }
+        }
+
         $leave = LeaveRequest::create([
             'company_id' => $employee->company_id,
             'emp_id' => $validated['emp_id'],

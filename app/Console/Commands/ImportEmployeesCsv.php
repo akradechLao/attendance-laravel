@@ -138,6 +138,13 @@ class ImportEmployeesCsv extends Command
                 $division = trim($record['division_name'] ?? '');
                 $position = trim($record['position_name'] ?? '');
                 $gender = trim($record['employee_gender'] ?? '');
+                if (in_array($gender, ['ชาย', 'M', 'm', 'Male', 'male'], true)) {
+                    $gender = 'male';
+                } elseif (in_array($gender, ['หญิง', 'F', 'f', 'Female', 'female'], true)) {
+                    $gender = 'female';
+                } elseif ($gender === '') {
+                    $gender = null;
+                }
                 $nickname = trim($record['employee_nickname'] ?? '');
                 $phone = trim($record['mobilephone'] ?? '');
                 $email = trim($record['emailaddress'] ?? '');
@@ -154,6 +161,7 @@ class ImportEmployeesCsv extends Command
                     [
                         'name' => $name,
                         'nickname' => $nickname,
+                        'gender' => $gender,
                         'phone' => $phone,
                         'email' => $email,
                         'birth_date' => $birthDate,

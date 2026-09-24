@@ -25,6 +25,7 @@ class Employee extends Authenticatable
         'email',
         'photo',
         'birth_date',
+        'gender',
         'id_card',
         'social_security',
         'education',
@@ -90,6 +91,11 @@ class Employee extends Authenticatable
     public function hasRole(string ...$roles): bool
     {
         return in_array($this->role, $roles);
+    }
+
+    public function isFemale(): bool
+    {
+        return in_array((string) $this->gender, ['female', 'หญิง'], true);
     }
 
     public function getRoleLabelAttribute(): string

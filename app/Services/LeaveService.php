@@ -92,11 +92,16 @@ class LeaveService
 
         $balances = [];
         foreach ($leaveTypes as $type) {
+            // ลาคลอด: เฉพาะเพศหญิง — ไม่ส่งคืนให้เพศชาย/ไม่ทราบเพศ (dropdown + balance cards)
+            if ($type->code === 'maternity' && !$employee->isFemale()) {
+                continue;
+            }
             $balance = $this->getLeaveBalance($employee, $type, $year);
             $balances[] = [
                 "leave_type_id" => $type->id,
                 "name" => $type->name,
                 "code" => $type->code,
+                "max_days" => (int) $type->max_days,
                 "entitled" => $balance["entitled"],
                 "used" => $balance["used"],
                 "remaining" => $balance["remaining"],

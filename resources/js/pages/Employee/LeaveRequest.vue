@@ -17,7 +17,7 @@
     <div class="bg-white rounded-xl shadow p-4">
       <h2 class="font-semibold text-[#0f172a] mb-3">สิทธิ์ลาคงเหลือ ({{ year }})</h2>
       <div class="grid grid-cols-3 gap-3">
-        <div v-for="b in balances" :key="b.leave_type_id"
+        <div v-for="b in visibleBalances" :key="b.leave_type_id"
              class="text-center p-3 rounded-lg"
              :class="b.remaining > 0 ? 'bg-blue-50' : 'bg-gray-50'">
           <div class="text-lg font-bold" :class="b.remaining > 0 ? 'text-blue-600' : 'text-gray-400'">
@@ -39,7 +39,7 @@
           <label class="block text-sm font-medium text-gray-700">ประเภทลา</label>
           <select v-model="form.leave_type_id" class="w-full border rounded-lg p-2">
             <option value="">เลือกประเภทลา</option>
-            <option v-for="b in balances" :key="b.leave_type_id" :value="b.leave_type_id"
+            <option v-for="b in visibleBalances" :key="b.leave_type_id" :value="b.leave_type_id"
                     :disabled="b.remaining <= 0 && b.code !== 'unpaid'">
               {{ b.name }} (เหลือ {{ b.remaining }} วัน)
             </option>
@@ -65,11 +65,14 @@
 <div v-if="selectedBalance && totalDays > 0" class="text-sm" :class="totalDays <= selectedBalance.remaining ? 'text-green-600' : 'text-red-600'">
            เหลือหลังลา: {{ Math.max(0, selectedBalance.remaining - totalDays) }} วัน
          </div>
-         <div v-if="selectedBalance && selectedBalance.code === 'maternity' && totalDays > 0" class="text-sm" :class="totalDays <= (maxDaysPerType['maternity'] || 999) ? 'text-green-600' : 'text-red-600'">
-           สูงสุดลาแบบคลอด: {{ maxDaysPerType['maternity'] }} วัน
+         <div v-if="selectedBalance && selectedBalance.code === 'maternity' && form.start_date" class="text-sm text-blue-700 bg-blue-50 p-2 rounded-lg">
+           📅 ลาคลอดได้ถึงวันที่ <b>{{ maternityEndDate }}</b> (เริ่ม {{ form.start_date }} + {{ maternityMaxDays }} วัน)
          </div>
-         <div v-if="selectedBalance && selectedBalance.code === 'maternity' && totalDays > (maxDaysPerType['maternity'] || 999)" class="text-sm text-red-600 bg-red-50 p-2 rounded-lg">
-           ⚠️ ลาแบบคลอดได้สูงสุด {{ maxDaysPerType['maternity'] }} วันเท่านั้น (คุณต้องการ {{ totalDays }} วัน)
+         <div v-if="selectedBalance && selectedBalance.code === 'maternity' && totalDays > 0" class="text-sm" :class="totalDays <= maternityMaxDays ? 'text-green-600' : 'text-red-600'">
+           สูงสุดลาแบบคลอด: {{ maternityMaxDays }} วัน
+         </div>
+         <div v-if="selectedBalance && selectedBalance.code === 'maternity' && totalDays > maternityMaxDays" class="text-sm text-red-600 bg-red-50 p-2 rounded-lg">
+           ⚠️ ลาแบบคลอดได้สูงสุด {{ maternityMaxDays }} วันเท่านั้น (คุณต้องการ {{ totalDays }} วัน — ลาได้ถึงวันที่ {{ maternityEndDate }})
          </div>
         <div v-if="selectedBalance && totalDays > selectedBalance.remaining && selectedBalance.code !== 'unpaid'" class="text-sm text-red-600 bg-red-50 p-2 rounded-lg">
           ⚠️ วันลาประเภทนี้เหลือ {{ selectedBalance.remaining }} วัน แต่คุณต้องการลา {{ totalDays }} วัน (เกิน {{ totalDays - selectedBalance.remaining }} วัน)
@@ -203,6 +206,32 @@ function leaveCalNextMonth() {
 }
 
 const maxDaysPerType = { maternity: 120, sick: 30, personal: 6, annual: 6, ordination: 15, unpaid: 0 }
+
+// API กรองลาคลอดออกให้เพศชายแล้ว — ฝั่ง UI ซ้ำเฉพาะตอนทราบทศหญิงชัดเจน
+// (session เก่าที่ยังไม่มี gender ใน localStorage ให้เชื่อ response จาก server)
+const visibleBalances = computed(() => {
+  const g = user.value?.gender
+  if (!g) return balances.value
+  const female = g === 'female' || g === 'หญิง'
+  return balances.value.filter(b => b.code !== 'maternity' || female)
+})
+
+const maternityMaxDays = computed(() => {
+  if (selectedBalance.value?.code === 'maternity') {
+    return selectedBalance.value.max_days || maxDaysPerType.maternity
+  }
+  return maxDaysPerType.maternity
+})
+
+const maternityEndDate = computed(() => {
+  if (!form.value.start_date) return ''
+  const d = new Date(form.value.start_date)
+  d.setDate(d.getDate() + maternityMaxDays.value - 1)
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+})
 
 const minDate = computed(() => {
   const d = new Date()

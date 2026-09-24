@@ -66,11 +66,19 @@ class EmployeeRequestController extends Controller
             $totalDays = $start->diffInDays($end) + 1;
 
             $leaveType = LeaveType::find($request->leave_type_id);
-            if ($leaveType->code === 'maternity' && $leaveType->max_days > 0 && $totalDays > $leaveType->max_days) {
-                return response()->json([
-                    'success' => false,
-                    'message' => "ลาแบบคลอดได้สูงสุด {$leaveType->max_days} วันเท่านั้น",
-                ], 400);
+            if ($leaveType->code === 'maternity') {
+                if (!$employee->isFemale()) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'ลาคลอดสงวนสิทธิ์สำหรับพนักงานเพศหญิงเท่านั้น',
+                    ], 400);
+                }
+                if ($leaveType->max_days > 0 && $totalDays > $leaveType->max_days) {
+                    return response()->json([
+                        'success' => false,
+                        'message' => "ลาแบบคลอดได้สูงสุด {$leaveType->max_days} วันเท่านั้น",
+                    ], 400);
+                }
             }
 
             $hasOverlap = LeaveRequest::where('emp_id', $employee->id)
