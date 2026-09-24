@@ -88,7 +88,7 @@ class LeaveService
 
     public function getAllBalances(Employee $employee, int $year): array
     {
-        $leaveTypes = LeaveType::where("company_id", $employee->company_id)->get();
+        $leaveTypes = LeaveType::forCompany((int) $employee->company_id);
 
         $balances = [];
         foreach ($leaveTypes as $type) {
@@ -145,7 +145,11 @@ class LeaveService
         $expiryDate = Carbon::create($currentYear + 1, 5, 31);
         $count = 0;
 
-        $annualLeaveTypes = LeaveType::where("code", "annual")->where("is_active", true)->get();
+        $annualLeaveTypes = LeaveType::where("code", "annual")->where("is_active", true)
+            ->where(function ($q) {
+                $q->whereNull('company_id')->orWhere('company_id', auth()->user()?->company_id);
+            })
+            ->get();
 
         foreach ($annualLeaveTypes as $leaveType) {
             $previousBalances = LeaveBalance::where("leave_type_id", $leaveType->id)

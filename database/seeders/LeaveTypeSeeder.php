@@ -9,8 +9,6 @@ class LeaveTypeSeeder extends Seeder
 {
     public function run(): void
     {
-        $companies = DB::table('companies')->pluck('id')->toArray();
-
         $leaveTypes = [
             ['name' => 'ลาป่วย', 'code' => 'sick', 'max_days' => 30, 'max_days_per_year' => 30, 'accrual' => 0, 'carry_forward' => 0],
             ['name' => 'ลากิจ', 'code' => 'personal', 'max_days' => 6, 'max_days_per_year' => 6, 'accrual' => 0, 'carry_forward' => 0],
@@ -20,15 +18,22 @@ class LeaveTypeSeeder extends Seeder
             ['name' => 'ลาบวช', 'code' => 'ordination', 'max_days' => 15, 'max_days_per_year' => 15, 'accrual' => 0, 'carry_forward' => 0],
         ];
 
-        foreach ($companies as $companyId) {
-            foreach ($leaveTypes as $type) {
-                DB::table('leave_types')->updateOrInsert(
-                    ['company_id' => $companyId, 'code' => $type['code']],
-                    array_merge($type, ['company_id' => $companyId, 'quota_monthly' => 0, 'created_at' => now(), 'updated_at' => now()])
-                );
-            }
+        foreach ($leaveTypes as $type) {
+            DB::table('leave_types')->updateOrInsert(
+                ['company_id' => null, 'code' => $type['code']],
+                array_merge($type, [
+                    'company_id' => null,
+                    'quota_monthly' => 0,
+                    'advance_days' => 0,
+                    'quota_daily' => 0,
+                    'quota_contract' => 0,
+                    'is_active' => 1,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ])
+            );
         }
 
-        $this->command->info('Leave types seeded for ' . count($companies) . ' companies!');
+        $this->command->info('Global leave types seeded (' . count($leaveTypes) . ' types for all companies)!');
     }
 }

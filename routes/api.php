@@ -44,6 +44,7 @@ use App\Http\Controllers\Api\WfhRequestController;
 use App\Http\Controllers\Api\ShiftAssignmentController;
 use App\Http\Controllers\Api\MandatoryOtController;
 use App\Http\Controllers\Api\LeaveRequestController;
+use App\Http\Controllers\Api\LeaveTypeController;
 use App\Http\Controllers\Api\ManualEntryController;
 use App\Http\Controllers\Api\ShiftRequestController;
 use App\Http\Controllers\Api\SystemConfigController;
@@ -491,6 +492,12 @@ Route::middleware(['auth:sanctum', 'role:admin,super_admin'])->group(function ()
 // ============================================================
 
 Route::middleware(['auth:sanctum', 'role:super_admin'])->group(function () {
+
+    // Leave types master data (central reference — all companies)
+    Route::get('/leave-types', [LeaveTypeController::class, 'index']);
+    Route::post('/leave-types', [LeaveTypeController::class, 'store']);
+    Route::put('/leave-types/{id}', [LeaveTypeController::class, 'update']);
+    Route::delete('/leave-types/{id}', [LeaveTypeController::class, 'destroy']);
 
     // Employee face registration
     Route::post('/employees/face', [EmployeeController::class, 'registerFace']);

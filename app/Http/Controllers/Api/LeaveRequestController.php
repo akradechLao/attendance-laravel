@@ -44,7 +44,9 @@ class LeaveRequestController extends Controller
         $validated = $request->validate([
             'leave_type_id' => [
                 'required',
-                \Illuminate\Validation\Rule::exists('leave_types', 'id')->where('company_id', $employee->company_id),
+                \Illuminate\Validation\Rule::exists('leave_types', 'id')->where(function ($q) use ($employee) {
+                    $q->whereNull('company_id')->orWhere('company_id', $employee->company_id);
+                }),
             ],
             'start_date' => 'required|date',
             'end_date' => 'required|date|after_or_equal:start_date',

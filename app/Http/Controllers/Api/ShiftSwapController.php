@@ -133,7 +133,7 @@ class ShiftSwapController extends Controller
             // compensatory day off, and leave_types is scoped per company - there is
             // no single "leave_type_id 1" that's valid for every company.
             $leaveType = $requester
-                ? LeaveType::where('company_id', $requester->company_id)->where('code', 'personal')->first()
+                ? LeaveType::forCompany((int) $requester->company_id)->firstWhere('code', 'personal')
                 : null;
 
             if ($requester && $leaveType) {

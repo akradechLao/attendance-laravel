@@ -53,7 +53,7 @@ class LeaveController extends Controller
     public function types(Request $request): JsonResponse
     {
         try {
-            $types = LeaveType::where('company_id', $request->user()->company_id)->get();
+            $types = LeaveType::forCompany((int) ($request->user()->company_id ?? 0));
 
             return response()->json([
                 'success' => true,

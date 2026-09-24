@@ -200,6 +200,51 @@
             </tbody>
           </table>
         </div>
+
+        <!-- Leave Types (master data — central, all companies) -->
+        <div v-if="activeTab === 'leaveTypes'" class="space-y-6">
+          <div class="flex flex-wrap justify-between items-center gap-3">
+            <div>
+              <h3 class="text-lg font-semibold text-navy">ชนิดลา</h3>
+              <p class="text-sm text-gray-500">ข้อมูลอ้างอิงกลาง ใช้ร่วมกันทุกบริษัท</p>
+            </div>
+            <button v-if="canManageLeaveTypes" @click="openLeaveTypeModal()" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">+ เพิ่มชนิดลา</button>
+          </div>
+          <table class="w-full bg-white rounded-xl shadow-sm border text-sm">
+            <thead class="bg-gray-50 text-gray-500 uppercase text-xs">
+              <tr>
+                <th class="px-4 py-3 text-left">ชื่อ</th>
+                <th class="px-4 py-3 text-left">Code</th>
+                <th class="px-4 py-3 text-right">วัน/ปี</th>
+                <th class="px-4 py-3 text-right">สูงสุด</th>
+                <th class="px-4 py-3 text-center">คิดสะสม</th>
+                <th class="px-4 py-3 text-center">ใช้งาน</th>
+                <th v-if="canManageLeaveTypes" class="px-4 py-3 text-left">จัดการ</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-gray-200">
+              <tr v-for="t in leaveTypes" :key="t.id">
+                <td class="px-4 py-3 font-medium text-navy">{{ t.name }}</td>
+                <td class="px-4 py-3 font-mono text-xs text-gray-500">{{ t.code }}</td>
+                <td class="px-4 py-3 text-right">{{ t.max_days_per_year || 0 }}</td>
+                <td class="px-4 py-3 text-right">{{ t.max_days || 0 }}</td>
+                <td class="px-4 py-3 text-center">
+                  <span v-if="t.accrual" class="px-2 py-0.5 rounded-full text-xs bg-purple-100 text-purple-700">สะสม</span>
+                  <span v-else class="text-gray-400">-</span>
+                </td>
+                <td class="px-4 py-3 text-center">
+                  <span v-if="t.is_active" class="px-2 py-0.5 rounded-full text-xs bg-green-100 text-green-700">เปิด</span>
+                  <span v-else class="px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-500">ปิด</span>
+                </td>
+                <td v-if="canManageLeaveTypes" class="px-4 py-3">
+                  <button @click="openLeaveTypeModal(t)" class="text-blue-600 text-sm hover:underline mr-3">แก้ไข</button>
+                  <button @click="deleteLeaveType(t)" class="text-red-600 text-sm hover:underline">ลบ</button>
+                </td>
+              </tr>
+              <tr v-if="!leaveTypes.length"><td :colspan="canManageLeaveTypes ? 7 : 6" class="px-6 py-8 text-center text-gray-500">ไม่พบชนิดลา</td></tr>
+            </tbody>
+          </table>
+        </div>
       </template>
     </div>
 
@@ -292,6 +337,48 @@
         </div>
       </form>
     </Modal>
+
+    <!-- Leave Type Modal -->
+    <Modal :show="showLeaveTypeModal" :title="editLeaveTypeId ? 'แก้ไขชนิดลา' : 'เพิ่มชนิดลา'" @close="closeLeaveTypeModal">
+      <form @submit.prevent="saveLeaveType" class="space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">ชื่อชนิดลา *</label>
+          <input v-model="leaveTypeForm.name" required class="input-field w-full" placeholder="เช่น ลาคลอดบุตร" />
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Code * <span class="text-gray-400 font-normal">(a-z, 0-9, _)</span></label>
+          <input v-model="leaveTypeForm.code" required :disabled="!!editLeaveTypeId" class="input-field w-full font-mono" placeholder="เช่น maternity_leave" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">สิทธิ์/ปี (วัน)</label>
+            <input v-model.number="leaveTypeForm.max_days_per_year" type="number" min="0" max="365" class="input-field w-full" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">สูงสุดต่อครั้ง (วัน)</label>
+            <input v-model.number="leaveTypeForm.max_days" type="number" min="0" max="365" class="input-field w-full" />
+          </div>
+        </div>
+        <div class="space-y-2">
+          <label class="flex items-center gap-2 text-sm text-gray-700">
+            <input v-model="leaveTypeForm.accrual" type="checkbox" class="w-4 h-4 rounded" />
+            คิดสิทธิ์ตามอายุงาน (accrual)
+          </label>
+          <label class="flex items-center gap-2 text-sm text-gray-700">
+            <input v-model="leaveTypeForm.carry_forward" type="checkbox" class="w-4 h-4 rounded" />
+            สะสมปีต่อไปได้ (carry forward)
+          </label>
+          <label class="flex items-center gap-2 text-sm text-gray-700">
+            <input v-model="leaveTypeForm.is_active" type="checkbox" class="w-4 h-4 rounded" />
+            เปิดใช้งาน
+          </label>
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <button type="button" @click="closeLeaveTypeModal" class="px-4 py-2 border rounded-lg">ยกเลิก</button>
+          <button type="submit" :disabled="saving" class="px-4 py-2 bg-blue-600 text-white rounded-lg disabled:opacity-50">{{ saving ? 'กำลังบันทึก...' : 'บันทึก' }}</button>
+        </div>
+      </form>
+    </Modal>
   </AppLayout>
 </template>
 
@@ -311,7 +398,8 @@ const tabs = [
   { key: 'company', label: 'ข้อมูลบริษัท' },
   { key: 'locations', label: 'ตำแหน่งสำนักงาน' },
   { key: 'holidays', label: 'วันหยุด' },
-  { key: 'shifts', label: 'ตารางเวร' }
+  { key: 'shifts', label: 'ตารางเวร' },
+  { key: 'leaveTypes', label: 'ชนิดลา' }
 ]
 
 const locations = ref([])
@@ -326,19 +414,24 @@ const isSuperAdmin = computed(() => {
   const uid = storeUser.value.company_id ?? 0
   return !uid
 })
+const canManageLeaveTypes = computed(() => (storeUser.value.role ?? '') === 'super_admin')
 
 const storeUser = computed(() => store.user || {})
 
 const showLocationModal = ref(false)
 const showHolidayModal = ref(false)
 const showShiftModal = ref(false)
+const showLeaveTypeModal = ref(false)
 
 const editLocationId = ref(null)
+const editLeaveTypeId = ref(null)
+const leaveTypes = ref([])
 
 const locationForm = reactive({ name: '', address: '', latitude: '', longitude: '', radius: 100 })
 const companyForm = reactive({ name: '', phone: '', email: '', address: '', website: '', logoPreview: null, logoFile: null, logoId: null })
 const holidayForm = reactive({ date: '', name: '' })
 const shiftForm = reactive({ emp_id: '', date: '', start_time: '08:00', end_time: '17:00', shift_code: 'Full Day' })
+const leaveTypeForm = reactive({ name: '', code: '', max_days: 0, max_days_per_year: 0, accrual: false, carry_forward: false, is_active: true })
 
 const yearOptions = computed(() => {
   const y = new Date().getFullYear()
@@ -423,9 +516,82 @@ async function fetchEmployees() {
   }
 }
 
+async function fetchLeaveTypes() {
+  try {
+    // Super admin: master list; company admin: effective types for their company
+    const url = canManageLeaveTypes.value ? '/api/leave-types' : '/api/leave/types'
+    const response = await api.get(url)
+    leaveTypes.value = response.data.data?.data || response.data.data || []
+  } catch (error) {
+    console.error('Error fetching leave types:', error)
+  }
+}
+
+function openLeaveTypeModal(type) {
+  editLeaveTypeId.value = type?.id || null
+  Object.assign(leaveTypeForm, {
+    name: type?.name || '',
+    code: type?.code || '',
+    max_days: type?.max_days || 0,
+    max_days_per_year: type?.max_days_per_year || 0,
+    accrual: !!type?.accrual,
+    carry_forward: !!type?.carry_forward,
+    is_active: type ? !!type.is_active : true
+  })
+  showLeaveTypeModal.value = true
+}
+
+function closeLeaveTypeModal() {
+  showLeaveTypeModal.value = false
+  editLeaveTypeId.value = null
+  Object.assign(leaveTypeForm, { name: '', code: '', max_days: 0, max_days_per_year: 0, accrual: false, carry_forward: false, is_active: true })
+}
+
+async function saveLeaveType() {
+  if (!leaveTypeForm.name.trim() || !leaveTypeForm.code.trim()) {
+    alert('กรุณากรอกชื่อและ code')
+    return
+  }
+  saving.value = true
+  try {
+    const payload = {
+      name: leaveTypeForm.name.trim(),
+      code: leaveTypeForm.code.trim().toLowerCase(),
+      max_days: leaveTypeForm.max_days || 0,
+      max_days_per_year: leaveTypeForm.max_days_per_year || 0,
+      accrual: leaveTypeForm.accrual,
+      carry_forward: leaveTypeForm.carry_forward,
+      is_active: leaveTypeForm.is_active
+    }
+    if (editLeaveTypeId.value) {
+      await api.put(`/api/leave-types/${editLeaveTypeId.value}`, payload)
+    } else {
+      await api.post('/api/leave-types', payload)
+    }
+    closeLeaveTypeModal()
+    fetchLeaveTypes()
+  } catch (error) {
+    console.error('Error saving leave type:', error)
+    alert(error.response?.data?.message || error.response?.data?.errors?.code?.[0] || 'เกิดข้อผิดพลาด')
+  } finally {
+    saving.value = false
+  }
+}
+
+async function deleteLeaveType(type) {
+  if (!confirm(`ยืนยันการลบ "${type.name}"?`)) return
+  try {
+    await api.delete(`/api/leave-types/${type.id}`)
+    fetchLeaveTypes()
+  } catch (error) {
+    console.error('Error deleting leave type:', error)
+    alert(error.response?.data?.message || 'เกิดข้อผิดพลาด')
+  }
+}
+
 async function onCompanyChange() {
   loading.value = true
-  await Promise.all([fetchCompany(), fetchLocations(), fetchHolidays(), fetchShifts(), fetchEmployees()])
+  await Promise.all([fetchCompany(), fetchLocations(), fetchHolidays(), fetchShifts(), fetchEmployees(), fetchLeaveTypes()])
   loading.value = false
 }
 
@@ -664,7 +830,7 @@ async function deleteShift(shift) {
 
 onMounted(async () => {
   await loadCompanies()
-  await Promise.all([fetchCompany(), fetchLocations(), fetchHolidays(), fetchShifts(), fetchEmployees()])
+  await Promise.all([fetchCompany(), fetchLocations(), fetchHolidays(), fetchShifts(), fetchEmployees(), fetchLeaveTypes()])
   loading.value = false
 })
 </script>
