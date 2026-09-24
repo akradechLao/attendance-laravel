@@ -204,6 +204,12 @@ const routes = [
     meta: { requiresAuth: true, layout: 'app', requiresRole: 'admin' }
   },
   {
+    path: '/approval/time',
+    name: 'ApproveTimeMenu',
+    component: () => import('./pages/HR/ApproveTimeMenu.vue'),
+    meta: { requiresAuth: true, layout: 'app', requiresRole: 'employee' }
+  },
+  {
     path: '/pending-approvals',
     name: 'PendingApprovals',
     component: () => import('./pages/HR/PendingApprovals.vue'),

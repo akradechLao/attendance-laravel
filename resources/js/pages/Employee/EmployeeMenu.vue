@@ -48,7 +48,7 @@
       <!-- Greeting -->
       <div class="text-center mb-8">
         <h1 class="text-2xl sm:text-3xl font-bold text-navy mb-1">
-          สวัสดีครับ {{ store.user?.nickname || store.user?.name }}
+          สวัสดีครับ คุณ{{ store.user?.nickname || store.user?.name }}
         </h1>
         <p class="text-gray-500">เลือกเมนูที่ต้องการ</p>
       </div>
