@@ -103,24 +103,106 @@
       </div>
       <div v-else class="space-y-3">
         <div v-for="req in myRequests" :key="req.id"
-             class="flex items-center justify-between p-3 rounded-lg"
+             class="p-3 rounded-lg"
              :class="{
                'bg-yellow-50': req.status === 'pending',
                'bg-green-50': req.status === 'approved',
-               'bg-red-50': req.status === 'rejected'
+               'bg-red-50': req.status === 'rejected',
+               'bg-orange-50': req.status === 'cancel_requested',
+               'bg-purple-50': req.status === 'change_requested'
              }">
-          <div>
-            <div class="font-semibold">{{ formatDate(req.date) }}</div>
-            <div class="text-xs text-gray-500">{{ req.reason || 'ไม่ระบุเหตุผล' }}</div>
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="font-semibold">{{ formatDate(req.date) }}</div>
+              <div class="text-xs text-gray-500">{{ req.reason || 'ไม่ระบุเหตุผล' }}</div>
+              <div v-if="req.status === 'change_requested'" class="text-xs text-purple-600 mt-1">
+                ขอเปลี่ยนเป็น {{ req.requested_date ? formatDate(req.requested_date) : 'แก้ไขเหตุผล' }}
+                <span v-if="req.requested_reason">— {{ req.requested_reason }}</span>
+              </div>
+              <div v-if="req.status === 'cancel_requested'" class="text-xs text-orange-600 mt-1">
+                ขอยกเลิก<span v-if="req.cancel_reason"> — {{ req.cancel_reason }}</span>
+              </div>
+            </div>
+            <span class="px-3 py-1 rounded-full text-xs font-semibold shrink-0"
+                  :class="{
+                     'bg-yellow-100 text-yellow-700': req.status === 'pending',
+                     'bg-green-100 text-green-700': req.status === 'approved',
+                     'bg-red-100 text-red-700': req.status === 'rejected',
+                     'bg-orange-100 text-orange-700': req.status === 'cancel_requested',
+                     'bg-purple-100 text-purple-700': req.status === 'change_requested'
+                   }">
+              {{ statusText(req.status) }}
+            </span>
           </div>
-          <span class="px-3 py-1 rounded-full text-xs font-semibold"
-                :class="{
-                   'bg-yellow-100 text-yellow-700': req.status === 'pending',
-                   'bg-green-100 text-green-700': req.status === 'approved',
-                   'bg-red-100 text-red-700': req.status === 'rejected'
-                 }">
-            {{ statusText(req.status) }}
-          </span>
+
+          <!-- การกระทำ -->
+          <div v-if="['pending', 'approved'].includes(req.status)" class="flex gap-2 mt-3">
+            <template v-if="req.status === 'pending'">
+              <button @click="openModal('edit', req)"
+                      class="flex-1 py-2 rounded-lg text-sm font-semibold bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
+                แก้ไข
+              </button>
+              <button @click="openModal('cancel', req)"
+                      class="flex-1 py-2 rounded-lg text-sm font-semibold bg-white border border-red-300 text-red-600 hover:bg-red-50 transition-colors">
+                ยกเลิก
+              </button>
+            </template>
+            <template v-else>
+              <button @click="openModal('change', req)"
+                      class="flex-1 py-2 rounded-lg text-sm font-semibold bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors">
+                ขอเปลี่ยน
+              </button>
+              <button @click="openModal('cancel', req)"
+                      class="flex-1 py-2 rounded-lg text-sm font-semibold bg-white border border-red-300 text-red-600 hover:bg-red-50 transition-colors">
+                ขอยกเลิก
+              </button>
+            </template>
+          </div>
+          <p v-if="req.status === 'pending'" class="text-[11px] text-gray-400 mt-2">แก้ไข/ยกเลิกได้เองทันที ไม่ต้องรออนุมัติ</p>
+          <p v-else-if="req.status === 'approved'" class="text-[11px] text-gray-400 mt-2">การเปลี่ยนแปลงต้องรอหัวหน้าอนุมัติ</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: แก้ไข / ขอเปลี่ยน / ขอยกเลิก -->
+    <div v-if="modal.open" class="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div class="absolute inset-0 bg-black/50" @click="closeModal"></div>
+      <div class="relative bg-white rounded-2xl w-full max-w-md p-5 shadow-xl">
+        <h3 class="font-bold text-gray-800 text-lg mb-1">{{ modalTitle }}</h3>
+        <p class="text-xs text-gray-500 mb-4">
+          {{ modal.mode === 'edit' ? 'แก้ไขได้ทันที ไม่ต้องรออนุมัติ'
+            : 'ส่งคำขอให้หัวหน้าพิจารณาก่อนมีผล' }}
+        </p>
+
+        <template v-if="modal.mode === 'cancel'">
+          <label class="block text-sm font-medium text-gray-700 mb-1">เหตุผล (ไม่บังคับ)</label>
+          <textarea v-model="modal.reason" rows="3" placeholder="เช่น ติดธุระ ไม่สะดวก WFH แล้ว..."
+                    class="w-full border rounded-xl p-3 text-sm resize-none focus:border-blue-500 outline-none"></textarea>
+          <p class="text-xs text-gray-400 mt-2">
+            {{ modal.req?.status === 'pending'
+               ? 'ยังไม่อนุมัติ → ยกเลิกทันที'
+               : 'อนุมัติแล้ว → รอหัวหน้ายืนยันการยกเลิก' }}
+          </p>
+        </template>
+
+        <template v-else>
+          <label class="block text-sm font-medium text-gray-700 mb-1">วันที่ (วันเสาร์)</label>
+          <input type="date" v-model="modal.date" class="w-full border rounded-xl p-2.5 text-sm mb-3" />
+          <label class="block text-sm font-medium text-gray-700 mb-1">เหตุผล</label>
+          <textarea v-model="modal.reason" rows="3" placeholder="เช่น ต้องไปทำธุระ..."
+                    class="w-full border rounded-xl p-3 text-sm resize-none focus:border-blue-500 outline-none"></textarea>
+          <p class="text-xs text-amber-600 mt-2">ต้องเป็นวันเสาร์ และเป็นวันอนาคตสำหรับการขอเปลี่ยน</p>
+        </template>
+
+        <div class="flex gap-3 mt-5">
+          <button @click="closeModal" class="flex-1 py-2.5 rounded-xl border border-gray-200 text-gray-600 font-semibold hover:bg-gray-50">
+            ยกเลิก
+          </button>
+          <button @click="submitModal" :disabled="modal.saving"
+                  class="flex-1 py-2.5 rounded-xl font-semibold text-white transition-colors disabled:opacity-50"
+                  :class="modal.mode === 'cancel' ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'">
+            {{ modal.saving ? 'กำลังส่ง...' : modalSubmitText }}
+          </button>
         </div>
       </div>
     </div>
@@ -150,6 +232,19 @@ const remaining = ref(1)
 const total = ref(1)
 const toast = ref(null)
 const occupiedMap = ref({})
+
+// Modal: edit (pending) / change (approved) / cancel
+const modal = ref({ open: false, mode: '', req: null, date: '', reason: '', saving: false })
+const modalTitle = computed(() => ({
+  edit: 'แก้ไขคำขอ WFH',
+  change: 'ขอเปลี่ยนแปลง WFH',
+  cancel: 'ขอยกเลิก WFH',
+}[modal.value.mode] || ''))
+const modalSubmitText = computed(() => ({
+  edit: 'บันทึก',
+  change: 'ส่งคำขอ',
+  cancel: 'ยืนยัน',
+}[modal.value.mode] || 'ยืนยัน'))
 
 const user = computed(() => state.user)
 const employeeId = computed(() => user.value?.id)
@@ -257,7 +352,51 @@ const formatDate = (date) => {
 }
 
 const statusText = (status) => {
-  return { pending: 'รอหัวหน้าอนุมัติ', approved: 'อนุมัติแล้ว', rejected: 'ปฏิเสธ' }[status] || status
+  return {
+    pending: 'รอหัวหน้าอนุมัติ',
+    approved: 'อนุมัติแล้ว',
+    rejected: 'ปฏิเสธ',
+    cancel_requested: 'ขอยกเลิกรออนุมัติ',
+    change_requested: 'ขอเปลี่ยนรออนุมัติ',
+  }[status] || status
+}
+
+const openModal = (mode, req) => {
+  modal.value = {
+    open: true,
+    mode,
+    req,
+    date: mode === 'edit' ? req.date : (req.requested_date || ''),
+    reason: mode === 'cancel' ? '' : (mode === 'change' ? (req.requested_reason || req.reason || '') : (req.reason || '')),
+    saving: false,
+  }
+}
+
+const closeModal = () => {
+  modal.value.open = false
+}
+
+const submitModal = async () => {
+  const m = modal.value
+  if (m.saving || !m.req) return
+  m.saving = true
+  try {
+    if (m.mode === 'cancel') {
+      const res = await api.post(`/api/wfh/${m.req.id}/request-cancel`, { reason: m.reason })
+      showToast('success', res.data.message || 'ส่งคำขอสำเร็จ')
+    } else {
+      const payload = {}
+      if (m.date) payload.date = m.date
+      payload.reason = m.reason
+      const res = await api.put(`/api/wfh/${m.req.id}`, payload)
+      showToast('success', res.data.message || 'บันทึกสำเร็จ')
+    }
+    closeModal()
+    loadData()
+  } catch (err) {
+    showToast('error', err.response?.data?.message || 'เกิดข้อผิดพลาด')
+  }
+  m.saving = false
 }
 
 const showToast = (type, message) => {

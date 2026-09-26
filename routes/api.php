@@ -290,6 +290,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::prefix('wfh')->group(function () {
         Route::get('/', [WfhRequestController::class, 'index']);
         Route::get('/team-requests', [WfhRequestController::class, 'teamRequests']);
+        Route::put('/{id}', [WfhRequestController::class, 'update']);
+        Route::post('/{id}/request-cancel', [WfhRequestController::class, 'requestCancel']);
         Route::put('/{id}/approve', [WfhRequestController::class, 'approve']);
         Route::put('/{id}/reject', [WfhRequestController::class, 'reject']);
         Route::delete('/{id}', [WfhRequestController::class, 'cancel']);

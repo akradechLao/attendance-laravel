@@ -10,6 +10,10 @@ class WfhRecord extends Model
         'emp_id',
         'date',
         'approved_date',
+        'requested_date',
+        'requested_reason',
+        'cancel_reason',
+        'requested_at',
         'reason',
         'supervisor_id',
         'supervisor_note',
@@ -19,6 +23,8 @@ class WfhRecord extends Model
     protected $casts = [
         'date' => 'date',
         'approved_date' => 'date',
+        'requested_date' => 'date',
+        'requested_at' => 'datetime',
     ];
 
     public function employee(): BelongsTo

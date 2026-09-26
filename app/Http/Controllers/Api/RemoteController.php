@@ -84,7 +84,7 @@ class RemoteController extends Controller
                 ], 422);
             }
 
-            $assignment = RemoteAssignment::create($request->all());
+            $assignment = RemoteAssignment::create($request->validated());
 
             return response()->json([
                 'success' => true,
@@ -140,7 +140,14 @@ class RemoteController extends Controller
     {
         try {
             $assignment = RemoteAssignment::findOrFail($id);
-            
+
+            if ($assignment->status !== 'pending') {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'This assignment has already been processed.',
+                ], 400);
+            }
+
             $assignment->update([
                 'status' => 'rejected',
                 'approved_by' => $request->get('approved_by'),

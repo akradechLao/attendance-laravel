@@ -73,28 +73,35 @@ class EmployeeWarningController extends Controller
     private function buildWarnings(int $lateCount, int $absentCount, int $totalLateMinutes): array
     {
         $warnings = [];
+        $now = now()->setTimezone('Asia/Bangkok')->format('Y-m-d H:i:s');
 
         if ($lateCount >= 3) {
             $warnings[] = [
+                'id' => 'late',
                 'type' => 'late',
                 'severity' => $lateCount >= 5 ? 'high' : 'medium',
                 'message' => "สาย {$lateCount} ครั้งในเดือนนี้ กรุณารักษาวินัย",
+                'created_at' => $now,
             ];
         }
 
         if ($absentCount > 0) {
             $warnings[] = [
+                'id' => 'absent',
                 'type' => 'absent',
                 'severity' => 'high',
                 'message' => "ขาดงาน {$absentCount} ครั้งในเดือนนี้",
+                'created_at' => $now,
             ];
         }
 
         if ($totalLateMinutes > 180) {
             $warnings[] = [
+                'id' => 'total_late',
                 'type' => 'total_late',
                 'severity' => 'high',
                 'message' => "สายรวม {$totalLateMinutes} นาที อาจถูกหักค่าจ้าง",
+                'created_at' => $now,
             ];
         }
 

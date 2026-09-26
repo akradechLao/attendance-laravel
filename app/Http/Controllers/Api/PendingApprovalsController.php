@@ -238,7 +238,7 @@ class PendingApprovalsController extends Controller
         $query = WfhRecord::with([
             'employee:id,employee_code,name,company_id,position,department,division',
             'employee.company:id,name',
-        ])->where('status', 'pending');
+        ])->whereIn('status', ['pending', 'cancel_requested', 'change_requested']);
 
         if ($isAdmin) {
             if (!$this->isSuperAdmin($user)) {
@@ -257,8 +257,17 @@ class PendingApprovalsController extends Controller
             'employee_code' => $w->employee?->employee_code ?? '-',
             'company' => $w->employee?->company?->name ?? '-',
             'department' => $w->employee?->department ?? '-',
-            'detail' => 'WFH วันที่ ' . $w->date,
-            'reason' => $w->reason,
+            'detail' => match ($w->status) {
+                'cancel_requested' => 'ขอยกเลิก WFH วันที่ ' . $w->date,
+                'change_requested' => 'ขอเปลี่ยน WFH ' . $w->date .
+                    ($w->requested_date ? ' → ' . $w->requested_date : ' (แก้เหตุผล)'),
+                default => 'WFH วันที่ ' . $w->date,
+            },
+            'reason' => match ($w->status) {
+                'cancel_requested' => $w->cancel_reason ?: $w->reason,
+                'change_requested' => $w->requested_reason ?: $w->reason,
+                default => $w->reason,
+            },
             'status' => $w->status,
             'created_at' => $w->created_at ? $w->created_at->setTimezone('Asia/Bangkok')->format('Y-m-d H:i') : null,
             'approve_url' => "/api/wfh/{$w->id}/approve",

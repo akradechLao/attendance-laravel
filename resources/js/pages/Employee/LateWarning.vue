@@ -163,7 +163,7 @@
             </div>
           </div>
 
-          <div v-for="warn in warnings" :key="warn.id"
+          <div v-for="(warn, wi) in warnings" :key="warn.id || wi"
             :class="warn.severity === 'high' ? 'border-red-300 bg-red-50' : warn.severity === 'medium' ? 'border-amber-300 bg-amber-50' : 'border-gray-200 bg-white'"
             class="rounded-xl p-4 border shadow-sm">
             <div class="flex items-start gap-3">
@@ -465,7 +465,9 @@ watch(viewMode, (mode) => {
 })
 
 function formatDate(d) {
+  if (!d) return '-'
   const dt = new Date(d)
+  if (isNaN(dt.getTime())) return '-'
   return `${dt.getDate()} ${thMonths[dt.getMonth()]} ${dt.getFullYear() + 543}`
 }
 

@@ -450,9 +450,12 @@
               <p class="font-bold text-amber-700">ยังเปิดกล้องไม่ได้</p>
               <p class="text-sm text-amber-800 mt-1.5 leading-relaxed">
                 กรุณาเข้าใกล้จุดเช็คอินให้อยู่ในรัศมี {{ officeLocation.radius_meters }} ม.
-                หรือเลือก "สแกนนอกสถานที่" หากได้รับอนุมัติให้ปฏิบัติงานนอกพื้นที่
+                <template v-if="hasRemoteAssignment">
+                  หรือเลือก "สแกนนอกสถานที่" หากได้รับอนุมัติให้ปฏิบัติงานนอกพื้นที่
+                </template>
               </p>
               <button
+                v-if="hasRemoteAssignment"
                 @click="startRemoteScan"
                 class="mt-4 px-5 py-3 rounded-xl border border-amber-400 bg-white text-amber-700 font-semibold text-sm hover:bg-amber-50 active:bg-amber-100 transition touch-target"
               >
@@ -851,6 +854,7 @@ const loading = ref(false)
 const scanningError = ref('')
 const result = ref({ success: false, message: '', time: '', location: '', summary: null })
 const scanType = ref('office_scan')
+const hasRemoteAssignment = ref(false)
 const customLocationName = ref('')
 const triggerScan = ref(false)
 const currentTime = ref('--:--:--')
@@ -877,7 +881,7 @@ const gpsReady = computed(() => {
 // Camera only mounts once geofence is satisfied (or scan doesn't need one) -
 // keeps the camera off until we know it's worth turning on.
 const cameraReady = computed(() => {
-  if (scanType.value === 'remote_scan') return true
+  if (scanType.value === 'remote_scan') return hasRemoteAssignment.value
   if (!officeLocation.value) return true // no office-location data = don't gate on GPS
   return gpsReady.value
 })
@@ -1008,6 +1012,12 @@ onMounted(async () => {
         scanType.value = 'office_scan'
         scanMode.value = 'verify_only'
         step.value = 3
+        try {
+          const chk = await api.post('/api/remote/check-active', { employee_id: data.employee.id })
+          hasRemoteAssignment.value = !!chk.data.data?.has_remote_assignment
+        } catch {
+          hasRemoteAssignment.value = false
+        }
         await fetchOfficeLocation(data.employee.id)
         await nextTick()
         initMap()
@@ -1341,7 +1351,8 @@ async function selectEmployee(employee) {
     const res = await api.post('/api/remote/check-active', {
       employee_id: employee.id
     })
-    if (res.data.data?.has_remote_assignment) {
+    hasRemoteAssignment.value = !!res.data.data?.has_remote_assignment
+    if (hasRemoteAssignment.value) {
       step.value = 2.5
     } else {
       scanType.value = 'office_scan'
@@ -1354,6 +1365,7 @@ async function selectEmployee(employee) {
       startGpsWatch()
     }
   } catch {
+    hasRemoteAssignment.value = false
     scanType.value = 'office_scan'
     scanMode.value = 'verify_only'
     step.value = 3
@@ -1379,6 +1391,7 @@ function startOfficeScan() {
 }
 
 function startRemoteScan() {
+  if (!hasRemoteAssignment.value) return
   scanType.value = 'remote_scan'
   scanMode.value = 'verify_only'
   step.value = 3
@@ -1504,7 +1517,8 @@ async function registerFace() {
       const res = await api.post('/api/remote/check-active', {
         employee_id: selectedEmployee.value.id
       })
-      if (res.data.data?.has_remote_assignment) {
+      hasRemoteAssignment.value = !!res.data.data?.has_remote_assignment
+      if (hasRemoteAssignment.value) {
         step.value = 2.5
       } else {
         scanType.value = 'office_scan'
@@ -1512,6 +1526,7 @@ async function registerFace() {
         step.value = 3
       }
     } catch {
+      hasRemoteAssignment.value = false
       scanType.value = 'office_scan'
       scanMode.value = 'verify_only'
       step.value = 3

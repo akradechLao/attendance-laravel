@@ -17,17 +17,36 @@
         ไม่มีคำขอรอดำเนินการ
       </div>
       <div v-else class="space-y-4">
-        <div v-for="req in pending" :key="req.id" class="border rounded-xl p-4">
+        <div v-for="req in pending" :key="req.id" class="border rounded-xl p-4"
+             :class="{ 'border-orange-300 bg-orange-50/40': req.status === 'cancel_requested',
+                       'border-purple-300 bg-purple-50/40': req.status === 'change_requested' }">
           <div class="flex justify-between items-start">
             <div>
-              <div class="font-semibold text-navy">{{ req.employee?.name }}</div>
+              <div class="font-semibold text-navy">{{ req.employee?.name || req.employee?.first_name }}</div>
               <div class="text-sm text-gray-500">วันที่: {{ formatDate(req.date) }}</div>
-              <div class="text-sm text-gray-500">เหตุผล: {{ req.reason || '-' }}</div>
+
+              <!-- คำขอพิเศษ -->
+              <div v-if="req.status === 'cancel_requested'" class="mt-1 text-sm">
+                <span class="inline-block px-2 py-0.5 rounded-full text-xs font-bold bg-orange-100 text-orange-700 mr-1">ขอยกเลิก</span>
+                <span class="text-gray-500">พนักงานขอยกเลิก WFH วันนี้</span>
+                <div class="text-xs text-orange-600 mt-1">เหตุผล: {{ req.cancel_reason || '-' }}</div>
+              </div>
+              <div v-else-if="req.status === 'change_requested'" class="mt-1 text-sm">
+                <span class="inline-block px-2 py-0.5 rounded-full text-xs font-bold bg-purple-100 text-purple-700 mr-1">ขอเปลี่ยน</span>
+                <span class="text-gray-500">
+                  {{ req.requested_date && req.requested_date !== req.date
+                     ? formatDate(req.date) + ' → ' + formatDate(req.requested_date)
+                     : 'แก้ไขเหตุผล' }}
+                </span>
+                <div v-if="req.requested_reason" class="text-xs text-purple-600 mt-1">เหตุผลใหม่: {{ req.requested_reason }}</div>
+              </div>
+
+              <div v-if="req.status === 'pending'" class="text-sm text-gray-500">เหตุผล: {{ req.reason || '-' }}</div>
             </div>
           </div>
-          
-          <!-- Change Date Option -->
-          <div class="mt-3 p-3 bg-blue-50 rounded-lg">
+
+          <!-- Change Date Option (เฉพาะคำขอ pending เท่านั้น) -->
+          <div v-if="req.status === 'pending'" class="mt-3 p-3 bg-blue-50 rounded-lg">
             <label class="flex items-center gap-2 text-sm font-medium text-gray-700 mb-2">
               <input type="checkbox" v-model="req.changeDate" class="rounded" />
               เปลี่ยนวันเสาร์
@@ -46,12 +65,15 @@
           <!-- Approve/Reject Buttons -->
           <div class="mt-3 flex gap-2">
             <button @click="approve(req)" :disabled="approving"
-                    class="flex-1 bg-green-600 text-white py-2 rounded-lg font-semibold hover:bg-green-700 disabled:opacity-50">
-              {{ req.changeDate ? 'อนุมัติ (เปลี่ยนวัน)' : 'อนุมัติ' }}
+                    class="flex-1 py-2 rounded-lg font-semibold text-white disabled:opacity-50"
+                    :class="req.status === 'cancel_requested' ? 'bg-orange-600 hover:bg-orange-700'
+                          : req.status === 'change_requested' ? 'bg-purple-600 hover:bg-purple-700'
+                          : 'bg-green-600 hover:bg-green-700'">
+              {{ approveLabel(req) }}
             </button>
             <button @click="reject(req)" :disabled="approving"
                     class="flex-1 bg-red-600 text-white py-2 rounded-lg font-semibold hover:bg-red-700 disabled:opacity-50">
-              ปฏิเสธ
+              {{ rejectLabel(req) }}
             </button>
           </div>
         </div>
@@ -68,11 +90,11 @@
         <div v-for="req in processed" :key="req.id"
              class="flex items-center justify-between p-3 rounded-lg"
              :class="{
-               'bg-green-50': req.status === 'approved',
-               'bg-red-50': req.status === 'rejected'
+                'bg-green-50': req.status === 'approved',
+                'bg-red-50': req.status === 'rejected'
              }">
           <div>
-            <div class="font-semibold">{{ req.employee?.name }}</div>
+            <div class="font-semibold">{{ req.employee?.name || req.employee?.first_name }}</div>
             <div class="text-xs text-gray-500">
               {{ formatDate(req.date) }} | {{ req.status === 'approved' ? 'อนุมัติ' : 'ปฏิเสธ' }}
             </div>
@@ -113,8 +135,21 @@ const toast = ref(null)
 const user = computed(() => state.user)
 const supervisorId = computed(() => user.value?.id)
 
-const pending = computed(() => requests.value.filter(r => r.status === 'pending'))
-const processed = computed(() => requests.value.filter(r => r.status !== 'pending'))
+const ACTIONABLE = ['pending', 'cancel_requested', 'change_requested']
+const pending = computed(() => requests.value.filter(r => ACTIONABLE.includes(r.status)))
+const processed = computed(() => requests.value.filter(r => !ACTIONABLE.includes(r.status)))
+
+const approveLabel = (req) => ({
+  pending: req.changeDate && req.newDate ? 'อนุมัติ (เปลี่ยนวัน)' : 'อนุมัติ',
+  cancel_requested: 'อนุมัติการยกเลิก',
+  change_requested: 'อนุมัติการเปลี่ยน',
+}[req.status] || 'อนุมัติ')
+
+const rejectLabel = (req) => ({
+  pending: 'ปฏิเสธ',
+  cancel_requested: 'ไม่อนุมัติ (คงไว้)',
+  change_requested: 'ไม่อนุมัติ (คงวันเดิม)',
+}[req.status] || 'ปฏิเสธ')
 
 const loadData = async () => {
   loading.value = true

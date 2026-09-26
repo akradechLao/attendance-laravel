@@ -590,6 +590,10 @@ class ManualEntryController extends Controller
     {
         $wfh = WfhRecord::findOrFail($id);
 
+        if (!$this->canModifyEmployee($request, (int) $wfh->emp_id)) {
+            return response()->json(['success' => false, 'message' => 'ไม่มีสิทธิ์แก้ไขข้อมูลพนักงานคนนี้'], 403);
+        }
+
         $validated = $request->validate([
             'date' => 'sometimes|date',
             'reason' => 'nullable|string|max:500',
@@ -640,9 +644,13 @@ class ManualEntryController extends Controller
         ]);
     }
 
-    public function wfhDestroy($id): JsonResponse
+    public function wfhDestroy(Request $request, $id): JsonResponse
     {
         $wfh = WfhRecord::findOrFail($id);
+
+        if (!$this->canModifyEmployee($request, (int) $wfh->emp_id)) {
+            return response()->json(['success' => false, 'message' => 'ไม่มีสิทธิ์ลบข้อมูลพนักงานคนนี้'], 403);
+        }
 
         // ─── ลบ RemoteAssignment ของวัน WFH นี้ (ถ้ามี) ───
         $employee = $wfh->employee;
